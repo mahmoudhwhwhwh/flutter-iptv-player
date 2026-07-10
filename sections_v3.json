@@ -1,0 +1,1283 @@
+{
+  "section_1": {
+    "name": "Match time",
+    "logo": "https://iili.io/CK5M0pR.png",
+    "channels": [
+      {
+        "name": "SPORTS 1 HD ⚡",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCgkcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
+        }
+      },
+      {
+        "name": "SPORTS 2 HD ⚡",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCwAcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 HD ⚡",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCwEcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 HD ⚡",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCwIcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 5 HD⚡ ",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCwMcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 6 HD⚡ ",
+        "icon": "https://iili.io/CKGvbzx.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB9UUBpCwQcQiw=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "TOD HDR 4k⚡",
+        "icon": "https://iili.io/C50h7V9.jpg",
+        "url": "enc:KD0kJCVlfEoCBV9RNj9LCT5VVUEYOyU2ZjRleDJgEFs=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "TOD 1 HD ⚡",
+        "icon": "https://iili.io/C50h7V9.jpg",
+        "url": "enc:KD0kJGxwfAIMGh0LcT8TQ2cCCAIZLywhMH84PzE4SlZHFwBvelEdcgoHAVVydHUsYHlubGJSTkxEUD1/V0w7AwQFBHAlOQMgMD8WZSwIBUczGDsqKjQHXGNfKxIhJxoCDwgJUDJGAjw+HiBAD2F5QX8xGigrGAI6FjkKCi80MzIvMkElUFpadQ4VMCExZw9tBAhXRCcOKwYESjd+VAJgNRorGwMDAQ0UBDs7QQQLAhIqGWhoYGEZKiIwJDk1Fz8IORs8Dg0lNw8+dQFKeBkGEygTHSUWPlQLLAssaQIPPGp/ZGNOEQcJeB4+BDUcMTUfPAgGfjwtGkV/ZmNuDXIHOhkBBT48CR0bPwsBCCAlYwJoXDR0Dw4dYRkLCQktMRFXEA8GAwVmdUh7CBF0BDoBZAUUMAo5MS9vEjIaNn1Ze185EX10fjllKms=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "TOD 2 HD ⚡",
+        "icon": "https://iili.io/C5EmQYF.jpg",
+        "url": "enc:KD0kJGxwfAIMGh0LcT8TQ2cCCAIZLywhMH84PzE4SlZHFwBvelEdcgoHAVVydHUsYHlubGJSTkxEUD1/V0w7AwQFBHAlOQMgMD8WZSwIBUczGDsqKjQHXGNfKxIhJxoCDwgJUDJGAjw+HiBAD2F5QX8xGigrGAI6FjkKCi80MzIvMkElUFpadQ4VMCExZw9tBAhXRCcOKwYESjd+VAJgNRorGwMDAQ0UBDs7QQQLAhIqGWhoYGEZKiIwJDk1Fz8IORs8Dg0lNw8+dQFKeBkGEygTHSUWPlQLLAssaQIPPGp/ZGNOEQcJeB4+BDUcMTUfPAgGfjwtGkV/ZmNuDXIHOhkBBT48CR0bPwsBCCAlYwJoXDR0Dw4dYRkLCQktMRFXEA8GAwVmdUh7CBF0BDoBZAUUMAo5MS9vEjIaNn1Ze185EX10fjllKms=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "https://ap-4it.pages.dev/d3.m3u8",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "TOD 3 HD⚡",
+        "icon": "https://iili.io/C5EmQYF.jpg",
+        "url": "enc:KD0kJCVlfEoCBV9RNj9LCT5VVUEYOyU2ZjRmeDJgEFs=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 1 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwMcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 2 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwQcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 3 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwUcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 4 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwYcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 5 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwccW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS POST 6 HD ⚡",
+        "icon": "https://iili.io/CRzpOwF.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwgcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 1 MAX  4k ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAwkcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 2 MAX 4k ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUtvAAYcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 MAX 4k⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUhoBgIcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 MAX 4k⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB8VUhoBgUcW2w1eA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS HDR 4k⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfFRaQFxUZ3lLSGkcBAYMZ3B4eX9nY2hlUVBBRFJmclVOaQcWFBkQJicmYy0sZxAtTEFEVWd9VEYrXVtXWGI5IRw2NTUXfRw7FBYBcRNLGDtIVnoYJiQ6ATEtLD01Bk0tXBxxDiJXK0EeAgJrcXF8ZjVjOmUAU01CU2wtXR1rUQgCBG4lI3lgbW9pMQAGFxADPn0DS28EVFdUbiNwLGJsZGgwAFMTR11peUtKaAIGCxgLcwohMjkyMxogNRsXPR17SyNtdAZrYSc2IiQFITQYPwg5JE9Y",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS MAX 1 auto⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoRFAVLOCIRESpQRUFTLSMvJyQxOCt9BgwYXQg+IwgWKlZYRV4oKDchfxUjKzxLDkYHXXA5AB8sHVhXVzszbyQxPThwOgsHEAo6PS4MF3oAAF9XJ3FuJGMhbg==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS MAX 2 auto ⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoRFAVLOCIRESpQRUFTLSMvJyQxOCt9BgwYXQg+IwgWKlZYRV4oKDchfxUjKzxLDkYHXXA5AB8sHVhXVzszbyQxPThwOgsHEAo6PS4MF3oAAF9XJ3JuJGMhbg==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS MAX 3 auto  ⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoRFAVLOCIRESpQRUFTLSMvJyQxOCt9BgwYXQg+IwgWKlZYRV4oKDchfxUjKzxLDkYHXXA5AB8sHVhXVzszbyQxPThwOgsHEAo6PS4MF3oAAF9XJ3NuJGMhbg==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS MAX 4 auto ⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoRFAVLOCIRESpQRUFTLSMvJyQxOCt9BgwYXQg+IwgWKlZYRV4oKDchfxUjKzxLDkYHXXA5AB8sHVhXVzszbyQxPThwOgsHEAo6PS4MF3oAAF9XJ3RuJGMhbg==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 1_HD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfFFWW0RScX5TV2gKH2FGMDI0eH89ODs2HU0THxVrZQhKKgo=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 2 _HD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfFFWW0RScX5TV2gKH2FGMDI0e389ODs2HU0THxVrZQhKKgo=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 _HD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfFFWW0RScX5TV2gKH2FGMDI0en89ODs2HU0THxVrZQhKKgo=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 _HD⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfFFWW0RScX5TV2gKH2FGMDI0fX89ODs2HU0THxVrZQhKKgo=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 1_ FHD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoQAR9LMyILEjZCHl1EOG8sICYxeW5qUFQqXAhsPl0=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 2 _FHD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoQAR9LMyILEjZCHl1EOG8sICYxeW5qUFUqXAhsPl0=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 _FHD ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoQAR9LMyILEjZCHl1EOG8sICYxeW5qU1YqXAhsPl0=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 _FHD⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJCVlfEoQAR9LMyILEjZCHl1EOG8sICYxeW5qU1UqXAhsPl0=",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 1_ low ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5TTG4CHl5ZOCkjMDU4eDw8CFlNQl1vZBUVPksfXl8pJW96FBUUaRVRV0wwVB0NJEAZHF0BQ2d/MzwyaTA+PxYGUwQALXYBSW8CFQF3PHBye3Y4NywnWFMbJiEMchQXOQdiH1AYdTYmBRIlD2QzDxRDCGojKUwHH14DeTUXMy5oGB95NwAFSEJDLCICF2JLeEFZJ3UpLRZlbjo9JwRERRA3BwgOeUJID0ItNSVvID0yYnURGgUXWG5tERY0V14PfDN2cTAWGS4pBjIzGTBWDwIkQS5eZwFZES0UEBETHBAiPzwqBx08MlIrL1hmfEEUCylwCjsQLAEwGkAiUi8CKU4LelFQDh4WDD4JLTQOPgYJICsfKR0zVGZYen8PNCgBHh9kAjcZFw0PER0RPDw2bnNoW3IuGAohBDUUZyskL0wXUzweSE0oc2hHQC4WDT8FMAcJZhI8MAJVBy8JITtjUmFXLiwzCDsHJicaCBMaNQNnKBwBJ0d8aAJuOS1+JxkFLT0WJCEmAiwvDjQmdnJ0bh4hJyVpBXAqOgFeTUJda39RTGoBAQYBGQYDeHY3OjY2CxdIHAAoKgQYeVtUD1UaLA8rOnkQZj4mWx82LzEmIBUwAAJiZmojKjwqJyQbK1YkE0UVKSgrO2cUXVkLbnd4e2FiZm1rUw==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 2 _low ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5TTG4CHl5ZOCkjMDU4eDw8CFlNQl1vZBUVPksfXl8pJW96ZWFvaGJdVEZGUW9zUUxpHF0BQ2d/MzwyaTA+PxYGUwQALXYBSW8CFQF3PHBye3Y4NywnWCEkGBNoeQMONm1qUFUuEQFxCB4VDzQIBCImD24hHzMbc3gEexIxLRAkET15NwAFSEJDLCICF2JYXHwCGTcqexsZNzEKDSYjIVRqClMeeUJID0ItNSVvID0yYnURGgUXWG5tERY0V14PaWo5OCcjLAAvCigxHAMQDyZTEzEDBGRxbxg3KyguAhEUECoABy0aPTwjZ1R4XQQAChElMS0+GDsPEAYHL24HPBMcUVxbXG0HBDoFZm8KBhUKTBdcNyAMDi1XWURhPBYDHSgwDxc4HDwAJjAGJ0gDGAMCUVIrBhUkHA4RNwcBKhQ3NXImExUrdghzcBttKAUAJB0aFRYlHzgVHQZRPmhGd3UADXEIehk3Y29jFyFCByoYOgwAPnsBAmUaGnQHH2A7MiMqThEGJyUsNjE6YHtKVzJtcysHBXAqOgFeTUJda39RTGoBAQYBGQYDeHY3OjY2CxdIHAAoKgQYeVtUD0E9LxY7HjIMHDlRVD0YFWd9XSwXeVsHfCxyCAAILgRrAQEwGkBWHj0iLSgUXVkLbnd4e2FiZ2xiUA==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 _low ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5TTG4CHl5ZOCkjMDU4eDw8CFlNQl1vZBUVPksfXl8pJW98EWduZ2VcIUczJG55IEFmHF0BQ2d/MzwyaTA+PxYGUwQALXYBSW8CFQF3PHBye3Y4NywnWDcURAEcBSAWNHRndkYQdwwhfRwPJTcGACEjUnJ5MRtvZwhqdTwiFzg1ASV5NwAFSEJDLCICF2JLQHkbLwkuBmYGDxQVDxQYJAxoHjwoeUJID0ItNSVvID0yYnURGgUXWG5tERY0V14PVBcBeCsXYDByCxxOJSAqZz0hCBR1Z0hcMBd5JH0MYSYgHQIsRwkuGQYaMG1TZHEnMRYfYTInZ2MvVz4GExcsBxEReB1zcDc3AS5pMj0TFAMyJyM0Pg0cG3JicQVgD3Aqfn0EPQowCFEHPi0ROA0daFUHCl4NNCJxCAQnaGsrJTk/LRUDVQ0YW2BFTwgiAhkVZgEKYCtUHT88Fiw3FxFlWFFjaTohJ2MVERQgJlA6QlYaAEgBMlpFfUISEiwcY2AsFmJTK0w8Ag15Kzxoe3JeaSc4ATwEFXAqOgFeTUJda39RTGoBAQYBGQYDeHY3OjY2CxdIHAAoKgQYeVtUD2wJFQJ7KAQiHDwoLT5KAQt/DBI+e3sKXg0HKi4cEmU0AAcJQho3cjITPwoUXVkLbnd4e2FiZGxiUw==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 _low⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5TTG4CHl5ZOCkjMDU4eDw8CFlNQl1vZBUVPksfXl8pJW8MZmJma2dVVEI3JxxyVTxpHF0BQ2d/MzwyaTA+PxYGUwQALXYBSW8CFQF3PHBye3Y4NywnWDQiAAEMBQEKFX5WZwMJEXZ+AzJhEGFXJz8oFj16NDMmdnlhfzgWdRETZ2Z5NwAFSEJDLCICF2JIeFpnDRZyCjgTZicEKBk4GjcaZlUOeUJID0ItNSVvID0yYnURGgUXWG5tERY0V14PRRlzcBwxIzkwMjUaMF9SNDsvPxZGBVhPLXJ1fAkwMCwXFTsYAiQJIQZLJkdcdkcPKBoEFQYaDDtTFjlGA2YsPxIyWEVCWiV5Mi0iEzAYZ0g8EzgfHSwXLBsLA0pdGHAKBQIHJhljBgYmB1IYejM2Pn1IWk8QKCQAaB0dKTogNzEKAmcMUDBrQFdTXDkYBzAbAwk4fgoFQQsHD3sxSyhKZUcAbCkjGBoRYzUBDQ5NRFA6IhAfKWpkZWYoIS4FOTwGLjQyGR4zHHI6Az8ubVVHWm8KdD9jBXAqOgFeTUJda39RTGoBAQYBGQYDeHY3OjY2CxdIHAAoKgQYeVtUD0MwLDUKMRZhEgwvLVg0CBI7Ny4PeENkYS02Fy4KLBxtIVJUJxo3HT8tKRYUXVkLbnd4e2FiZ2lgUQ==",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 1_ 4K⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfABSQlwHKTkBDSxAVxxVMC16cWBsZnAjCQIMXQk2PQBWGQt1C3MccQZ4Z2FmbxZcUVsfVipzWgoqUA1UVzMzJW8mMSRiN1VTRVdWHihVS20UXFNFK30NITQANAkrISs5OVYmABwwEEVkXU5qDi8eOGcTN2IDCVgYMhI9MSppZAIKEDslJnRgciU2NAteIjs9PHssPRhYAXsFa3IBAxEkDA0fAkUFClg5KgkKOhRAW1JiZjQwIDFrbnURDB4XC2IUKzgpZH1rTholdSsVBxUNIywEJUpWOBscPShGCWJBECgHBD41FBxkLSxCBCkQGTQdLmBCdUA9eAkeETg0HRgcKQIIOhY9KE4uWntmZCU1ECgHEG8VFxBSOgI1MA8qLw1cSUYDPCcoIB1sPxgLJjYWECIIfDEebGB/UUA+FCooPw5ibQQrCFg6NAVyBAEdBnhAdzsmNRA+bT4XPgE0IwsiOgQxMA9/RH9jN3AxeB0XZAxlOhc9Q11qZhc0PUtnam8JOXQOAiARHTANVDQ+IDU6MEkVfGhVECopJHRoZG5rZ1FWQEFUa3wjPxwDFlFaNiUuPW06MygyBAJTGwFiO1QSAAd7AwceFQg4NjcJPAUuMx8qLxclMwAaekBVDyt0dCZnAzUIYB00FlQINHZUTmcAAgIAa3Fx",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "okhttp/3.12.5",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 2 _4K ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfABSQlwHKTkBDSxAVxxVMC16cWBsZnAjCQIMXQk2PQBWZwRzBQUdcXgNZRUUb2BQJlsfVipzWgoqUA1UVzMzJW8mMSRiN1VTRVdWHihVS20UXFNFK30BMCI1LwxqFlMbGj1qLVcdDHdJeFpmeBN8Gg41NBg3PABBEzh/VEwZWHcKEDslJnRgciU2NAteGxA6HBpQOzJZekddEikDJT4MMS0EEkUFClg5KgkKOhRAW1JiZjQwIDFrbnURDB4XC2J5JA1vfXZ4Wi8fLXEKOA8cADYCFyZWaR5XDipCeAJsbnh1ChcOEBI0XFQWCxIVLxEWDXMFWXFoBxNxP2weOR4MACMDMzEoHCg0S3xEZDkEAjg5LAVtMBcSJgoKBRwgFTdkc1RwNQ8TCzItBxsjAg9YSjI5DigXGGpZfRsdAysTHQFgFQo8Oj0fMwkkDz0Ne2gEcBIrJnhnHxUOYxciFBQUMhFVKx1+AXpzJhYWKCdnPmg7EVpEAxFoKhMeaX9maFRrNDkxPxo/KRsdGwYYAWgNIxMSSnlVECopJHRoZG5rZ1FWQEFUa3wjPxwDFlFaNiUuPW06MygyBAJTGwFifywAcnxGQ05oKiEeIBkHEH4hNic2NjYtAg9tVQIAe2o6Nwo3BQYvNFMgQVQINHZUTmcAAgIOb3Rw",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "okhttp/3.12.5",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 3 _4K ⚡",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5USGwDBwoYMy8nIDMtMzN9BgwYSF1vc1VWL15RSxkzKTYsfxZha2cgVjc3IGtzU0waAXYcW2w1eHYjITRiNQQPBhdDKS4XRDsCAAITbAEjeWJmcDMyFhdILQAMKg8MaX0IdAZudAkBZT4kcgcdCUZLFggqUkAuXnhDQhEINjk2B2ArIEMHEBRYb20WEDhcDVR+FHEXfCAaFBIQFxFBJxMcHBITEXMWQk5iNDI8NXImNjdYRQELFTp2VF8rXVtXWGJyAT1gGxAVPxU8GEo/MxImKgxTUmYFaRVyPiUkHm8JVFtAMSIFDSgeZgVTS0EVJDQmAhVjNBRSJCZKCmcDAzQ2UWZDYDEjORg7LRopAQMnNwMMJxhXGi1DY0pZBRcFJTgCFTkVDywmMAcmGiEJOF4dCmE5BQ0nFww/EH4nIB4oKAp9LyAGa3hfYAkvKg0CHQ5pFSgIE0NSFAg0SS1zUVRHMhpwGxIYZxcWHDUjExJsI1IRKwsBQ0JoITYuZhkABTFRFwwKChEiEzEnSkNYUmgGBiMdLB84dRAKEU9db3NRTWsHBQEHa3cGDxNlcDw/DAYbBlgxLhIYPlMWW1JiNCx5aAYeaTcoIE1ENW0MLRwJdXsGUiUXDSQjBWA4BTJSTTwuExkpIzt2UxRbNH1xfmhmZG9rV1ZH",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "okhttp/3.12.5",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "SPORTS 4 _4K⚡ ",
+        "icon": "https://iili.io/CK5M0pR.png",
+        "url": "enc:KD0kJGxwfAAHEhdIOj5USGwDBwoYMy8nIDMtMzN9BgwYSF1vc1VWL15RSxkzKTYsf2BmbGBWUzExUBp7UE1uBXMcW2w1eHYjITRiNQQPBhdDKS4XRDsCAAITbAEjeWJmcDMyFhdIBglvczcxaVZ9cQ5pEHIOGDEAGBhRBw8lKDI4NE84ZGcDDhELDBscDjIbMEMHEBRYb20WEDhcDVFsHDQuGyllJjk+IxcMFRUqP1EULUUWQk5iNDI8NXImNjdYRQELFTp2VF8rXVtXWGJyAT1gGxAVPxU8GEo/MxImKgxTUmYFaRVyPiUkHm8JVFtAMSIFDSgeZgVTS0EVJDQmAhVjNBRSJCZKCmcDAzQ2UWZDYDEjORg7LRopAQMnNwMMJxhXGi1DY0pZBRcFJTgCFTkVDywmMAcmGiEJOF4dCmE5BQ0nFww/EH4nIB4oKAp9LyAGa3hfYAkvKg0CHQ5pFSgIE0NSFAg0SS1zUVRHMhpwGxIYZxcWHDUjExJsI1IRKwsBQ0JoITYuZhkABTFRFwwKChEiEzEnSkNYUmgGBiMdLB84dRAKEU9db3NRTWsHBQEHa3cGDxNlcDw/DAYbBlgxLhIYPlMWW1JidyRwHmIvFWNVEyFfNTY5HwsWXkFbQCsmDwYmEBtmCx8PBygoGhgTDCpYABRbNH1xfmhmZG9rUVRG",
+        "category_name": "Match time",
+        "category_id": "custom_pro_1",
+        "user_agent": "",
+        "referer": "okhttp/3.12.5",
+        "keys": {}
+      }
+    ]
+  },
+  "section_2": {
+    "name": "أفلام وقنوات أطفال",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "Kids HD ⚡",
+        "icon": "https://iili.io/Czv9WPV.jpg",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZmCgAAAnEtczxo",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
+        }
+      },
+      {
+        "name": "Cartoon Network Arabic ⚡",
+        "icon": "https://iili.io/CzvHpIa.jpg",
+        "url": "enc:KD0kJGxwfF1aW0FScXpUTnEABQAMZ3B4eX84Pyk2SlJNSl1qe1JPaQoBAQVpb3F9ZmBubWBSUUNKV2t7SkxoCgkcW2w1eA==",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2"
+      },
+      {
+        "name": "MBC 3 Kids HD ⚡",
+        "icon": "https://iili.io/CzvJwTg.jpg",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGTkZfECwqSkw7BwgAAGoheH9iNWJoZQEAQhRcaH1cTT5WVFADOyUkZjk6MjorSw5GB10=",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2"
+      },
+      {
+        "name": "Majid Kids HD ⚡",
+        "icon": "https://iili.io/CzvdxAF.jpg",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZnCgAABnEtczxo",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2"
+      },
+      {
+        "name": "Baraem Kids TV ⚡",
+        "icon": "https://iili.io/CzvdeR9.jpg",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZnCgAABXEtczxo",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2"
+      },
+      {
+        "name": "Spacetoon HD⚡",
+        "icon": "https://iili.io/CRG1mGI.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7LCMEABAGCjAlSh1nAQgAUD15IStkNmRsY1JTQEoDbnkGTjpTCQJSPXV0Zjk6MjorSw5GB10=",
+        "category_name": "أفلام وقنوات أطفال",
+        "category_id": "custom_pro_2"
+      }
+    ]
+  },
+  "section_3": {
+    "name": "قنوات الأخبار والأحداث",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "قناة الجزيرة الإخبارية Al Jazeera HD ⚡",
+        "icon": "https://iili.io/CzNY9yJ.jpg",
+        "url": "enc:KD0kJCVlfEoPHAQAciMJCnJFVVAbPiohZzcxIj45Sw0QBkoeASRWNlxUV05xLXM8aA==",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3",
+        "user_agent": "IPTV-Android-Box",
+        "referer": "https://aljazeera.net",
+        "keys": {
+          "7406a641db1b63cbdcffdaae8df2831f": "daae8df2831f7406a641db1b63cbdcff"
+        }
+      },
+      {
+        "name": "العربية الحدث Al Hadath HD ⚡",
+        "icon": "https://iili.io/CzwcODx.jpg",
+        "url": "enc:KD0kJCVlfEoPHAQAcSoJGC1TUltPPm4uLCR7NzMyFwIXGwQvPgcVNkFYHVczITIoMj0vPn0WDhweSi8nBAAzW0NGGDJzNXE=",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3"
+      },
+      {
+        "name": "قناة العربية Al Arabiya HD ⚡",
+        "icon": "https://iili.io/Czwle7n.jpg",
+        "url": "enc:KD0kJCVlfEoPHAQAcSASEDRfX0ZfMC5uKj85eT4/BBEUEBxuJwwPOh1RXlctISIwDzU0LXwVDxQLCTY4EVcyAUUK",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3"
+      },
+      {
+        "name": "Sky News Arabia سكاي نيوز ⚡",
+        "icon": "https://iili.io/Czw1ODG.png",
+        "url": "enc:KD0kJCVlfEoPHAQAcjgRCzpTXRxFNDkuLCcnNy0yBwoUXAYwJkoaclpfQF8lLy49MTh7PDsEDRsXCXAjCgs2SF9cQj4sbTokJjM+PkoKGxYAJ2UISioK",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3"
+      },
+      {
+        "name": "BBC Arabic بي بي سي عربي ⚡",
+        "icon": "https://iili.io/CzwEld7.png",
+        "url": "enc:KD0kJCVlfEoVBl8GMioDVC9HQ1pUcjc3ZDw9IDp9BAgUHwQ2MQAdcVxVRhknfXRmOWkjLT1fARcRXy8iFQplQVVAQDYjJXMyNjUAMhcCFxsGAD8TVjJdUltaOh83IDY9CTIyDA0qGgEAKgcLAEQCHFsvJA==",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3"
+      },
+      {
+        "name": "RT Arabic روسيا اليوم ⚡",
+        "icon": "https://iili.io/CzwGfTu.jpg",
+        "url": "enc:KD0kJCVlfEoRAV8ELSlLCytGRhxVMC1vJTkiM3AhEQIHEwdwOwkYJl5ZQUIAcXZ5YB80cT5WFk0=",
+        "category_name": "قنوات الأخبار والأحداث",
+        "category_id": "custom_pro_3"
+      }
+    ]
+  },
+  "section_4": {
+    "name": "الرياضة العربية",
+    "logo": "https://iili.io/CK5M0pR.png",
+    "channels": [
+      {
+        "name": "Alkass Sports 1 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQdyMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
+        }
+      },
+      {
+        "name": "Alkass Sports 2 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQRyMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "Alkass Sports 3 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQVyMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "Alkass Sports 4 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQJyMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "Alkass Sports 5 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQNyMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "Alkass Sports 6 ⚡",
+        "icon": "https://iili.io/CKMJBjf.png",
+        "url": "enc:KD0kJCVlfEoPHAQAOj5IHjxCHlNaNCEzOjQ9MTYnBA9bHAArZAQVNFNDQQByMG8kMT04cT5WFk0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "STC sports _1 ⚡",
+        "icon": "https://iili.io/Cf0Rhp1.jpg",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhkMFAN6fwcCHGBLCgYfCXAmBBc2VFVBQnEtMC0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "1fd615ca2c5353fc5393da466ce31cbc": "942822c6e7d3b01dd71bffded7ac0aa8"
+        }
+      },
+      {
+        "name": "STC sports _2 ⚡",
+        "icon": "https://iili.io/Cf0Rhp1.jpg",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhkMFAN9fwcCHGdLCgYfCXAmBBc2VFVBQnEtMC0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "01065be7ffbb268f2aadf7424b8ee24e": "79a541c99e9bb7815e257e4a4ff46dbb"
+        }
+      },
+      {
+        "name": "STC sports _3 ⚡",
+        "icon": "https://iili.io/Cf0Rhp1.jpg",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhkVARd4fx4XCGJLCgYfCXAmBBc2VFVBQnEtMC0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "e74c7d697bd26595b196c6b96e2d4f5b": "e288110233737502e8af9184098ab50b"
+        }
+      },
+      {
+        "name": "Starz Play Sports 1 ⚡",
+        "icon": "https://iili.io/Cf02bDP.jpg",
+        "url": "enc:KD0kJCVlfEoQBQFUcTgRGC1IQF5XJiEyKDI9N3EwCg5aHRArZBNIcFdVVwdneHh9ZTFvamdWVUxLAzt5URxqUwkKD28jdixiez8xNwAbWx8VOw==",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "b253c726c24c7c94a3ddf9b1907e2c76": "097963d6ad73c3d712a104981de0ed42"
+        }
+      },
+      {
+        "name": "Starz Play Sports 2 ⚡",
+        "icon": "https://iili.io/Cf02bDP.jpg",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhkVARd4fx4XCGJLCgYfCXAmBBc2VFVBQnEtMC0=",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "e74c7d697bd26595b196c6b96e2d4f5b": "e288110233737502e8af9184098ab50b"
+        }
+      },
+      {
+        "name": "Starz Play Sports 3 ⚡",
+        "icon": "https://iili.io/Cf02bDP.jpg",
+        "url": "enc:KD0kJCVlfEpRR0RcOXxRSnFFRUBacSMvJH85NywnABFaFFZpL1dMOgVVBwQ5cSIoaDBhOmZTBhdKUGYoU0ppBwYBBG50JnxkZXkJPgkILCUgKy89NzlgW15xDhYCOjQMGBkxCAcGEz0RJD1JN39lRRkvLCEwPD0lK30IUABK",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "Shahid Sports 1 ⚡",
+        "icon": "https://iili.io/CKMTUSs.jpg",
+        "url": "enc:KD0kJCVlfEoQHRMNNi9ICi9dQkZFcnFtLD43eDo3AgYbFx0rKAEXcVxVRhkwNTRmJmV5b2JTWhYUBG1zV09uBlVQU2Z3JS9gZmZuNwRbQhAHb39KEDFWVUoYMjAk",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "ab081a704aad41829b1123b09b6ecafd": "dd51609092fff15e68b91debf5d591f9"
+        }
+      },
+      {
+        "name": "Shahid Sports 2 ⚡",
+        "icon": "https://iili.io/CKMTUSs.jpg",
+        "url": "enc:KD0kJCVlfEoQHRMNNi9ICi9dQkZFcnJtLD43eDo3AgYbFx0rKAEXcVxVRhkwNTRmJmV5amtcAhREB259BhxmBgIBDmd2eXwyYTRtYlEFQRMAZnhKEDFWVUoYMjAk",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "50a7f3afc00a40b38face4db639d0e4c": "ad7000691326064706281a700b7d6714"
+        }
+      },
+      {
+        "name": "Shahid Sports 3 ⚡",
+        "icon": "https://iili.io/CKMTUSs.jpg",
+        "url": "enc:KD0kJCVlfEoQHRMNNi9ICi9dQkZFcnNtLD43eDo3AgYbFx0rKAEXcVxVRhkwNTRmJmV5bWVQWxZLUz0pAxhqBlYBBWYlc3xnMjNsZVZVREddaC5KEDFWVUoYMjAk",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "2b6f6b340aa8467785e4e82f9320fb5a": "8889701d704078c4d910ed1409413d9b"
+        }
+      },
+      {
+        "name": "ثمانيه Sports 1 ⚡",
+        "icon": "https://iili.io/CKGia0x.png",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhk9MCtkJCJ5DAcmN0RdEilmFQtwX1FcXzklMz1+OSY7",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "714c789c76686632652eefc19f18c3db": "962cee49ee9422b44a6c60a7999854ad"
+        }
+      },
+      {
+        "name": "ثمانيه Sports 2 ⚡",
+        "icon": "https://iili.io/CKGsqI1.png",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhk9MCtkJCJ5DAcmN0ddEilmFQtwX1FcXzklMz1+OSY7",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "97e293d59ed72db87f12fe7075d8bb4c": "c633955e4477ed5acbae68a2b0f1d216"
+        }
+      },
+      {
+        "name": "ثمانيه Sports 3 ⚡",
+        "icon": "https://iili.io/CKGsQ6J.png",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhk9MCtkJCJ5DAcmN0ZdEilmFQtwX1FcXzklMz1+OSY7",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "4bc8e4e871589a45e7c0c7d245c243c6": "4c5e8108e0f3cea4b588f5727d3de482"
+        }
+      },
+      {
+        "name": "Abu Dhabi Sport 1 ⚡",
+        "icon": "https://iili.io/CBe6i8X.jpg",
+        "url": "enc:KD0kJCVlfEoGA18RPCVIHSdQHVFSMW4hPiN6JjMyHAAaXAYwJkoVNkRVHVM7M28IMiEJGzsEARwtNi8kFw0sbQFtfhtvBAgDHHkeMRA8MRoEPSI6Ki9dQkZFAHEfARR6Oy83",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "1bec6ac7cd9a02dd75da2278ba3183ef": "029edcf6b6c737595445a1a3a390edb3"
+        }
+      },
+      {
+        "name": "Abu Dhabi Sport 2 ⚡",
+        "icon": "https://iili.io/CBe6i8X.jpg",
+        "url": "enc:KD0kJCVlfEoGA18RPCVIHSdQHVFSMW4hPiN6JjMyHAAaXAYwJkoVNkRVHVM7M28IMiEJGzsEARwtNi8kFw0sbQJtfhtvBAgDHHkeMRA8MRoEPSI6Ki9dQkZFAHIfARR6Oy83",
+        "category_name": "الرياضة العربية",
+        "category_id": "custom_pro_4",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "528afb1be8ef0e74a8fe703e37e493de": "1f58c055fe8028ca00226301d6161729"
+        }
+      }
+    ]
+  },
+  "section_5": {
+    "name": "القنوات الإسلامية والقرآن",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "قناة كربلاء الفضائية 🕌",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERGUGx5SxRsRwg=",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {
+          "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
+        }
+      },
+      {
+        "name": "قناة آفاق الفضائية 📡",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERGUGx4SxRsRwg=",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة الجوادين الفضائية ✨",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERBXGx7VE9xRkM=",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة صوت العقيلة 🎤",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERFVWd5XFcrQQ==",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة الثقلين الفضائية 📖",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERFVWd5UlcrQQ==",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة الطليعة الفضائية 🚩",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERFVWd5U1crQQ==",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة الشعائر الفضائية 🕯️",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfFEIEh0KO2UKCzgdXFtAOm95f2hkYW1gVFtNXQ4mLRFPNEEAVQE4Mnc8J2QuNjxTTERLV2t7UFcrQQ==",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "قناة الكفيل الفضائية 🕯️",
+        "icon": "https://iili.io/Cz6MpEl.png",
+        "url": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanJvJTkiM3BiXVtNR1VofVNBbgEDBBludHZ9aGZlaGFTW0dGVXB6XE1rBQMcQiw=",
+        "category_name": "القنوات الإسلامية والقرآن",
+        "category_id": "custom_pro_5",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      }
+    ]
+  },
+  "section_6": {
+    "name": "الوثائقية والثقافية",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "NAT GEO WILD 🌍",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoFFAERMzIXDj0fXFtAOm4jLT56PzEnDAQHEwlyJBENcVxVRhkRCARmHhwScToWDhldCD4lDB86QUQcWy8k",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "Mozilla/5.0 (SmartTV)",
+        "referer": "https://natgeo.ae",
+        "keys": {
+          "276e56bc14095f327bbf0c936eb7b38c": "63127eaddb18c596db05657424849519"
+        }
+      },
+      {
+        "name": "قناة الشروق الوثائقية 🗺️",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoQAwFLNj8SFi1ZQ1FSMW4uLCR7Nyw7BBEEFgo8PggcMUZRQE8zKTYsfzUlNzIXEhEdBiomABcrU0JLGCwtKSV/JDo+KgkKBgY6Oz0XVzIBRQo=",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "الجزيرة الوثائقية Al Jazeera Doc 🔎",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoPHAQAciMJCnJTQEJFciEqLX0yN3E0ABcUGEsxLhFWHnh0HV8xJCUxfjllKms=",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "DISCOVER PAKISTAN 🇵🇰",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoOGV8VKicJVDtEUx9bJiMvZzk7bG1jXFVaNiwMCCovGmBvYncUCRMdERp5Nj0BBg1cCGw+XQ==",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "INTRAVEL ✈️",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoCGBVVb3NTSHJTXVUGb3h2eDNlZnIhBAgABgAxZhAScgEBBwRxMCwoKTsjKyBLDRoFSz4mBB42HEREGS8sITA8PSUrfQhQAEo=",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "WILD TV 🌲",
+        "icon": "https://iili.io/Cz6SVAx.png",
+        "url": "enc:KD0kJCVlfEoHExoWPiMVGGsHW1kEcSMsJiUwMC08CxdbHAArZBYaN1dUR1o6Mm86MzwzOyYJBjgTFisuF1ZrBQYcW2w1eA==",
+        "category_name": "الوثائقية والثقافية",
+        "category_id": "custom_pro_6",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      }
+    ]
+  },
+  "section_7": {
+    "name": "القنوات الترفيهية",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "MBC 1 🎭",
+        "icon": "https://iili.io/CK7B3G9.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGTkRfCz5kABw8AwQDA2xzI3BgMDJsZ1JRRxFQb3gES2YEVFYGO3hvID4wMyd9CFAASg==",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "IPTV-Plus",
+        "referer": "https://shahid.mbc.net",
+        "keys": {}
+      },
+      {
+        "name": "MBC 2 🎬",
+        "icon": "https://iili.io/CRgbxbS.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGTkddUG4vB0A7BVZTAmchcn40ZGNuNVQGEBEHaXNVT2YDBQMZNi4kLCh6Oy83",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "IPTV-Plus",
+        "referer": "https://shahid.mbc.net",
+        "keys": {
+          "e3ce77324a3d4fa2a913b26cc1976052": "17774f82a3b9e33ea7a149596acbb20f"
+        }
+      },
+      {
+        "name": "MBC 4 🎡",
+        "icon": "https://iili.io/CRgmPMF.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGTkFdV2stVEprVAFRUmlzJCtpZ2JpZ1ZaEEtTPXNTGj4EVVYZNi4kLCh6O2wmXQ==",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "MBC 5 🌟",
+        "icon": "https://iili.io/CRgploP.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGTkBdADp9B0lvAlNXU292cnBkZWc9ZVNVFBBXaSgHSGxXCVAZNi4kLCh6O2wmXQ==",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "MBC MASR 1 ⚡",
+        "icon": "https://iili.io/CK7zZ4S.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYMyduJD43MjF9BgwYXQk2PQBWPVtEX1kpKS5kPTY1cj4EEAddXGp9ABg8AgYLVWh4IXplMGJoYVFWERBTPC8HG24HBwcZNi4kLCh6O2wmXQ==",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "MBC MASR 2 🔥",
+        "icon": "https://iili.io/CK7IN9e.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGThgTFi1mV1ZoBwQLBW54dX9lZWNvZFABRRMEPS1VHGoKAwYPaiN2cX89ODs2HU0YQRBn",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "MBC IRAQ 🇮🇶",
+        "icon": "https://iili.io/CK7T9St.png",
+        "url": "enc:KD0kJCVlfEoQHRZIOCgVVDNbRlcYOiQnLD4xLiswAQ1bHAArZAkQKVcfUF8rLS8/OTp7MjEGThwABC5kAEpnUQQGVG4idHpkY2I6YgZQTBEHailcSW0CAwQPbiVvID4wMyd9CFAASg==",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "MBC Drama 📺",
+        "icon": "https://iili.io/CK7TGOg.png",
+        "url": "enc:KD0kJCVlfEoOFxFUci4LGnFXVFVTMSU4PTMwOHE9ABdaHRArZBNIcFAAUAU+cCV/Z2FmO2dRU00QB2d9AU5vAVQHUDomJi1hez8xNwAbWx9WKnM=",
+        "category_name": "القنوات الترفيهية",
+        "category_id": "custom_pro_7",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      }
+    ]
+  },
+  "section_8": {
+    "name": "الباقة العالمية الرياضية 🏆",
+    "logo": "https://iili.io/CCzxjNs.png",
+    "channels": [
+      {
+        "name": "beIN Sports Max 1 SD كاس العالم 🏆",
+        "icon": "https://iili.io/CB24mQa.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9VlcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "IPTVPlayer-Series-Web",
+        "referer": "https://series.mahmoud.net",
+        "keys": {
+          "c56e057f610a890e10adc3949ba59abb": "3949ba59abbc56e057f610a890e10adc"
+        }
+      },
+      {
+        "name": "beIN Sports Max 1 HD كاس العالم ⚡",
+        "icon": "https://iili.io/CB24mQa.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9V1crQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 1 4K كاس العالم ⚡",
+        "icon": "https://iili.io/CB24mQa.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9VFcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 2 SD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26uvS.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9U1crQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 2 HD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26uvS.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9UFcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 2 4K كاس العالم ⚡",
+        "icon": "https://iili.io/CB26uvS.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8VVcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 3 SD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26VyP.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9XFcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 3 HD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26VyP.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9XVcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 3 4K كاس العالم ⚡",
+        "icon": "https://iili.io/CB26VyP.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd9UlcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 4 SD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26vFR.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8V1crQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 4 HD كاس العالم ⚡",
+        "icon": "https://iili.io/CB26vFR.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8VFcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 4 4K كاس العالم ⚡",
+        "icon": "https://iili.io/CB26vFR.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8VVcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 5 SD كاس العالم ⚡",
+        "icon": "https://iili.io/CzrPhNf.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8UFcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 5 HD كاس العالم ⚡",
+        "icon": "https://iili.io/CzrPhNf.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8UVcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 5 4K كاس العالم ⚡",
+        "icon": "https://iili.io/CzrPhNf.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8VlcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 6 SD كاس العالم ⚡",
+        "icon": "https://iili.io/Czriies.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8XVcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 6 HD كاس العالم ⚡",
+        "icon": "https://iili.io/Czriies.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8UlcrQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports Max 6 4K كاس العالم ⚡",
+        "icon": "https://iili.io/Czriies.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUowJgQLaAUHHQZucXB6aWNuampVTEFEVWd8U1crQQ==",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 1 HD ⚡",
+        "icon": "https://iili.io/CK75BIe.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmxuNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 2 HD ⚡",
+        "icon": "https://iili.io/CK75iZu.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmtuNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 3 HD ⚡",
+        "icon": "https://iili.io/CK77jSV.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmpuNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 4 HD ⚡",
+        "icon": "https://iili.io/CK7c6Ux.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmluNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 5 HD ⚡",
+        "icon": "https://iili.io/CK7lc0b.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmhuNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 6 HD ⚡",
+        "icon": "https://iili.io/CK7l4LX.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmduNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 7 HD ⚡",
+        "icon": "https://iili.io/CK70fpV.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKBmZuNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 8 HD ⚡",
+        "icon": "https://iili.io/CK71FPn.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKB29uNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      },
+      {
+        "name": "beIN Sports 9 HD ⚡",
+        "icon": "https://iili.io/CK70Wv4.png",
+        "url": "enc:KD0kJGxwfFRbQFxUZnpLSG0EHgMEaHp4eWhkeTM6EwZaXUpsflJPawEEBAFmeXB+ZmF5EDUCDEYLH2cILVZsAAUKB25uNDo=",
+        "category_name": "بين سبورت",
+        "category_id": "custom_pro_8",
+        "user_agent": "",
+        "referer": "",
+        "keys": {}
+      }
+    ]
+  },
+  "min_version_code": 144
+}

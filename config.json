@@ -1,0 +1,43 @@
+{
+  "blocking": {
+    "blocked_version_codes": [
+      125,
+      130,
+      140
+    ],
+    "min_version_code": 140,
+    "block_message": "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!"
+  },
+  "xtreams": {
+    "558833": {
+      "type": "xtream",
+      "name": "سيرفر مغلق",
+      "subName": "تم إيقاف هذا الكود",
+      "host": "enc:stopped",
+      "username": "enc:stopped",
+      "password": "enc:stopped",
+      "durationHours": 0
+    },
+    "778899": {
+      "type": "xtream",
+      "name": "سيرفر VIP السحابي 💎",
+      "subName": "اشتراك تجريبي لمدة 7 أيام ⚡",
+      "host": "enc:KD0kJGxwfAgCDV8VLSRLDzZCCgAGanI=",
+      "username": "enc:cXFobGNvZFNVTUNWbH0=",
+      "password": "enc:cX1mYG5tYFJRQ0pXa3s=",
+      "durationHours": 168
+    },
+    "902010": {
+      "type": "github",
+      "name": "live strem pro ⚡",
+      "subName": "الاشتراك الرسمي الدائم (مدى الحياة) 🛡️"
+    }
+  },
+  "notifications": [
+    {
+      "id": "welcome_active",
+      "title": "🎉 أهلاً بك في تطبيق live strem pro 🎉",
+      "body": "تمت صيانة وتحديث السيرفرات والقنوات بنجاح لتوفير أفضل أداء وثبات لكم. مشاهدة ممتعة! ⚡"
+    }
+  ]
+}

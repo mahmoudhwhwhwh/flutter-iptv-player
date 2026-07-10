@@ -1,0 +1,84 @@
+[
+  {
+    "name": "MBC 1 🎭",
+    "icon": "https://iili.io/CK7B3G9.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-1-na/eec141533c90dd34722c503a296dd0d8/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "IPTV-Plus",
+    "referer": "https://shahid.mbc.net",
+    "keys": {}
+  },
+  {
+    "name": "MBC 2 🎬",
+    "icon": "https://iili.io/CRgbxbS.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-2/51db9d7fa48a27d051f1eecb68069151/index.mpd",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "IPTV-Plus",
+    "referer": "https://shahid.mbc.net",
+    "keys": {
+      "e3ce77324a3d4fa2a913b26cc1976052": "17774f82a3b9e33ea7a149596acbb20f"
+    }
+  },
+  {
+    "name": "MBC 4 🎡",
+    "icon": "https://iili.io/CRgmPMF.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-4/24f134f1cd63db9346439e96b86ca6ed/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "MBC 5 🌟",
+    "icon": "https://iili.io/CRgploP.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-5/ee6b000cee0629411b666ab26cb13e9b/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "MBC MASR 1 ⚡",
+    "icon": "https://iili.io/CK7zZ4S.png",
+    "url": "https://shd-gcp-live.lg.mncdn.com/live/bitmovin-mbc-masr/956eac069c78a35d47245db6cdbb1575/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "MBC MASR 2 🔥",
+    "icon": "https://iili.io/CK7IN9e.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr-2/754931856515075b0aabf0e583495c68/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "MBC IRAQ 🇮🇶",
+    "icon": "https://iili.io/CK7T9St.png",
+    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-iraq/e38c44b1b43474e1c39cb5b90203691e/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "MBC Drama 📺",
+    "icon": "https://iili.io/CK7TGOg.png",
+    "url": "https://mbc1-enc.edgenextcdn.net/out/v1/b0b3a0e6750d4408bb86d703d5feffd1/index.m3u8",
+    "category_name": "القنوات الترفيهية",
+    "category_id": "custom_pro_7",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  }
+]

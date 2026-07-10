@@ -1,0 +1,49 @@
+[
+  {
+    "name": "قناة الجزيرة الإخبارية Al Jazeera HD ⚡",
+    "icon": "https://iili.io/CzNY9yJ.jpg",
+    "url": "https://live-hls-web-aja.getaj.net/AJA/index.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3",
+    "user_agent": "IPTV-Android-Box",
+    "referer": "https://aljazeera.net",
+    "keys": {
+      "7406a641db1b63cbdcffdaae8df2831f": "daae8df2831f7406a641db1b63cbdcff"
+    }
+  },
+  {
+    "name": "العربية الحدث Al Hadath HD ⚡",
+    "icon": "https://iili.io/CzwcODx.jpg",
+    "url": "https://live.alarabiya.net/alarabiapublish/alarabiya.smil/playlist.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3"
+  },
+  {
+    "name": "قناة العربية Al Arabiya HD ⚡",
+    "icon": "https://iili.io/Czwle7n.jpg",
+    "url": "https://live.kwikmotion.com/alaraby1live/alaraby_abr/playlist.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3"
+  },
+  {
+    "name": "Sky News Arabia سكاي نيوز ⚡",
+    "icon": "https://iili.io/Czw1ODG.png",
+    "url": "https://live-stream.skynewsarabia.com/c-horizontal-channel/horizontal-stream/index.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3"
+  },
+  {
+    "name": "BBC Arabic بي بي سي عربي ⚡",
+    "icon": "https://iili.io/CzwEld7.png",
+    "url": "https://vs-cmaf-pushb-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_arabic_tv/mobile_wifi_main_hd_abr_v2.mpd",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3"
+  },
+  {
+    "name": "RT Arabic روسيا اليوم ⚡",
+    "icon": "https://iili.io/CzwGfTu.jpg",
+    "url": "https://rt-arb.rttv.com/live/rtarab/playlist_1600Kb.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_3"
+  }
+]

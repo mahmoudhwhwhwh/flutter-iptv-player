@@ -1,0 +1,64 @@
+[
+  {
+    "name": "NAT GEO WILD 🌍",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://fastlyrwb-live.cdn.intigral-ott.net/NHD/NHD.isml/manifest.mpd",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "Mozilla/5.0 (SmartTV)",
+    "referer": "https://natgeo.ae",
+    "keys": {
+      "276e56bc14095f327bbf0c936eb7b38c": "63127eaddb18c596db05657424849519"
+    }
+  },
+  {
+    "name": "قناة الشروق الوثائقية 🗺️",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://svs.itworkscdn.net/asharqdocumentarylive/asharqdocumentary.smil/playlist_dvr.m3u8",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "الجزيرة الوثائقية Al Jazeera Doc 🔎",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://live-hls-apps-ajd-fa.getaj.net/AJD/index.m3u8",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "DISCOVER PAKISTAN 🇵🇰",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://ml-pull-dvc-myco.io:2096/DISCOVER_PAKISTAN/index.m3u8",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "INTRAVEL ✈️",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://amg00861-amg00861c10-rakuten-uk-3152.playouts.now.amagi.tv/playlist.m3u8",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "WILD TV 🌲",
+    "icon": "https://iili.io/Cz6SVAx.png",
+    "url": "https://dfhsahpa45kk2.cloudfront.net/scheduler/scheduleMaster/476.m3u8",
+    "category_name": "الوثائقية والثقافية",
+    "category_id": "custom_pro_6",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  }
+]

@@ -1531,14 +1531,10 @@ class IPTVProvider with ChangeNotifier {
                   final pass = (activePlaylist.password ?? '').trim();
                   if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
                     final uri = Uri.tryParse(url);
-                    if (uri != null) {
+                    if (uri != null && uri.pathSegments.isNotEmpty) {
                       final pathSegments = uri.pathSegments;
-                      final urlHost = uri.host.toLowerCase();
-                      final isResellerHost = urlHost.contains("max-pro.vip") ||
-                                             urlHost.contains("appluxera") ||
-                                             urlHost.contains("kalaasmr.blog") ||
-                                             urlHost.contains("active-pro");
-                      if (pathSegments.length >= 4 && pathSegments[0] == "live" && isResellerHost) {
+                      // Replace host for live stream structure: /live/username/password/streamId.ext
+                      if (pathSegments.length >= 4 && pathSegments[0] == "live") {
                         final streamIdAndExt = pathSegments.sublist(3).join('/');
                         url = "$host/live/$user/$pass/$streamIdAndExt";
                       }

@@ -177,7 +177,8 @@ class _IPTVMainNavigatorState extends State<IPTVMainNavigator> {
   bool _obscureActivationCode = true;
 
   void _launchTelegram() async {
-    const url = "https://t.me/+f9NsIzGjN_hjYWRi";
+    // Dynamic URL loading (Telegram support)
+    final url = ""; 
     try {
       final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);

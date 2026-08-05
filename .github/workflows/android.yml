@@ -38,6 +38,16 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/LIVE_STREAM_PRO.apk
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/live_strem_pro.apk
 
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiveStreamPro-APKs
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/LiveStreamPro.apk
+            build/app/outputs/flutter-apk/LIVE_STREAM_PRO.apk
+            build/app/outputs/flutter-apk/live_strem_pro.apk
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v1
         with:

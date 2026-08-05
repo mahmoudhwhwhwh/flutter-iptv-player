@@ -69,8 +69,33 @@ class LiveFootballApp extends StatelessWidget {
           child: Consumer<IPTVProvider>(
             builder: (context, provider, _) {
               if (provider.snifferDetected || provider.vpnDetected || provider.isVersionBlocked) {
-                return Container(
-                  color: Colors.black,
+                String message = "";
+                if (provider.snifferDetected) {
+                  message = "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
+                } else if (provider.vpnDetected) {
+                  message = "🚨 يرجى إيقاف تشغيل VPN أو البروكسي للاستمرار!";
+                } else if (provider.isVersionBlocked) {
+                  message = provider.remoteBlockMessage;
+                }
+                return Scaffold(
+                  backgroundColor: Colors.black,
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: Color(0xFFE50914), size: 80),
+                          const SizedBox(height: 20),
+                          Text(
+                            message,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1.5),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 );
               }
               return child!;
@@ -508,7 +533,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Future<void> _fetchBanners() async {
     try {
       final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url, headers: {"Authorization": "token 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"});
+      final res = await http.get(url, headers: {"Authorization": "token ${IPTVProvider.githubToken}"});
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
         setState(() {

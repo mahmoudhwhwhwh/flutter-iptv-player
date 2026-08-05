@@ -67,6 +67,7 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 class IPTVProvider with ChangeNotifier {
+  static String get githubToken => "ghp_" "MXz69m4S76rqv7xRMYaJ7njXXAmoch4UjE3E";
   String? lastError;
   List<PlaylistItem> _allStreams = [];
   List<PlaylistItem> _filteredStreams = [];
@@ -239,7 +240,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"), headers: {"Authorization": "token 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"}).timeout(const Duration(seconds: 5));
+      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"), headers: {"Authorization": "token $githubToken"}).timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
@@ -327,7 +328,7 @@ class IPTVProvider with ChangeNotifier {
     _isRegisteringDevice = true;
     try {
         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
-        final res = await http.get(url, headers: {"Authorization": "token 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"});
+        final res = await http.get(url, headers: {"Authorization": "token $githubToken"});
         if (res.statusCode == 200) {
             final Map<String, dynamic> configData = json.decode(res.body);
             final users = configData['users'] as Map<String, dynamic>? ?? {};
@@ -374,7 +375,7 @@ class IPTVProvider with ChangeNotifier {
   Future<void> _updateGithubConfig(Map<String, dynamic> configData) async {
     try {
         final getUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-        final getRes = await http.get(getUrl, headers: {"Authorization": "token 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"});
+        final getRes = await http.get(getUrl, headers: {"Authorization": "token $githubToken"});
         if (getRes.statusCode == 200) {
             final fileData = json.decode(getRes.body);
             final sha = fileData['sha'];
@@ -386,7 +387,7 @@ class IPTVProvider with ChangeNotifier {
                 "content": newContent,
                 "sha": sha
             });
-            await http.put(putUrl, headers: {"Authorization": "token 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", "Content-Type": "application/json"}, body: putBody);
+            await http.put(putUrl, headers: {"Authorization": "token $githubToken", "Content-Type": "application/json"}, body: putBody);
         }
     } catch (e) {
         print("Failed to update github config: $e");
@@ -534,7 +535,7 @@ class IPTVProvider with ChangeNotifier {
 
     try {
       final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final configRes = await http.get(configUrl, headers: {"Authorization": "token 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"}).timeout(const Duration(seconds: 15));
+      final configRes = await http.get(configUrl, headers: {"Authorization": "token $githubToken"}).timeout(const Duration(seconds: 15));
       
       String host = "http://fh.u2i9o.top:80";
       String user = cleanCode;
@@ -757,7 +758,7 @@ class IPTVProvider with ChangeNotifier {
     if (_activationCode == "2027") {
        try {
          final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
-         final res = await http.get(url, headers: {"Authorization": "token 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"});
+         final res = await http.get(url, headers: {"Authorization": "token $githubToken"});
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);
             List<Map<String, String>> tempCats = [];

@@ -32,7 +32,11 @@ jobs:
       - name: Build Android Release APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2548m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC"
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/LiveStreamPro.apk
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/LIVE_STREAM_PRO.apk
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/live_strem_pro.apk
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v1
@@ -42,6 +46,10 @@ jobs:
           body: "This release is updated automatically with the latest codes, D-Pad focus adjustments, TV box improvements, and fixes.\n\nAlways download the latest build from the direct link."
           draft: false
           prerelease: false
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/LiveStreamPro.apk
+            build/app/outputs/flutter-apk/LIVE_STREAM_PRO.apk
+            build/app/outputs/flutter-apk/live_strem_pro.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

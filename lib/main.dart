@@ -455,8 +455,131 @@ class ModernSidebar extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // HOME TAB (Responsive Layout - Compact)
 // -----------------------------------------------------------------------------
-class HomeTab extends StatelessWidget {
+// -----------------------------------------------------------------------------
+// SCROLLING ANNOUNCEMENT BAR (Marquee)
+// -----------------------------------------------------------------------------
+class MarqueeAnnouncementWidget extends StatefulWidget {
+  final String text;
+  const MarqueeAnnouncementWidget({super.key, required this.text});
+
+  @override
+  State<MarqueeAnnouncementWidget> createState() => _MarqueeAnnouncementWidgetState();
+}
+
+class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
+  late ScrollController _scrollController;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startScrolling();
+    });
+  }
+
+  void _startScrolling() {
+    if (!_scrollController.hasClients) return;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (!_scrollController.hasClients) return;
+      double maxScroll = _scrollController.position.maxScrollExtent;
+      double currentScroll = _scrollController.position.pixels;
+      double delta = 1.0;
+      if (currentScroll >= maxScroll) {
+        _scrollController.jumpTo(0.0);
+      } else {
+        _scrollController.animateTo(
+          currentScroll + delta,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.linear,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 38,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE50914).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE50914).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE50914),
+              borderRadius: BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.campaign, color: Colors.white, size: 16),
+                SizedBox(width: 6),
+                Text("إعلان هام", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 1,
+                itemBuilder: (context, index) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 120, right: 16),
+                      child: Text(
+                        widget.text,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HOME TAB (Responsive Layout - Compact & Stateful)
+// -----------------------------------------------------------------------------
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  String _globalSearchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -467,6 +590,14 @@ class HomeTab extends StatelessWidget {
     final expiryText = provider.activationDurationHours > 0 
         ? "صلاحية الاشتراك: ${provider.expirationDateFormatted}"
         : "اشتراك دائم أو غير محدد";
+
+    // Fast global matching across allLoaded streams
+    List<PlaylistItem> searchResults = [];
+    if (_globalSearchQuery.isNotEmpty) {
+      searchResults = provider.allStreams.where((item) {
+        return item.name.toLowerCase().contains(_globalSearchQuery.toLowerCase());
+      }).take(20).toList();
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isMobile ? 8 : 16),
@@ -495,20 +626,194 @@ class HomeTab extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 12 : 24),
-          Text("أبرز الإضافات", style: TextStyle(fontSize: isMobile ? 16 : 20, fontWeight: FontWeight.bold, color: Colors.white)),
-          SizedBox(height: isMobile ? 4 : 8),
-          const BannerSliderWidget(),
-          SizedBox(height: isMobile ? 12 : 24),
-          Text("تصفح الأقسام", style: TextStyle(fontSize: isMobile ? 16 : 20, fontWeight: FontWeight.bold, color: Colors.white)),
-          SizedBox(height: isMobile ? 8 : 12),
-          const DynamicSectionsWidget(),
+          SizedBox(height: isMobile ? 12 : 18),
+
+          // 1. Marquee Announcement Bar (Dynamic)
+          if (provider.announcementText.isNotEmpty) ...[
+            MarqueeAnnouncementWidget(text: provider.announcementText),
+            SizedBox(height: isMobile ? 8 : 12),
+          ],
+
+          // 2. Global Unified Search Box
+          Container(
+            height: isMobile ? 42 : 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFF141416),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                setState(() {
+                  _globalSearchQuery = val;
+                });
+              },
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: "البحث السريع المباشر عن القنوات والأفلام والمسلسلات...",
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                suffixIcon: _globalSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _globalSearchQuery = "";
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Search results block
+          if (_globalSearchQuery.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                const SizedBox(width: 8),
+                Text("نتائج البحث السريع", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            searchResults.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text("لا توجد قنوات أو عروض مطابقة", style: TextStyle(color: Colors.white30, fontSize: 13))),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: searchResults.length,
+                    itemBuilder: (context, idx) {
+                      final item = searchResults[idx];
+                      IconData typeIcon = Icons.live_tv;
+                      String typeLabel = "بث مباشر";
+                      if (item.type == 'movie') {
+                        typeIcon = Icons.movie;
+                        typeLabel = "فيلم";
+                      } else if (item.type == 'series') {
+                        typeIcon = Icons.video_library;
+                        typeLabel = "مسلسل";
+                      }
+                      return ScaleOnFocus(
+                        onTap: () {
+                          if (item.type == 'series') {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: item)));
+                          } else {
+                            provider.selectStream(item);
+                            provider.addToRecentlyPlayed(item);
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: item)));
+                          }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF141416),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white.withOpacity(0.03)),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Container(
+                                  width: 42,
+                                  height: 42,
+                                  color: Colors.white10,
+                                  child: item.streamIcon.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: item.streamIcon,
+                                          fit: BoxFit.contain,
+                                          placeholder: (c, u) => const Center(child: CircularProgressIndicator(color: Color(0xFFE50914), strokeWidth: 1)),
+                                          errorWidget: (c, u, e) => Icon(typeIcon, color: Colors.white24, size: 20),
+                                        )
+                                      : Icon(typeIcon, color: Colors.white24, size: 20),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Icon(typeIcon, size: 10, color: const Color(0xFFE50914)),
+                                        const SizedBox(width: 4),
+                                        Text(typeLabel, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                                        const SizedBox(width: 12),
+                                        Text(item.categoryName, style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white24),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+            const SizedBox(height: 16),
+          ],
+
+          // 3. Continue Watching Row (Offline state retention)
+          if (_globalSearchQuery.isEmpty && provider.recentlyPlayed.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.history, color: Color(0xFFE50914), size: 18),
+                const SizedBox(width: 8),
+                Text("واصل المشاهدة", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: isMobile ? 110 : 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: provider.recentlyPlayed.length,
+                itemBuilder: (context, idx) {
+                  final item = provider.recentlyPlayed[idx];
+                  return Container(
+                    width: isMobile ? 80 : 100,
+                    margin: const EdgeInsets.only(left: 8),
+                    child: buildStreamCardLocal(context, provider, item, isSeries: item.type == 'series', isMobile: isMobile),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Default dashboard grid if not searching
+          if (_globalSearchQuery.isEmpty) ...[
+            Text("أبرز الإضافات", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            SizedBox(height: isMobile ? 4 : 8),
+            const BannerSliderWidget(),
+            SizedBox(height: isMobile ? 12 : 20),
+            Text("تصفح الأقسام", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            SizedBox(height: isMobile ? 6 : 10),
+            const DynamicSectionsWidget(),
+          ],
         ],
       ),
     );
   }
-
-
 }
 
 // -----------------------------------------------------------------------------
@@ -1263,6 +1568,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
         Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: stream)));
       } else {
         provider.selectStream(stream);
+        provider.addToRecentlyPlayed(stream);
         Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
       }
     },

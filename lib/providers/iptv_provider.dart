@@ -129,6 +129,42 @@ class IPTVProvider with ChangeNotifier {
   String _globalProxy = "";
   String get globalProxy => _globalProxy;
 
+  // New additions: Announcement & Security remote override controls
+  String _announcementText = "";
+  String get announcementText => _announcementText;
+  bool _disableVpnCheck = false;
+  bool _disableSnifferCheck = false;
+
+  // New addition: Recently Played/Continue Watching
+  List<PlaylistItem> _recentlyPlayed = [];
+  List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
+
+  void addToRecentlyPlayed(PlaylistItem stream) async {
+    _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
+    _recentlyPlayed.insert(0, stream);
+    if (_recentlyPlayed.length > 10) {
+      _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
+    }
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> jsonList = _recentlyPlayed.map((item) => item.toJson()).toList();
+      await prefs.setString('recently_played_streams', jsonEncode(jsonList));
+    } catch (_) {}
+  }
+
+  void loadRecentlyPlayed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedStr = prefs.getString('recently_played_streams');
+      if (savedStr != null) {
+        final List decoded = jsonDecode(savedStr);
+        _recentlyPlayed = decoded.map((item) => PlaylistItem.fromJson(item)).toList();
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
   // ==========================================
 
   String get selectedCategory => _selectedCategory;
@@ -203,6 +239,7 @@ class IPTVProvider with ChangeNotifier {
     if (savedFavs != null) {
       _favorites = savedFavs;
     }
+    loadRecentlyPlayed();
 
     final playlistsJson = prefs.getString('saved_playlists');
     if (playlistsJson != null) {
@@ -246,6 +283,25 @@ class IPTVProvider with ChangeNotifier {
         Map<String, dynamic>? blockData;
         if (configData.containsKey('blocking')) {
           blockData = Map<String, dynamic>.from(configData['blocking']);
+        }
+
+        // Parse remote announcements & security overrides dynamically
+        if (configData.containsKey('announcement')) {
+          final String newAnn = configData['announcement'].toString();
+          if (_announcementText != newAnn) {
+            _announcementText = newAnn;
+            notifyListeners();
+          }
+        }
+        
+        final newDisableVpn = configData['disable_vpn_check'] == true;
+        final newDisableSniffer = configData['disable_sniffer_check'] == true;
+        if (_disableVpnCheck != newDisableVpn || _disableSnifferCheck != newDisableSniffer) {
+          _disableVpnCheck = newDisableVpn;
+          _disableSnifferCheck = newDisableSniffer;
+          if (_disableVpnCheck) _vpnDetected = false;
+          if (_disableSnifferCheck) _snifferDetected = false;
+          notifyListeners();
         }
         
         if (blockData != null) {
@@ -296,8 +352,8 @@ class IPTVProvider with ChangeNotifier {
             if (found && u != null) {
                 bool isBlocked = u['blocked'] == true;
                 if (isBlocked) {
-                    _isVersionBlocked = true;
-                    _remoteBlockMessage = "تم حضر الاشتراك عنك بسبب عدم الانصياغ ل القواعد والقوانين";
+                    lastError = "تم حظر الاشتراك عنك بسبب عدم الانصياغ ل القواعد والقوانين";
+                    _isLoggedIn = false;
                     logout();
                     notifyListeners();
                 } else {
@@ -308,8 +364,8 @@ class IPTVProvider with ChangeNotifier {
                     }
                 }
             } else {
-                _isVersionBlocked = true;
-                _remoteBlockMessage = "هذا الاشتراك غير صالح أو تم حذفه";
+                lastError = "هذا الاشتراك غير صالح أو تم حذفه";
+                _isLoggedIn = false;
                 logout();
                 notifyListeners();
             }
@@ -354,8 +410,8 @@ class IPTVProvider with ChangeNotifier {
                 if (!devices.contains(deviceId)) {
                     if (devices.length >= 2) {
                         u['blocked'] = true;
-                        _isVersionBlocked = true;
-                        _remoteBlockMessage = "تم حضر الاشتراك عنك بسبب تجاوز الحد الأقصى للأجهزة (جهازين فقط)";
+                        lastError = "تم حظر الاشتراك عنك بسبب تجاوز الحد الأقصى للأجهزة (جهازين فقط)";
+                        _isLoggedIn = false;
                         logout();
                         notifyListeners();
                     } else {
@@ -395,18 +451,25 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> checkSecurity() async {
+    if (_disableSnifferCheck && _disableVpnCheck) {
+      if (_snifferDetected || _vpnDetected) {
+        _snifferDetected = false;
+        _vpnDetected = false;
+        notifyListeners();
+      }
+      return;
+    }
     try {
       // فحص أمني فائق القوة عبر الجافا (Android) لوقف التطبيق فورا إذا تم اكتشاف تعديل أو بيئة مشبوهة
       final Map? result = await _securityChannel.invokeMapMethod('checkSecurity');
       if (result != null) {
-        final shouldBlock = result['shouldBlock'] == true;
-        final snifferInstalled = result['snifferInstalled'] == true;
-        final vpnActive = result['vpnActive'] == true;
-        final proxyActive = result['proxyActive'] == true;
+        final shouldBlock = _disableSnifferCheck ? false : (result['shouldBlock'] == true || result['snifferInstalled'] == true);
+        final vpnActive = _disableVpnCheck ? false : result['vpnActive'] == true;
+        final proxyActive = _disableVpnCheck ? false : result['proxyActive'] == true;
 
         bool updated = false;
-        if (_snifferDetected != (shouldBlock || snifferInstalled)) {
-          _snifferDetected = shouldBlock || snifferInstalled;
+        if (_snifferDetected != shouldBlock) {
+          _snifferDetected = shouldBlock;
           updated = true;
         }
         if (_vpnDetected != (vpnActive || proxyActive)) {
@@ -427,9 +490,18 @@ class IPTVProvider with ChangeNotifier {
       // فحص أمني فائق شامل لكافة القنوات (نظام أندرويد + شبكة Dart)
       await checkSecurity();
       
-      bool detected = _vpnDetected || _snifferDetected;
+      if (_disableVpnCheck && _disableSnifferCheck) {
+        if (_vpnDetected || _snifferDetected) {
+          _vpnDetected = false;
+          _snifferDetected = false;
+          notifyListeners();
+        }
+        return;
+      }
       
-      if (!detected) {
+      bool detected = (_disableVpnCheck ? false : _vpnDetected) || (_disableSnifferCheck ? false : _snifferDetected);
+      
+      if (!detected && !_disableVpnCheck) {
         // 1. فحص إعدادات البروكسي (Proxy) لمنع برامج مثل Charles Proxy أو Reqable أو HttpCanary
         try {
           final systemProxy = HttpClient.findProxyFromEnvironment(Uri.parse("https://google.com"));
@@ -439,7 +511,7 @@ class IPTVProvider with ChangeNotifier {
         } catch (_) {}
       }
 
-      if (!detected) {
+      if (!detected && !_disableVpnCheck) {
         // 2. فحص واجهات الشبكة الفعالة للبحث عن VPN أو أدوات التقاط الحزم (Packet Sniffers)
         final interfaces = await NetworkInterface.list(
           includeLoopback: false,
@@ -621,17 +693,23 @@ class IPTVProvider with ChangeNotifier {
                    }
                }
 
-               final expiryStr = userData['expiry_date'];
-               if (expiryStr != null) {
-                  final expiryDate = DateTime.parse(expiryStr);
-                  if (DateTime.now().isAfter(expiryDate)) {
-                     lastError = "انتهت صلاحية الاشتراك";
-                     _isLoading = false;
-                     notifyListeners();
-                     return false;
-                 }
-                 durationHours = expiryDate.difference(DateTime.now()).inHours;
-               }
+                final expiryStr = userData['expiry_date']?.toString();
+                if (expiryStr != null && expiryStr.isNotEmpty && expiryStr != "بلا حدود" && expiryStr != "unlimited") {
+                   final expiryDate = DateTime.tryParse(expiryStr);
+                   if (expiryDate != null) {
+                      if (DateTime.now().isAfter(expiryDate)) {
+                         lastError = "انتهت صلاحية الاشتراك";
+                         _isLoading = false;
+                         notifyListeners();
+                         return false;
+                      }
+                      durationHours = expiryDate.difference(DateTime.now()).inHours;
+                   } else {
+                      durationHours = -1;
+                   }
+                } else {
+                   durationHours = -1;
+                }
 
 
                subName = "اشتراك $cleanCode";

@@ -1444,6 +1444,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         },
                       ),
 
+                      if (_stream.type == 'movie' || _stream.type == 'series')
                       TextButton.icon(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -1468,6 +1469,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           _resetHideHUDTimer();
                         },
                       ),
+                      if (_stream.type == 'movie' || _stream.type == 'series')
                       const SizedBox(width: 8),
                       TextButton.icon(
                         style: ButtonStyle(

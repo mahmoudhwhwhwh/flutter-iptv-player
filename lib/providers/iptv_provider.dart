@@ -1103,6 +1103,7 @@ class IPTVProvider with ChangeNotifier {
 
   void selectStream(PlaylistItem item) {
     _currentStream = item;
+    addToRecentlyPlayed(item);
     notifyListeners();
   }
 

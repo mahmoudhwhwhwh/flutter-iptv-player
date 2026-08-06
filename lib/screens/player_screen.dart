@@ -1833,6 +1833,61 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
     );
   }
 
+
+  Widget _buildSidebarListItem(PlaylistItem item, IPTVProvider provider) {
+    final isSelected = item.streamId == _stream.streamId;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blueAccent.withOpacity(0.15) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        title: Text(
+          item.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: isSelected ? Colors.blueAccent : Colors.white70,
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Text(
+          item.categoryName,
+          style: const TextStyle(color: Colors.white30, fontSize: 8),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        leading: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: item.streamIcon.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.network(
+                    item.streamIcon,
+                    fit: BoxFit.cover,
+                    cacheWidth: 60,
+                    cacheHeight: 60,
+                    errorBuilder: (c, e, s) => const Icon(Icons.tv_rounded, size: 12, color: Colors.white30),
+                  ),
+                )
+              : const Icon(Icons.tv_rounded, size: 12, color: Colors.white30),
+        ),
+        onTap: () {
+          _zapStream(provider, item);
+        },
+      ),
+    );
+  }
+
   Widget _buildQuickSidebar(IPTVProvider provider) {
     final activeStreams = provider.streams;
 

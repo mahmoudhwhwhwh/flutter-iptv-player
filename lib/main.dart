@@ -403,25 +403,20 @@ class ModernSidebar extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: isMobile ? 12 : 20),
-          RotatedBox(
-            quarterTurns: -1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF4A148C), Color(0xFF7B1FA2)]),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.0),
-              ),
-              child: Text(
-                "PRO",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isMobile ? 12 : 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.white54, size: isMobile ? 18 : 20),
+            tooltip: 'الإعدادات',
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
+          ),
+          SizedBox(height: isMobile ? 4 : 8),
+          IconButton(
+            icon: Icon(Icons.tune_rounded, color: Colors.white54, size: isMobile ? 18 : 20),
+            tooltip: 'التفضيلات',
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
           ),
           SizedBox(height: isMobile ? 16 : 32),
           _buildItem(Icons.home_rounded, 0, isMobile),
@@ -431,14 +426,8 @@ class ModernSidebar extends StatelessWidget {
           _buildItem(Icons.favorite_rounded, 4, isMobile),
           const Spacer(),
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.white54, size: isMobile ? 18 : 20),
-            onPressed: () {
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-            },
-          ),
-          SizedBox(height: isMobile ? 4 : 8),
-          IconButton(
             icon: Icon(Icons.logout, color: Colors.white54, size: isMobile ? 18 : 20),
+            tooltip: 'تسجيل الخروج',
             onPressed: () => Provider.of<IPTVProvider>(context, listen: false).logout(),
           ),
           SizedBox(height: isMobile ? 12 : 16),

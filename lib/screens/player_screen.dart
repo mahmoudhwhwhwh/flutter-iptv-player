@@ -1029,69 +1029,7 @@ void dispose() {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Top-Right Logo: "live stream pro" Purple Capsule Broadcast Logo positioned to cover/hide default channel watermarks (like beIN Sports)
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 15, right: 25),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF3B1D6D), // Deep Purple
-                              Color(0xFF6B3FA0), // Soft Violet/Indigo
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.white24, width: 1.2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          "live stream pro",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Bottom-Left Logo: "live stream pro" translucent glass capsule (without 'الرئيسي')
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 25, left: 30),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3B1D6D).withOpacity(0.55),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.white24, width: 0.6),
-                        ),
-                        child: const Text(
-                          "live stream pro",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
             ),
@@ -1469,7 +1407,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           }),
                         ),
                         icon: const Icon(Icons.high_quality_rounded, size: 16, color: Colors.cyanAccent),
-                        label: const Text("الجودة", style: TextStyle(fontSize: 10)),
+                        label: const Text("جودة حقيقية", style: TextStyle(fontSize: 10)),
                         onPressed: () {
                           _showQualitySelector();
                           _resetHideHUDTimer();

@@ -318,13 +318,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _betterController = null;
       }
       
+      bool isAsms = path.contains('.m3u8') || path.contains('.mpd');
+      BetterPlayerVideoFormat videoFormat = BetterPlayerVideoFormat.other;
+      if (path.contains('.m3u8')) videoFormat = BetterPlayerVideoFormat.hls;
+      if (path.contains('.mpd')) videoFormat = BetterPlayerVideoFormat.dash;
+
       final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
         finalUrl,
         headers: headers,
-        useAsmsTracks: true,
-        useAsmsSubtitles: true,
-        useAsmsAudioTracks: true,
+        videoFormat: videoFormat,
+        useAsmsTracks: isAsms,
+        useAsmsSubtitles: isAsms,
+        useAsmsAudioTracks: isAsms,
         drmConfiguration: _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
             ? BetterPlayerDrmConfiguration(
                 drmType: BetterPlayerDrmType.clearKey,
@@ -1469,30 +1475,28 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           _resetHideHUDTimer();
                         },
                       ),
-                      if (_stream.type == 'movie' || _stream.type == 'series') ...[
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          style: ButtonStyle(
-                            padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                            minimumSize: MaterialStateProperty.all(Size.zero),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                              if (states.contains(MaterialState.focused)) return Colors.white12;
-                              return Colors.transparent;
-                            }),
-                            side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                              if (states.contains(MaterialState.focused)) return const BorderSide(color: Colors.amberAccent, width: 2);
-                              return null;
-                            }),
-                          ),
-                          icon: const Icon(Icons.subtitles_rounded, size: 16, color: Colors.amberAccent),
-                          label: const Text("ترجمة", style: TextStyle(fontSize: 10, color: Colors.white)),
-                          onPressed: () {
-                            _showSubtitlesSelector();
-                            _resetHideHUDTimer();
-                          },
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        style: ButtonStyle(
+                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                          minimumSize: MaterialStateProperty.all(Size.zero),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                            if (states.contains(MaterialState.focused)) return Colors.white12;
+                            return Colors.transparent;
+                          }),
+                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
+                            if (states.contains(MaterialState.focused)) return const BorderSide(color: Colors.amberAccent, width: 2);
+                            return null;
+                          }),
                         ),
-                      ],
+                        icon: const Icon(Icons.subtitles_rounded, size: 16, color: Colors.amberAccent),
+                        label: const Text("ترجمة", style: TextStyle(fontSize: 10, color: Colors.white)),
+                        onPressed: () {
+                          _showSubtitlesSelector();
+                          _resetHideHUDTimer();
+                        },
+                      ),
 
                       TextButton.icon(
                         style: TextButton.styleFrom(

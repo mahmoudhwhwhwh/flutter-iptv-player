@@ -1401,7 +1401,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           }),
                         ),
                         icon: const Icon(Icons.high_quality_rounded, size: 16, color: Colors.cyanAccent),
-                        label: Text(_betterController?.videoPlayerController?.value.size != null && _betterController!.videoPlayerController!.value.size.width > 0 ? "${_betterController!.videoPlayerController!.value.size.width.toInt()}x${_betterController!.videoPlayerController!.value.size.height.toInt()}" : "جودة حقيقية", style: const TextStyle(fontSize: 10)),
+                        label: Text(_betterController?.videoPlayerController?.value.size != null && _betterController!.videoPlayerController!.value.size!.width > 0 ? "${_betterController!.videoPlayerController!.value.size!.width.toInt()}x${_betterController!.videoPlayerController!.value.size!.height.toInt()}" : "جودة حقيقية", style: const TextStyle(fontSize: 10)),
                         onPressed: () {
                           _showQualitySelector();
                           _resetHideHUDTimer();

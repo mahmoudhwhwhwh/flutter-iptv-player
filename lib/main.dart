@@ -45,24 +45,42 @@ class LiveFootballApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'live stream pro',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF141414), // Netflix Background Color
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFE50914), // Netflix Red
-          secondary: Color(0xFFE50914),
-          surface: Color(0xFF181818),
-          background: Color(0xFF141414),
-        ),
-        textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme).apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
-      ),
+    return Consumer<IPTVProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'live stream pro',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF141414), // Netflix Background Color
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFE50914), // Netflix Red
+              secondary: Color(0xFFE50914),
+              surface: Color(0xFF181818),
+              background: Color(0xFF141414),
+            ),
+            textTheme: GoogleFonts.cairoTextTheme().apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
+          ),
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFE50914),
+              secondary: Color(0xFFE50914),
+              surface: Color(0xFFFFFFFF),
+              background: Color(0xFFF5F5F5),
+            ),
+            textTheme: GoogleFonts.cairoTextTheme().apply(
+              bodyColor: Colors.black,
+              displayColor: Colors.black,
+            ),
+          ),
       builder: (context, child) {
         return Directionality(
           textDirection: TextDirection.rtl, // دعم العربية بشكل قسري ومرتب
@@ -104,6 +122,8 @@ class LiveFootballApp extends StatelessWidget {
         );
       },
       home: const AuthWrapper(),
+        );
+      },
     );
   }
 }

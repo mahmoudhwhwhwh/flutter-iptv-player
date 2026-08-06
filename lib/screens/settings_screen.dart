@@ -88,6 +88,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // --- Theme Toggle ---
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return ListTile(
+                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFE50914)),
+                    title: const Text("المظهر (داكن/فاتح)", style: TextStyle(color: Colors.white)),
+                    trailing: Switch(
+                      value: provider.isDarkMode,
+                      activeColor: const Color(0xFFE50914),
+                      onChanged: (val) {
+                        provider.toggleTheme();
+                      },
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: Colors.white12),
               
               _buildSettingItem(
                 title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",

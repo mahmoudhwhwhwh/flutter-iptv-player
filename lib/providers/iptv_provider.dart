@@ -67,6 +67,16 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 class IPTVProvider with ChangeNotifier {
+  bool _isDarkMode = true;
+  bool get isDarkMode => _isDarkMode;
+
+  void toggleTheme() async {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', _isDarkMode);
+  }
+
   static String get githubToken => "ghp_" "MXz69m4S76rqv7xRMYaJ7njXXAmoch4UjE3E";
   String? lastError;
   List<PlaylistItem> _allStreams = [];

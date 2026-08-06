@@ -318,19 +318,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _betterController = null;
       }
       
-      bool isAsms = path.contains('.m3u8') || path.contains('.mpd');
-      BetterPlayerVideoFormat videoFormat = BetterPlayerVideoFormat.other;
-      if (path.contains('.m3u8')) videoFormat = BetterPlayerVideoFormat.hls;
-      if (path.contains('.mpd')) videoFormat = BetterPlayerVideoFormat.dash;
-
       final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
         finalUrl,
         headers: headers,
-        videoFormat: videoFormat,
-        useAsmsTracks: isAsms,
-        useAsmsSubtitles: isAsms,
-        useAsmsAudioTracks: isAsms,
+        useAsmsTracks: true,
+        useAsmsSubtitles: true,
+        useAsmsAudioTracks: true,
         drmConfiguration: _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
             ? BetterPlayerDrmConfiguration(
                 drmType: BetterPlayerDrmType.clearKey,
@@ -1407,7 +1401,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           }),
                         ),
                         icon: const Icon(Icons.high_quality_rounded, size: 16, color: Colors.cyanAccent),
-                        label: const Text("جودة حقيقية", style: TextStyle(fontSize: 10)),
+                        label: Text(_betterController?.videoPlayerController?.value.size != null && _betterController!.videoPlayerController!.value.size.width > 0 ? "${_betterController!.videoPlayerController!.value.size.width.toInt()}x${_betterController!.videoPlayerController!.value.size.height.toInt()}" : "جودة حقيقية", style: const TextStyle(fontSize: 10)),
                         onPressed: () {
                           _showQualitySelector();
                           _resetHideHUDTimer();

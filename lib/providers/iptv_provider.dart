@@ -77,7 +77,7 @@ class IPTVProvider with ChangeNotifier {
     await prefs.setBool('isDarkMode', _isDarkMode);
   }
 
-  static String get githubToken => "ghp_" "MXz69m4S76rqv7xRMYaJ7njXXAmoch4UjE3E";
+  static String get githubToken => "ghp_" "E2TjIQLzZZbQmyCBFQZohA0KXdRteb1WTKs3";
   String? lastError;
   List<PlaylistItem> _allStreams = [];
   List<PlaylistItem> _filteredStreams = [];

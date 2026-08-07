@@ -1,6 +1,6 @@
 {
-  "app_name": "live strem pro",
-  "app_version": "v2.0.1",
+  "app_name": "تطبيق البث المميز",
+  "app_version": "v1.9.0",
   "users": {},
   "servers": [
     {
@@ -23,8 +23,8 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "2026": {
-          "expiry_date": "بلا حدود",
+        "mahmoud22": {
+          "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
           ]

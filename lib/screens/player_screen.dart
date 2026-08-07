@@ -1382,7 +1382,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         },
                       ),
 
-                      if (_stream.type == 'movie' || _stream.type == 'series')
+                      
                       TextButton.icon(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -1395,65 +1395,19 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         ).copyWith(
                           side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
                             if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.cyanAccent, width: 2);
+                              return const BorderSide(color: Colors.white, width: 2);
                             }
                             return null;
                           }),
                         ),
-                        icon: const Icon(Icons.high_quality_rounded, size: 16, color: Colors.cyanAccent),
-                        label: Text(_betterController?.videoPlayerController?.value.size != null && _betterController!.videoPlayerController!.value.size!.width > 0 ? "${_betterController!.videoPlayerController!.value.size!.width.toInt()}x${_betterController!.videoPlayerController!.value.size!.height.toInt()}" : "جودة حقيقية", style: const TextStyle(fontSize: 10)),
+                        icon: const Icon(Icons.settings_rounded, size: 16, color: Colors.white),
+                        label: const Text("الإعدادات", style: TextStyle(fontSize: 10)),
                         onPressed: () {
-                          _showQualitySelector();
-                          _resetHideHUDTimer();
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        style: ButtonStyle(
-                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                          minimumSize: MaterialStateProperty.all(Size.zero),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                            if (states.contains(MaterialState.focused)) return Colors.white12;
-                            return Colors.transparent;
-                          }),
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) return const BorderSide(color: Colors.amberAccent, width: 2);
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.subtitles_rounded, size: 16, color: Colors.amberAccent),
-                        label: const Text("ترجمة", style: TextStyle(fontSize: 10, color: Colors.white)),
-                        onPressed: () {
-                          _showSubtitlesSelector();
+                          _showSettingsModal();
                           _resetHideHUDTimer();
                         },
                       ),
 
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white10,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Colors.white12),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.tealAccent, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.picture_in_picture_alt_rounded, size: 16, color: Colors.tealAccent),
-                        label: const Text("صور داخل صور", style: TextStyle(fontSize: 10)),
-                        onPressed: () {
-                          _togglePictureInPicture();
-                          _resetHideHUDTimer();
-                        },
-                      ),
 
                       TextButton.icon(
                         style: TextButton.styleFrom(
@@ -1983,6 +1937,135 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
           ],
         ),
       ),
+    );
+  }
+
+  void _showSettingsModal() {
+    if (_betterController == null || !_initialized) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E20),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text("الإعدادات", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.high_quality_rounded, color: Colors.cyanAccent),
+                  title: const Text("الجودات", style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showQualitySelector();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.subtitles_rounded, color: Colors.amberAccent),
+                  title: const Text("الترجمة", style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSubtitlesSelector();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.audiotrack_rounded, color: Colors.greenAccent),
+                  title: const Text("المسارات الصوتية", style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showAudioSelector();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.tealAccent),
+                  title: const Text("صورة داخل صورة", style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _togglePictureInPicture();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAudioSelector() {
+    if (_betterController == null || !_initialized) return;
+    showDialog(
+      context: context,
+      builder: (BuildContext bContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              final List<BetterPlayerAsmsAudioTrack>? tracks = _betterController!.betterPlayerAsmsAudioTracks;
+              final selectedTrack = _betterController!.betterPlayerAsmsAudioTrack;
+
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: Container(
+                  width: 500,
+                  constraints: const BoxConstraints(maxHeight: 400),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E20),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.audiotrack_rounded, color: Colors.greenAccent),
+                            const SizedBox(width: 8),
+                            const Text("المسارات الصوتية", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () => Navigator.pop(bContext),
+                            )
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      Expanded(
+                        child: (tracks == null || tracks.isEmpty)
+                            ? const Center(child: Text("لا توجد مسارات صوتية إضافية", style: TextStyle(color: Colors.white54)))
+                            : ListView.builder(
+                                itemCount: tracks.length,
+                                itemBuilder: (context, index) {
+                                  final track = tracks[index];
+                                  final isSelected = selectedTrack == track;
+                                  return ListTile(
+                                    title: Text(track.label ?? track.language ?? "مسار ${index + 1}", style: TextStyle(color: isSelected ? Colors.greenAccent : Colors.white)),
+                                    trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.greenAccent) : null,
+                                    onTap: () {
+                                      _betterController!.setAudioTrack(track);
+                                      setModalState(() {});
+                                      Navigator.pop(bContext);
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          ),
+        );
+      }
     );
   }
 }

@@ -1,6 +1,6 @@
 {
   "app_name": "تطبيق البث المميز",
-  "app_version": "v2.0.1",
+  "app_version": "v1.9.0",
   "users": {},
   "servers": [
     {
@@ -52,7 +52,7 @@
       "password": "aout0023",
       "users": {
         "s4_code1": {
-          "expiry_date": "2027-08-20T00:00:00Z",
+          "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
           ]

@@ -23,6 +23,8 @@ void main() async {
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
   ]);
   try {
     await Firebase.initializeApp();
@@ -344,13 +346,16 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool useBottomNav = MediaQuery.of(context).size.width < 600 || MediaQuery.of(context).orientation == Orientation.portrait;
+
     return Scaffold(
       body: Row(
         children: [
-          ModernSidebar(
-            selectedIndex: _selectedIndex,
-            onSelected: updateIndex,
-          ),
+          if (!useBottomNav)
+            ModernSidebar(
+              selectedIndex: _selectedIndex,
+              onSelected: updateIndex,
+            ),
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
@@ -359,6 +364,26 @@ class _MainDashboardState extends State<MainDashboard> {
           ),
         ],
       ),
+      bottomNavigationBar: useBottomNav
+          ? BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: updateIndex,
+              backgroundColor: const Color(0xFF0F0F12),
+              selectedItemColor: const Color(0xFFE50914),
+              unselectedItemColor: Colors.white54,
+              type: BottomNavigationBarType.fixed,
+              showUnselectedLabels: true,
+              selectedFontSize: 10,
+              unselectedFontSize: 10,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
+                BottomNavigationBarItem(icon: Icon(Icons.live_tv_rounded), label: 'مباشر'),
+                BottomNavigationBarItem(icon: Icon(Icons.movie_filter_rounded), label: 'أفلام'),
+                BottomNavigationBarItem(icon: Icon(Icons.video_library_rounded), label: 'مسلسلات'),
+                BottomNavigationBarItem(icon: Icon(Icons.favorite_rounded), label: 'مفضلة'),
+              ],
+            )
+          : null,
     );
   }
 

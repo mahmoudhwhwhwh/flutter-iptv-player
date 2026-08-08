@@ -75,6 +75,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isLocked = false;
   bool _showLockToggleOnly = false;
   Timer? _lockToggleTimer;
+
+
+  // Sidebar Search & Category
+  String _sidebarSearchQuery = "";
+  String _sidebarSelectedCategory = "all";
+  final FocusNode _sidebarSearchFocusNode = FocusNode();
+
+
   // Sleep Timer
   Timer? _sleepTimer;
   int? _sleepTimerMinutes;
@@ -546,6 +554,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _lockToggleTimer?.cancel();
     _sleepTimer?.cancel();
     _firstButtonFocusNode.dispose();
+    _sidebarSearchFocusNode.dispose();
     
     // Restore saved orientation preference
     SharedPreferences.getInstance().then((prefs) {
@@ -1478,6 +1487,27 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Clock Widget
+                      StreamBuilder(
+                        stream: Stream.periodic(const Duration(minutes: 1)),
+                        builder: (context, snapshot) {
+                           final now = DateTime.now();
+                           final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+                           return Container(
+                             margin: const EdgeInsets.only(right: 8),
+                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                             decoration: BoxDecoration(
+                               color: Colors.black45,
+                               borderRadius: BorderRadius.circular(12),
+                               border: Border.all(color: Colors.white24, width: 0.5),
+                             ),
+                             child: Text(
+                               timeStr,
+                               style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                             ),
+                           );
+                        },
+                      ),
                       IconButton(
                         focusNode: _firstButtonFocusNode,
                         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 24),
@@ -1584,7 +1614,15 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 }
                               },
                             ),
-                          // Sleep Timer button
+                        
+
+  // Sidebar Search & Category
+  String _sidebarSearchQuery = "";
+  String _sidebarSelectedCategory = "all";
+  final FocusNode _sidebarSearchFocusNode = FocusNode();
+
+
+  // Sleep Timer button
                           IconButton(
                             icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? Colors.pinkAccent : Colors.white, size: 24),
                             tooltip: "مؤقت النوم",
@@ -1953,14 +1991,27 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
   }
 
   Widget _buildQuickSidebar(IPTVProvider provider) {
-    final activeStreams = provider.streams;
+    List<String> currentCategories = provider.categories;
+    
+    final activeStreams = provider.allStreams.where((s) {
+      if (s.type != provider.activeTab && provider.activeTab != "favorites") return false;
+      if (_sidebarSelectedCategory != "all" && s.categoryName != _sidebarSelectedCategory) return false;
+      if (_sidebarSearchQuery.isNotEmpty && !s.name.toLowerCase().contains(_sidebarSearchQuery.toLowerCase())) return false;
+      return true;
+    }).toList();
+    
+    final recentStreams = provider.recentlyPlayed.where((s) {
+      if (_sidebarSelectedCategory != "all" && s.categoryName != _sidebarSelectedCategory) return false;
+      if (_sidebarSearchQuery.isNotEmpty && !s.name.toLowerCase().contains(_sidebarSearchQuery.toLowerCase())) return false;
+      return true;
+    }).toList();
 
     return Positioned(
       top: 0,
       bottom: 0,
       right: 0,
       child: Container(
-        width: 250,
+        width: 320,
         decoration: BoxDecoration(
           color: const Color(0xFF0F0F12).withOpacity(0.95),
           boxShadow: const [
@@ -1980,27 +2031,99 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                 children: [
                   const Text(
                     "قائمة القنوات Dashboard",
-                    style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.amberAccent, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
                     onPressed: () {
                       setState(() {
                         _showSidebar = false;
+                        _sidebarSearchQuery = "";
                       });
                     },
                   )
                 ],
               ),
             ),
+            
+            // Search Bar & Filters Section
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFF27272A), width: 0.5)),
+              ),
+              child: Column(
+                children: [
+                  // Category Dropdown
+                  if (currentCategories.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1E1E20),
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                          value: _sidebarSelectedCategory,
+                          items: [
+                            const DropdownMenuItem(
+                              value: "all",
+                              child: Text("جميع الفئات", style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                            ...currentCategories.map((c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            )).toList(),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _sidebarSelectedCategory = val;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    
+                  // Search TextField
+                  TextField(
+                    focusNode: _sidebarSearchFocusNode,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: "بحث عن قناة...",
+                      hintStyle: const TextStyle(color: Colors.white30, fontSize: 12),
+                      prefixIcon: const Icon(Icons.search_rounded, color: Colors.white30, size: 18),
+                      filled: true,
+                      fillColor: const Color(0xFF1E1E20),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _sidebarSearchQuery = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            
             Expanded(
-              child: activeStreams.isEmpty && provider.recentlyPlayed.isEmpty
+              child: activeStreams.isEmpty && recentStreams.isEmpty
                   ? const Center(
-                      child: Text("قائمة فارغة", style: TextStyle(color: Colors.white30, fontSize: 11)),
+                      child: Text("لا توجد نتائج", style: TextStyle(color: Colors.white30, fontSize: 11)),
                     )
                   : CustomScrollView(
                       slivers: [
-                        if (provider.recentlyPlayed.isNotEmpty) ...[
+                        if (recentStreams.isNotEmpty && _sidebarSearchQuery.isEmpty && _sidebarSelectedCategory == "all") ...[
                           const SliverToBoxAdapter(
                             child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2013,10 +2136,10 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, idx) {
-                                final item = provider.recentlyPlayed[idx];
+                                final item = recentStreams[idx];
                                 return _buildSidebarListItem(item, provider);
                               },
-                              childCount: provider.recentlyPlayed.length,
+                              childCount: recentStreams.length,
                             ),
                           ),
                           const SliverToBoxAdapter(

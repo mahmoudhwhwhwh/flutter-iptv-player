@@ -23,7 +23,7 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
   final GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
@@ -161,6 +161,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
     _loadSubSettings();
     _stream = widget.stream;
@@ -350,6 +351,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             showControls: false,
             showControlsOnInitialize: false,
           ),
+          handleLifecycle: false,
+          allowedScreenSleep: false,
+          autoDetectFullscreenDeviceOrientation: true,
+          autoDetectFullscreenAspectRatio: true,
         ),
         betterPlayerDataSource: dataSource,
       );
@@ -482,6 +487,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
 void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
     _aiSubtitleTimer?.cancel();
@@ -635,71 +641,105 @@ void dispose() {
   void _showSubtitlesSelector() {
     if (_betterController == null || !_initialized) return;
     
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: const Color(0xFF121216),
-      barrierColor: Colors.black.withOpacity(0.6),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (BuildContext bContext) {
-        final List<BetterPlayerSubtitlesSource> subtitles = _betterController!.betterPlayerSubtitlesSourceList;
-        final selectedSub = _betterController!.betterPlayerSubtitlesSource;
-        
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.subtitles, color: Colors.cyanAccent),
-                    const SizedBox(width: 8),
-                    const Text("اختر الترجمة", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white54),
-                      onPressed: () => Navigator.pop(bContext),
-                    ),
-                  ],
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              final List<BetterPlayerSubtitlesSource> subtitles = _betterController!.betterPlayerSubtitlesSourceList;
+              final selectedSub = _betterController!.betterPlayerSubtitlesSource;
+              
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: Container(
+                  width: 500,
+                  constraints: const BoxConstraints(maxHeight: 500),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E20),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.subtitles_rounded, color: Colors.amberAccent),
+                            const SizedBox(width: 8),
+                            const Text("الترجمة", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () => Navigator.pop(bContext),
+                            )
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          children: [
+                            ListTile(
+                              title: const Text("إيقاف الترجمة", style: TextStyle(color: Colors.white)),
+                              trailing: (selectedSub == null || selectedSub.type == BetterPlayerSubtitlesSourceType.none) && _selectedAiLang == ''
+                                  ? const Icon(Icons.check_circle, color: Colors.amberAccent) : null,
+                              onTap: () {
+                                _betterController!.setupSubtitleSource(BetterPlayerSubtitlesSource(type: BetterPlayerSubtitlesSourceType.none));
+                                setState(() { _selectedAiLang = ''; });
+                                setModalState(() {});
+                                Navigator.pop(bContext);
+                              },
+                            ),
+                            if (subtitles.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Text("الترجمات المدمجة", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              ),
+                              ...subtitles.where((s) => s.type != BetterPlayerSubtitlesSourceType.none).map((sub) {
+                                final isSelected = selectedSub == sub && _selectedAiLang == '';
+                                final name = sub.name ?? "ترجمة (${sub.language ?? 'غير معروف'})";
+                                return ListTile(
+                                  title: Text(name, style: TextStyle(color: isSelected ? Colors.amberAccent : Colors.white)),
+                                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.amberAccent) : null,
+                                  onTap: () {
+                                    _betterController!.setupSubtitleSource(sub);
+                                    setState(() { _selectedAiLang = ''; });
+                                    setModalState(() {});
+                                    Navigator.pop(bContext);
+                                  },
+                                );
+                              }).toList(),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Text("الترجمة بالذكاء الاصطناعي (تجريبي)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
+                            ),
+                            ...['ar', 'en', 'fr'].map((lang) {
+                                final isSelected = _selectedAiLang == lang;
+                                final name = lang == 'ar' ? 'العربية' : lang == 'en' ? 'English' : 'Français';
+                                return ListTile(
+                                  title: Text(name, style: TextStyle(color: isSelected ? Colors.cyanAccent : Colors.white)),
+                                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.cyanAccent) : null,
+                                  onTap: () {
+                                    _betterController!.setupSubtitleSource(BetterPlayerSubtitlesSource(type: BetterPlayerSubtitlesSourceType.none));
+                                    setState(() { _selectedAiLang = lang; });
+                                    setModalState(() {});
+                                    Navigator.pop(bContext);
+                                  },
+                                );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                if (subtitles.isEmpty)
-                  const Text("لا توجد ترجمات متاحة لهذا البث", style: TextStyle(color: Colors.white54, fontSize: 16)),
-                if (subtitles.isNotEmpty)
-                  ...subtitles.map((sub) {
-                    final isSelected = selectedSub == sub;
-                    final name = sub.name ?? "ترجمة";
-                    return ListTile(
-                      title: Text(name, style: TextStyle(color: isSelected ? Colors.cyanAccent : Colors.white)),
-                      trailing: isSelected ? const Icon(Icons.check, color: Colors.cyanAccent) : null,
-                      onTap: () {
-                        _betterController!.setupSubtitleSource(sub);
-                        Navigator.pop(bContext);
-                      },
-                    );
-                  }).toList(),
-                const Divider(color: Colors.white24),
-                const Text("الترجمة بالذكاء الاصطناعي (تجريبي)", style: TextStyle(color: Colors.cyanAccent, fontSize: 14)),
-                ...['', 'ar', 'en', 'fr'].map((lang) {
-                    final isSelected = _selectedAiLang == lang;
-                    final name = lang == '' ? 'إيقاف الترجمة' : lang == 'ar' ? 'العربية' : lang == 'en' ? 'English' : 'Français';
-                    return ListTile(
-                      title: Text(name, style: TextStyle(color: isSelected ? Colors.cyanAccent : Colors.white)),
-                      trailing: isSelected ? const Icon(Icons.check, color: Colors.cyanAccent) : null,
-                      onTap: () {
-                        setState(() {
-                           _selectedAiLang = lang;
-                        });
-                        Navigator.pop(bContext);
-                      },
-                    );
-                }).toList(),
-              ],
-            ),
+              );
+            }
           ),
         );
       }
@@ -707,16 +747,7 @@ void dispose() {
   }
 
   void _showQualitySelector() {
-    if (_betterController == null || !_initialized) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("يرجى الانتظار لحين بدء تشغيل القناة أولاً", textDirection: TextDirection.rtl),
-          backgroundColor: Colors.amberAccent,
-        ),
-      );
-      return;
-    }
-
+    if (_betterController == null || !_initialized) return;
     showDialog(
       context: context,
       builder: (BuildContext bContext) {
@@ -727,88 +758,74 @@ void dispose() {
             builder: (context, setModalState) {
               final List<BetterPlayerAsmsTrack> tracks = _betterController!.betterPlayerAsmsTracks;
               final selectedTrack = _betterController!.betterPlayerAsmsTrack;
+              
+              // Filter and format tracks
+              List<BetterPlayerAsmsTrack> uniqueTracks = [];
+              Set<String> seenResolutions = {};
+              for (var t in tracks) {
+                 String resKey = "${t.width}x${t.height}";
+                 if (t.width != null && t.height != null && !seenResolutions.contains(resKey)) {
+                     seenResolutions.add(resKey);
+                     uniqueTracks.add(t);
+                 }
+              }
+              uniqueTracks.sort((a, b) => (b.height ?? 0).compareTo(a.height ?? 0));
 
               return Directionality(
                 textDirection: TextDirection.rtl,
                 child: Container(
-                  width: 500, // Or max width
-                  constraints: const BoxConstraints(maxHeight: 400),
+                  width: 500,
+                  constraints: const BoxConstraints(maxHeight: 500),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E20), // Dark background
+                    color: const Color(0xFF1E1E20),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      // Left side - Content
-                      Expanded(
-                        child: Column(
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
                           children: [
-                            // Header
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Stack(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: GestureDetector(
-                                      onTap: () => Navigator.pop(bContext),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF333335),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.close, color: Colors.white70, size: 16),
-                                      ),
-                                    ),
-                                  ),
-                                  const Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "الجودة",
-                                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // List
-                            Expanded(
-                              child: ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                itemCount: tracks.length + 1,
+                            const Icon(Icons.high_quality_rounded, color: Colors.cyanAccent),
+                            const SizedBox(width: 8),
+                            const Text("جودة البث", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () => Navigator.pop(bContext),
+                            )
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      Expanded(
+                        child: (uniqueTracks.isEmpty)
+                            ? const Center(child: Text("لا توجد جودات متعددة", style: TextStyle(color: Colors.white54)))
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                itemCount: uniqueTracks.length + 1,
                                 itemBuilder: (context, index) {
                                   bool isAuto = index == 0;
                                   bool isSelected = false;
                                   String title = "";
-                                  String subtitle = "";
-
                                   BetterPlayerAsmsTrack? track;
+                                  
                                   if (isAuto) {
-                                    isSelected = selectedTrack == null;
-                                    title = "تلقائي";
+                                    isSelected = selectedTrack == null || (selectedTrack.width == 0 && selectedTrack.height == 0);
+                                    title = "تلقائي (Auto)";
                                   } else {
-                                    track = tracks[index - 1];
-                                    isSelected = selectedTrack != null &&
-                                                 selectedTrack.width == track.width &&
-                                                 selectedTrack.height == track.height &&
-                                                 selectedTrack.bitrate == track.bitrate;
-                                    
-                                    if (track.height != null) {
-                                       title = "${track.height}p";
-                                    } else if (track.width != null) {
-                                       title = "${track.width}p";
-                                    } else {
-                                       title = "جودة مخصصة";
-                                    }
-
-                                    if (track.bitrate != null) {
-                                       double mbps = track.bitrate! / 1000000;
-                                       subtitle = "(${mbps.toStringAsFixed(1)} Mbps)";
+                                    track = uniqueTracks[index - 1];
+                                    isSelected = selectedTrack != null && selectedTrack.width == track.width && selectedTrack.height == track.height;
+                                    title = "${track.height}p";
+                                    if (track.bitrate != null && track.bitrate! > 0) {
+                                      double mbps = track.bitrate! / 1000000;
+                                      title += " (${mbps.toStringAsFixed(1)} Mbps)";
                                     }
                                   }
-
-                                  return GestureDetector(
+                                  
+                                  return ListTile(
+                                    title: Text(title, style: TextStyle(color: isSelected ? Colors.cyanAccent : Colors.white)),
+                                    trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.cyanAccent) : null,
                                     onTap: () {
                                       if (isAuto) {
                                         _betterController!.setTrack(BetterPlayerAsmsTrack.defaultTrack());
@@ -818,88 +835,9 @@ void dispose() {
                                       setModalState(() {});
                                       Navigator.pop(bContext);
                                     },
-                                    child: Container(
-                                      margin: const EdgeInsets.only(bottom: 12),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? const Color(0xFF5A1924) : const Color(0xFF2C2C2E),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: isSelected ? Border.all(color: const Color(0xFFE5204D), width: 1) : null,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                title,
-                                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Cairo'),
-                                              ),
-                                              if (subtitle.isNotEmpty) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  subtitle,
-                                                  style: const TextStyle(color: Colors.white54, fontSize: 12, fontFamily: 'Cairo'),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                          if (isSelected)
-                                            const Icon(Icons.check, color: Color(0xFFE5204D), size: 20),
-                                        ],
-                                      ),
-                                    ),
                                   );
                                 },
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Divider
-                      Container(
-                        width: 1,
-                        color: Colors.white10,
-                      ),
-                      // Right side - Tabs
-                      Container(
-                        width: 70,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE5204D),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF333335),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.music_note_rounded, color: Colors.white70, size: 22),
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF333335),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.compare_arrows_rounded, color: Colors.white70, size: 22),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),

@@ -41,6 +41,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showSidebar = false;
   
   String? _zoomIndicatorText;
+
+  // Swipe Gestures
+  double _dragStartY = 0.0;
+  double _dragStartValue = 0.0;
+  bool _isDraggingLeft = false;
+  bool _isDraggingRight = false;
+  String? _swipeToastText;
+  IconData? _swipeToastIcon;
+  Timer? _swipeToastTimer;
+
   Timer? _zoomIndicatorTimer;
   
   // Brightness simulation overlay (0.0 means normal/bright, 0.8 means dim)
@@ -486,7 +496,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-void dispose() {
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_betterController != null && _betterController!.videoPlayerController != null) {
+        if (!(_betterController!.isPlaying() ?? false)) {
+          _betterController!.play();
+        }
+      }
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
+  void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
@@ -930,6 +954,49 @@ void dispose() {
                   _toggleHUD();
                 }
               },
+              onVerticalDragStart: (details) {
+                if (_isLocked) return;
+                _dragStartY = details.globalPosition.dy;
+                final screenWidth = MediaQuery.of(context).size.width;
+                if (details.globalPosition.dx < screenWidth / 2) {
+                  _isDraggingLeft = true;
+                  _dragStartValue = 1.0 - _brightnessFactor; // 1.0 is max brightness
+                } else {
+                  _isDraggingRight = true;
+                  _dragStartValue = _volume;
+                }
+              },
+              onVerticalDragUpdate: (details) {
+                if (_isLocked) return;
+                final dy = details.globalPosition.dy - _dragStartY;
+                final screenHeight = MediaQuery.of(context).size.height;
+                double valueDelta = -(dy / (screenHeight / 2));
+                
+                setState(() {
+                  if (_isDraggingLeft) {
+                    double newBrightness = (_dragStartValue + valueDelta).clamp(0.2, 1.0); // min 0.2
+                    _brightnessFactor = 1.0 - newBrightness;
+                    
+                    _swipeToastIcon = Icons.brightness_6_rounded;
+                    _swipeToastText = "السطوع: ${(newBrightness * 100).toInt()}%";
+                  } else if (_isDraggingRight) {
+                    _volume = (_dragStartValue + valueDelta).clamp(0.0, 1.0);
+                    _betterController?.setVolume(_volume);
+                    
+                    _swipeToastIcon = _volume > 0.5 ? Icons.volume_up_rounded : _volume > 0 ? Icons.volume_down_rounded : Icons.volume_off_rounded;
+                    _swipeToastText = "الصوت: ${(_volume * 100).toInt()}%";
+                  }
+                });
+                
+                _swipeToastTimer?.cancel();
+                _swipeToastTimer = Timer(const Duration(seconds: 1), () {
+                  if (mounted) setState(() { _swipeToastText = null; });
+                });
+              },
+              onVerticalDragEnd: (details) {
+                _isDraggingLeft = false;
+                _isDraggingRight = false;
+              },
               child: Container(
                 color: Colors.black,
                 width: double.infinity,
@@ -1157,549 +1224,411 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
 
   Widget _buildHUDOverlay(IPTVProvider provider) {
     final bool isLive = _totalDuration.inSeconds == 0 || _stream.type == 'live';
-
+    
     return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withOpacity(0.85),
-              Colors.transparent,
-              Colors.black.withOpacity(0.9),
-            ],
-            stops: const [0.0, 0.5, 1.0],
+      child: AnimatedOpacity(
+        opacity: _showHUD ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.9),
+                Colors.transparent,
+                Colors.transparent,
+                Colors.black.withOpacity(0.9),
+              ],
+              stops: const [0.0, 0.2, 0.7, 1.0],
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // TOP HUD BAR
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    focusNode: _firstButtonFocusNode,
-                    focusColor: Colors.white24,
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  // Stream Meta Text
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _stream.name,
-                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Row(
+          child: SafeArea(
+            child: Column(
+              children: [
+                // TOP HUD BAR
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        focusNode: _firstButtonFocusNode,
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 24),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: isLive ? Colors.redAccent.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                isLive ? "LIVE" : "VOD",
-                                style: TextStyle(
-                                  color: isLive ? Colors.redAccent : Colors.blueAccent,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                            Text(
+                              _stream.name,
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                _stream.categoryName,
-                                style: const TextStyle(color: Colors.white60, fontSize: 10),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isLive ? Colors.redAccent.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: isLive ? Colors.redAccent : Colors.blueAccent, width: 0.5),
+                                  ),
+                                  child: Text(
+                                    isLive ? "LIVE" : "VOD",
+                                    style: TextStyle(
+                                      color: isLive ? Colors.redAccent : Colors.blueAccent,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _stream.categoryName,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // TOP ACTION BUTTONS
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        focusColor: Colors.redAccent.withOpacity(0.3),
-                        icon: Icon(
-                          provider.favorites.contains(_stream.streamId) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: provider.favorites.contains(_stream.streamId) ? Colors.redAccent : Colors.white,
-                        ),
-                        onPressed: () {
-                          provider.toggleFavorite(_stream.streamId);
-                          _resetHideHUDTimer();
-                        },
                       ),
-                      
-                      if (_stream.type == 'live' || _stream.type == 'stalker')
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.white10,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                              side: const BorderSide(color: Colors.white12),
+                      // Top Right Action Buttons (RTL means Left side)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              provider.favorites.contains(_stream.streamId) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              color: provider.favorites.contains(_stream.streamId) ? Colors.redAccent : Colors.white,
+                              size: 24,
                             ),
-                          ).copyWith(
-                            side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                              if (states.contains(MaterialState.focused)) {
-                                return const BorderSide(color: Colors.purpleAccent, width: 2);
+                            onPressed: () {
+                              provider.toggleFavorite(_stream.streamId);
+                              _resetHideHUDTimer();
+                            },
+                          ),
+                          if (_stream.type == 'live' || _stream.type == 'stalker')
+                            IconButton(
+                              icon: const Icon(Icons.grid_view_rounded, color: Colors.purpleAccent, size: 24),
+                              tooltip: "شاشات متعددة",
+                              onPressed: () async {
+                                _resetHideHUDTimer();
+                                final selectedLayout = await showDialog<MultiScreenType>(
+                                  context: context,
+                                  builder: (ctx) => MultiScreenSelectorDialog(),
+                                );
+                                if (selectedLayout != null) {
+                                   _betterController?.pause();
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(builder: (_) => MultiScreenPlayer(
+                                       layoutType: selectedLayout,
+                                       initialStream: _stream,
+                                     ))
+                                   );
+                                }
+                              },
+                            ),
+                          // Quality Menu button
+                          IconButton(
+                            icon: const Icon(Icons.high_quality_rounded, color: Colors.cyanAccent, size: 24),
+                            tooltip: "جودة البث",
+                            onPressed: () {
+                                _showQualitySelector();
+                                _resetHideHUDTimer();
+                            },
+                          ),
+                          // Subtitles Menu button
+                          IconButton(
+                            icon: const Icon(Icons.subtitles_rounded, color: Colors.amberAccent, size: 24),
+                            tooltip: "الترجمة",
+                            onPressed: () {
+                                _showSubtitlesSelector();
+                                _resetHideHUDTimer();
+                            },
+                          ),
+                          // Picture in Picture
+                          IconButton(
+                            icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.tealAccent, size: 24),
+                            tooltip: "صورة داخل صورة",
+                            onPressed: () {
+                                _togglePictureInPicture();
+                                _resetHideHUDTimer();
+                            },
+                          ),
+                          // Fullscreen
+                          IconButton(
+                            icon: Icon(_isPortrait ? Icons.fullscreen_rounded : Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
+                            tooltip: "ملء الشاشة",
+                            onPressed: () {
+                              setState(() {
+                                _isPortrait = !_isPortrait;
+                              });
+                              if (_isPortrait) {
+                                SystemChrome.setPreferredOrientations([
+                                  DeviceOrientation.portraitUp,
+                                  DeviceOrientation.portraitDown,
+                                ]);
+                              } else {
+                                SystemChrome.setPreferredOrientations([
+                                  DeviceOrientation.landscapeLeft,
+                                  DeviceOrientation.landscapeRight,
+                                ]);
                               }
-                              return null;
-                            }),
+                              _resetHideHUDTimer();
+                            },
                           ),
-                          icon: const Icon(Icons.grid_view_rounded, size: 16, color: Colors.purpleAccent),
-                          label: const Text("شاشات متعددة", style: TextStyle(fontSize: 10)),
-                          onPressed: () async {
-                            _resetHideHUDTimer();
-                            
-                            // Show multi-screen layout selector
-                            
-                            
-                            
-                            final selectedLayout = await showDialog<MultiScreenType>(
-                              context: context,
-                              builder: (ctx) => MultiScreenSelectorDialog(),
-                            );
-                            
-                            if (selectedLayout != null) {
-                               // pause current player if possible
-                               _betterController?.pause();
-                               
-                               Navigator.push(
-                                 context,
-                                 MaterialPageRoute(builder: (_) => MultiScreenPlayer(
-                                   layoutType: selectedLayout,
-                                   initialStream: _stream,
-                                 ))
-                               );
-                            }
-                          },
-                        ),
-
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white10,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Colors.white12),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.amberAccent, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.aspect_ratio_rounded, size: 16, color: Colors.amberAccent),
-                        label: Text(_aspectRatioLabel, style: const TextStyle(fontSize: 10)),
-                        onPressed: () {
-                          _cycleBoxFit();
-                          _resetHideHUDTimer();
-                        },
-                      ),
-
-                      
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white10,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Colors.white12),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.white, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.settings_rounded, size: 16, color: Colors.white),
-                        label: const Text("الإعدادات", style: TextStyle(fontSize: 10)),
-                        onPressed: () {
-                          _showSettingsModal();
-                          _resetHideHUDTimer();
-                        },
-                      ),
-
-
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white10,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Colors.white12),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.redAccent, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.lock_rounded, size: 16, color: Colors.redAccent),
-                        label: const Text("قفل الشاشة", style: TextStyle(fontSize: 10)),
-                        onPressed: () {
-                          setState(() {
-                            _isLocked = true;
-                            _showHUD = false;
-                            _showLockToggleOnly = true;
-                          });
-                          _resetLockToggleTimer();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "تم قفل الشاشة",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
-                              ),
-                              duration: Duration(seconds: 1),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
-                        },
-                      ),
-
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white10,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: const BorderSide(color: Colors.white12),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.blueAccent, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.screen_rotation_rounded, size: 16, color: Colors.blueAccent),
-                        label: Text(_isPortrait ? "أفقي" : "عمودي", style: const TextStyle(fontSize: 10)),
-                        onPressed: () {
-                          setState(() {
-                            _isPortrait = !_isPortrait;
-                          });
-                          if (_isPortrait) {
-                            SystemChrome.setPreferredOrientations([
-                              DeviceOrientation.portraitUp,
-                              DeviceOrientation.portraitDown,
-                            ]);
-                          } else {
-                            SystemChrome.setPreferredOrientations([
-                              DeviceOrientation.landscapeLeft,
-                              DeviceOrientation.landscapeRight,
-                            ]);
-                          }
-                          _resetHideHUDTimer();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _isPortrait ? "تم تحويل الشاشة إلى الوضع العمودي" : "تم تحويل الشاشة إلى الوضع الأفقي",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
-                              ),
-                              duration: const Duration(seconds: 1),
-                              backgroundColor: Colors.blueAccent,
-                            ),
-                          );
-                        },
-                      ),
-
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ).copyWith(
-                          side: MaterialStateProperty.resolveWith<BorderSide?>((states) {
-                            if (states.contains(MaterialState.focused)) {
-                              return const BorderSide(color: Colors.white, width: 2);
-                            }
-                            return null;
-                          }),
-                        ),
-                        icon: const Icon(Icons.list_alt_rounded, size: 16),
-                        label: const Text("قائمة القنوات", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          setState(() {
-                            _showSidebar = !_showSidebar;
-                          });
-                          _resetHideHUDTimer();
-                        },
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-            const Spacer(),
-
-            // CENTER HUD OVERLAY CONTROLS
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildHUDCircleBtn(
-                  icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
-                  onTap: () {
-                    _zapNextPrev(provider, false);
-                    _resetHideHUDTimer();
-                  },
                 ),
-                const SizedBox(width: 24),
-
-                if (!isLive)
-                  _buildHUDCircleBtn(
-                    icon: const Icon(Icons.replay_10_rounded, color: Colors.white70, size: 24),
-                    onTap: () {
-                      
-                        if (_betterController != null && _initialized) {
-                          final pos = _currentPosition - const Duration(seconds: 10);
-                          _betterController!.seekTo(pos < Duration.zero ? Duration.zero : pos);
-                        }
-                      
-                      _resetHideHUDTimer();
-                    },
-                  ),
-                if (!isLive) const SizedBox(width: 24),
-
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    focusColor: Colors.lightBlueAccent.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(50),
-                    onTap: () {
-                      if (_betterController != null && _initialized) {
-                        setState(() {
-                          _betterController!.isPlaying() == true ? _betterController!.pause() : _betterController!.play();
-                        });
-                      }
-                      _resetHideHUDTimer();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Colors.blueAccent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
-                        ],
+                
+                const Spacer(),
+                
+                // CENTER CONTROLS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (!isLive)
+                      _buildHUDCircleBtn(
+                        icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 28),
+                        onTap: () {
+                          if (_betterController != null && _initialized) {
+                            final pos = _currentPosition - const Duration(seconds: 10);
+                            _betterController!.seekTo(pos < Duration.zero ? Duration.zero : pos);
+                          }
+                          _resetHideHUDTimer();
+                        },
                       ),
-                      child: Icon(
-                        (_betterController?.isPlaying() ?? false) ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 44,
+                    if (!isLive) const SizedBox(width: 32),
+                    
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(50),
+                        onTap: () {
+                          if (_betterController != null && _initialized) {
+                            setState(() {
+                              _betterController!.isPlaying() == true ? _betterController!.pause() : _betterController!.play();
+                            });
+                          }
+                          _resetHideHUDTimer();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
+                            ],
+                          ),
+                          child: Icon(
+                            (_betterController?.isPlaying() ?? false) ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 48,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    
+                    if (!isLive) const SizedBox(width: 32),
+                    if (!isLive)
+                      _buildHUDCircleBtn(
+                        icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 28),
+                        onTap: () {
+                          if (_betterController != null && _initialized) {
+                            final pos = _currentPosition + const Duration(seconds: 10);
+                            _betterController!.seekTo(pos > _totalDuration ? _totalDuration : pos);
+                          }
+                          _resetHideHUDTimer();
+                        },
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 24),
-
-                if (!isLive)
-                  _buildHUDCircleBtn(
-                    icon: const Icon(Icons.forward_10_rounded, color: Colors.white70, size: 24),
-                    onTap: () {
+                
+                const Spacer(),
+                
+                // BOTTOM CONTROL BAR
+                Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Timeline
+                      if (!isLive && _initialized)
+                        Row(
+                          children: [
+                            Text(
+                              _formatDuration(_currentPosition),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  activeTrackColor: Colors.blueAccent,
+                                  inactiveTrackColor: Colors.white24,
+                                  thumbColor: Colors.white,
+                                  trackHeight: 4.0,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                                ),
+                                child: Slider(
+                                  min: 0.0,
+                                  max: _totalDuration.inSeconds.toDouble() > 0 ? _totalDuration.inSeconds.toDouble() : 1.0,
+                                  value: _currentPosition.inSeconds.toDouble().clamp(0.0, _totalDuration.inSeconds.toDouble() > 0 ? _totalDuration.inSeconds.toDouble() : 1.0),
+                                  onChanged: (val) {
+                                    _resetHideHUDTimer();
+                                    _betterController?.seekTo(Duration(seconds: val.toInt()));
+                                  },
+                                ),
+                              ),
+                            ),
+                            Text(
+                              _formatDuration(_totalDuration),
+                              style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
                       
-                        if (_betterController != null && _initialized) {
-                          final pos = _currentPosition + const Duration(seconds: 10);
-                          _betterController!.seekTo(pos > _totalDuration ? _totalDuration : pos);
-                        }
+                      if (isLive)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                                boxShadow: [BoxShadow(color: Colors.redAccent, blurRadius: 4)],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "بث مباشر",
+                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                            ),
+                          ],
+                        ),
                       
-                      _resetHideHUDTimer();
-                    },
+                      const SizedBox(height: 12),
+                      
+                      // Bottom Actions (Volume, Aspect Ratio, Subtitles, Quality, Lock)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Left side controls
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 22),
+                                onPressed: () {
+                                   if (_volume > 0) {
+                                     _betterController?.setVolume(0);
+                                     setState(() => _volume = 0);
+                                   } else {
+                                     _betterController?.setVolume(1.0);
+                                     setState(() => _volume = 1.0);
+                                   }
+                                   _resetHideHUDTimer();
+                                },
+                              ),
+                              SizedBox(
+                                width: 80,
+                                child: SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: Colors.blueAccent,
+                                    inactiveTrackColor: Colors.white24,
+                                    trackHeight: 2.0,
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0),
+                                  ),
+                                  child: Slider(
+                                    value: _volume,
+                                    min: 0.0,
+                                    max: 1.0,
+                                    onChanged: (val) {
+                                      setState(() => _volume = val);
+                                      _betterController?.setVolume(_volume);
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          // Right side controls
+                          Row(
+                            children: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.white10,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                icon: const Icon(Icons.aspect_ratio_rounded, size: 18, color: Colors.amberAccent),
+                                label: Text(_aspectRatioLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  _cycleBoxFit();
+                                  _resetHideHUDTimer();
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
+                                icon: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
+                                tooltip: "قفل الشاشة",
+                                onPressed: () {
+                                  setState(() {
+                                    _isLocked = true;
+                                    _showHUD = false;
+                                    _showLockToggleOnly = true;
+                                  });
+                                  _resetLockToggleTimer();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("تم قفل الشاشة", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                                      duration: Duration(seconds: 1),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
+                                icon: const Icon(Icons.list_rounded, color: Colors.white, size: 20),
+                                tooltip: "قائمة القنوات",
+                                onPressed: () {
+                                  setState(() {
+                                    _showSidebar = !_showSidebar;
+                                  });
+                                  _resetHideHUDTimer();
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                if (!isLive) const SizedBox(width: 24),
-
-                _buildHUDCircleBtn(
-                  icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
-                  onTap: () {
-                    _zapNextPrev(provider, true);
-                    _resetHideHUDTimer();
-                  },
                 ),
               ],
             ),
-
-            const Spacer(),
-
-            // BOTTOM CONTROL BAR
-            Container(
-              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 4),
-              child: Column(
-                children: [
-                   if (!isLive && _initialized) ...[
-                    Row(
-                      children: [
-                        Text(
-                          _formatDuration(_currentPosition),
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
-                        ),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: Colors.blueAccent,
-                              inactiveTrackColor: Colors.white24,
-                              thumbColor: Colors.amberAccent,
-                              trackHeight: 3.0,
-                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-                            ),
-                            child: Slider(
-                              min: 0.0,
-                              max: _totalDuration.inSeconds.toDouble() > 0 ? _totalDuration.inSeconds.toDouble() : 1.0,
-                              value: _currentPosition.inSeconds.toDouble().clamp(0.0, _totalDuration.inSeconds.toDouble() > 0 ? _totalDuration.inSeconds.toDouble() : 1.0),
-                              onChanged: (val) {
-                                _resetHideHUDTimer();
-                                _betterController?.seekTo(Duration(seconds: val.toInt()));
-                              },
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(_totalDuration),
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          "بث حي ومباشر / LIVE STREAM BROADCAST",
-                          style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            _brightnessFactor > 0.6
-                                ? Icons.brightness_low_rounded
-                                : _brightnessFactor > 0.2
-                                    ? Icons.brightness_medium_rounded
-                                    : Icons.brightness_high_rounded,
-                            color: Colors.amberAccent,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 100,
-                            height: 24,
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: Colors.yellow,
-                                inactiveTrackColor: Colors.white10,
-                                trackHeight: 2.0,
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4.0),
-                              ),
-                              child: Slider(
-                                value: 1.0 - _brightnessFactor,
-                                min: 0.2, // minimum brightness simulation limit
-                                max: 1.0,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _brightnessFactor = 1.0 - val;
-                                  });
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text("السطوع", style: TextStyle(color: Colors.white54, fontSize: 9)),
-                        ],
-                      ),
-
-                      Row(
-                        children: [
-                          const Text("الصوت", style: TextStyle(color: Colors.white54, fontSize: 9)),
-                          const SizedBox(width: 4),
-                          SizedBox(
-                            width: 100,
-                            height: 24,
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: Colors.blueAccent,
-                                inactiveTrackColor: Colors.white10,
-                                trackHeight: 2.0,
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4.0),
-                              ),
-                              child: Slider(
-                                value: _volume,
-                                min: 0.0,
-                                max: 1.0,
-                                onChanged: (val) async {
-                                  setState(() {
-                                    _volume = val;
-                                  });
-                                  await _betterController?.setVolume(_volume);
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            _volume == 0.0
-                                ? Icons.volume_mute_rounded
-                                : _volume < 0.5
-                                    ? Icons.volume_down_rounded
-                                    : Icons.volume_up_rounded,
-                            color: Colors.blueAccent,
-                            size: 16,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

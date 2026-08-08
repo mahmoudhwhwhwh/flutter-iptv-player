@@ -56,6 +56,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // Brightness simulation overlay (0.0 means normal/bright, 0.8 means dim)
   double _brightnessFactor = 0.0;
   double _volume = 1.0;
+  double _playbackSpeed = 1.0;
   
   // Focus node for TV remote controls and virtual bitrate cap for DASH streams
   final FocusNode _firstButtonFocusNode = FocusNode();
@@ -74,10 +75,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isLocked = false;
   bool _showLockToggleOnly = false;
   Timer? _lockToggleTimer;
+  // Sleep Timer
+  Timer? _sleepTimer;
+  int? _sleepTimerMinutes;
+
   bool _isPortrait = false;
 
   void _resetLockToggleTimer() {
     _lockToggleTimer?.cancel();
+    _sleepTimer?.cancel();
     _lockToggleTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -188,6 +194,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _initializeController({bool isRetry = false}) async {
+    int? savedPosition;
+    if (widget.stream.type != 'live') {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        savedPosition = prefs.getInt('vod_pos_${widget.stream.streamId}');
+      } catch (e) {
+        debugPrint("Error loading saved position: $e");
+      }
+    }
     await _loadSubSettings();
     if (!isRetry) {
       _initialized = false;
@@ -382,6 +397,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               if (_betterController!.videoPlayerController != null) {
                 _totalDuration = _betterController!.videoPlayerController!.value.duration ?? Duration.zero;
               }
+              if (savedPosition != null && savedPosition! > 0) {
+                final pos = Duration(seconds: savedPosition!);
+                if (_totalDuration == Duration.zero || pos < _totalDuration) {
+                  _betterController!.seekTo(pos);
+                }
+              }
               if (_betterController != null) {
                 _betterController!.setOverriddenFit(_currentBoxFit);
                 if (_currentBoxFit == BoxFit.contain) {
@@ -511,6 +532,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    if (_stream.type != 'live' && _currentPosition > Duration.zero) {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);
+      });
+    }
     WidgetsBinding.instance.removeObserver(this);
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
@@ -518,6 +544,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _reconnectTimer?.cancel();
     _zoomIndicatorTimer?.cancel();
     _lockToggleTimer?.cancel();
+    _sleepTimer?.cancel();
     _firstButtonFocusNode.dispose();
     
     // Restore saved orientation preference
@@ -786,6 +813,160 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+
+  void _showSleepTimerSelector() {
+    showDialog(
+      context: context,
+      builder: (BuildContext bContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: Container(
+                  width: 350,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E20),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.timer_rounded, color: Colors.pinkAccent),
+                            const SizedBox(width: 8),
+                            const Text("مؤقت النوم", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () => Navigator.pop(bContext),
+                            )
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        children: [0, 15, 30, 45, 60, 90, 120].map((minutes) {
+                          final isSelected = _sleepTimerMinutes == minutes;
+                          final title = minutes == 0 ? "إيقاف" : "$minutes دقيقة";
+                          return ListTile(
+                            title: Text(title, style: TextStyle(color: isSelected ? Colors.pinkAccent : Colors.white)),
+                            trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.pinkAccent) : null,
+                            onTap: () {
+                              setState(() {
+                                _sleepTimerMinutes = minutes == 0 ? null : minutes;
+                                _sleepTimer?.cancel();
+                                if (minutes > 0) {
+                                  _sleepTimer = Timer(Duration(minutes: minutes), () {
+                                    if (mounted) {
+                                      _betterController?.pause();
+                                      Navigator.pop(this.context);
+                                    }
+                                  });
+                                }
+                              });
+                              setModalState(() {});
+                              Navigator.pop(bContext);
+                              
+                              if (minutes > 0) {
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("تم ضبط مؤقت النوم: $minutes دقيقة", textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                                    backgroundColor: Colors.pinkAccent,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          ),
+        );
+      }
+    );
+  }
+
+
+  void _showSpeedSelector() {
+    showDialog(
+      context: context,
+      builder: (BuildContext bContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: Container(
+                  width: 350,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E20),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.speed_rounded, color: Colors.orangeAccent),
+                            const SizedBox(width: 8),
+                            const Text("سرعة التشغيل", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () => Navigator.pop(bContext),
+                            )
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+                          final isSelected = _playbackSpeed == speed;
+                          final title = speed == 1.0 ? "عادي (1.0x)" : "${speed}x";
+                          return ListTile(
+                            title: Text(title, style: TextStyle(color: isSelected ? Colors.orangeAccent : Colors.white)),
+                            trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.orangeAccent) : null,
+                            onTap: () {
+                              setState(() {
+                                _playbackSpeed = speed;
+                                _betterController?.setSpeed(speed);
+                              });
+                              setModalState(() {});
+                              Navigator.pop(bContext);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          ),
+        );
+      }
+    );
+  }
+
   void _showQualitySelector() {
     if (_betterController == null || !_initialized) return;
     showDialog(
@@ -1012,6 +1193,35 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               onVerticalDragEnd: (details) {
                 _isDraggingLeft = false;
                 _isDraggingRight = false;
+              },
+              onDoubleTapDown: (details) {
+                if (_isLocked || _stream.type == 'live') return;
+                final screenWidth = MediaQuery.of(context).size.width;
+                if (details.globalPosition.dx < screenWidth / 2) {
+                  // Seek backward 10s
+                  if (_betterController != null && _initialized) {
+                    final pos = _currentPosition - const Duration(seconds: 10);
+                    _betterController!.seekTo(pos < Duration.zero ? Duration.zero : pos);
+                    setState(() {
+                       _swipeToastIcon = Icons.replay_10_rounded;
+                       _swipeToastText = "رجوع 10 ثواني";
+                    });
+                  }
+                } else {
+                  // Seek forward 10s
+                  if (_betterController != null && _initialized) {
+                    final pos = _currentPosition + const Duration(seconds: 10);
+                    _betterController!.seekTo(pos > _totalDuration ? _totalDuration : pos);
+                    setState(() {
+                       _swipeToastIcon = Icons.forward_10_rounded;
+                       _swipeToastText = "تقديم 10 ثواني";
+                    });
+                  }
+                }
+                _swipeToastTimer?.cancel();
+                _swipeToastTimer = Timer(const Duration(seconds: 1), () {
+                  if (mounted) setState(() { _swipeToastText = null; });
+                });
               },
               child: Container(
                 color: Colors.black,
@@ -1372,6 +1582,24 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                      ))
                                    );
                                 }
+                              },
+                            ),
+                          // Sleep Timer button
+                          IconButton(
+                            icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? Colors.pinkAccent : Colors.white, size: 24),
+                            tooltip: "مؤقت النوم",
+                            onPressed: () {
+                                _showSleepTimerSelector();
+                                _resetHideHUDTimer();
+                            },
+                          ),
+                          if (!isLive)
+                            IconButton(
+                              icon: const Icon(Icons.speed_rounded, color: Colors.orangeAccent, size: 24),
+                              tooltip: "سرعة التشغيل",
+                              onPressed: () {
+                                  _showSpeedSelector();
+                                  _resetHideHUDTimer();
                               },
                             ),
                           // Quality Menu button

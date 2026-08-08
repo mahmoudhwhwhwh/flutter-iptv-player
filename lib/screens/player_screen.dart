@@ -1614,15 +1614,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 }
                               },
                             ),
-                        
-
-  // Sidebar Search & Category
-  String _sidebarSearchQuery = "";
-  String _sidebarSelectedCategory = "all";
-  final FocusNode _sidebarSearchFocusNode = FocusNode();
-
-
-  // Sleep Timer button
+                          // Sleep Timer button
                           IconButton(
                             icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? Colors.pinkAccent : Colors.white, size: 24),
                             tooltip: "مؤقت النوم",

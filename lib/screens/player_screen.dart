@@ -673,8 +673,24 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: StatefulBuilder(
             builder: (context, setModalState) {
-              final List<BetterPlayerSubtitlesSource> subtitles = _betterController!.betterPlayerSubtitlesSourceList;
+              final List<BetterPlayerSubtitlesSource> rawSubtitles = _betterController!.betterPlayerSubtitlesSourceList;
               final selectedSub = _betterController!.betterPlayerSubtitlesSource;
+              
+              // Filter and sort Arabic to top
+              List<BetterPlayerSubtitlesSource> validSubtitles = rawSubtitles.where((s) => s.type != BetterPlayerSubtitlesSourceType.none).toList();
+              validSubtitles.sort((a, b) {
+                final aName = (a.name ?? "").toLowerCase();
+                final bName = (b.name ?? "").toLowerCase();
+                final aLang = (a.language ?? "").toLowerCase();
+                final bLang = (b.language ?? "").toLowerCase();
+                
+                bool aIsAr = aName.contains("ar") || aLang.contains("ar") || aName.contains("عرب");
+                bool bIsAr = bName.contains("ar") || bLang.contains("ar") || bName.contains("عرب");
+                
+                if (aIsAr && !bIsAr) return -1;
+                if (!aIsAr && bIsAr) return 1;
+                return aName.compareTo(bName);
+              });
               
               return Directionality(
                 textDirection: TextDirection.rtl,
@@ -718,12 +734,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 Navigator.pop(bContext);
                               },
                             ),
-                            if (subtitles.isNotEmpty) ...[
+                            if (validSubtitles.isNotEmpty) ...[
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 child: Text("الترجمات المدمجة", style: TextStyle(color: Colors.white54, fontSize: 12)),
                               ),
-                              ...subtitles.where((s) => s.type != BetterPlayerSubtitlesSourceType.none).map((sub) {
+                              ...validSubtitles.map((sub) {
                                 final isSelected = selectedSub == sub && _selectedAiLang == '';
                                 final name = sub.name ?? "ترجمة (${sub.language ?? 'غير معروف'})";
                                 return ListTile(
@@ -1257,6 +1273,25 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 24),
                         onPressed: () => Navigator.pop(context),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 22),
+                        tooltip: "قفل الشاشة",
+                        onPressed: () {
+                          setState(() {
+                            _isLocked = true;
+                            _showHUD = false;
+                            _showLockToggleOnly = true;
+                          });
+                          _resetLockToggleTimer();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("تم قفل الشاشة", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                              duration: Duration(seconds: 1),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
@@ -1587,27 +1622,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 },
                               ),
                               const SizedBox(width: 8),
-                              IconButton(
-                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
-                                icon: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
-                                tooltip: "قفل الشاشة",
-                                onPressed: () {
-                                  setState(() {
-                                    _isLocked = true;
-                                    _showHUD = false;
-                                    _showLockToggleOnly = true;
-                                  });
-                                  _resetLockToggleTimer();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("تم قفل الشاشة", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                                      duration: Duration(seconds: 1),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 8),
+
                               IconButton(
                                 style: IconButton.styleFrom(backgroundColor: Colors.white10),
                                 icon: const Icon(Icons.list_rounded, color: Colors.white, size: 20),

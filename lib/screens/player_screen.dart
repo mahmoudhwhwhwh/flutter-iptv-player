@@ -1683,10 +1683,10 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 _resetHideHUDTimer();
                             },
                           ),
-                          // Fullscreen
+                          // Screen Rotation
                           IconButton(
-                            icon: Icon(_isPortrait ? Icons.fullscreen_rounded : Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
-                            tooltip: "ملء الشاشة",
+                            icon: const Icon(Icons.screen_rotation_rounded, color: Colors.white, size: 26),
+                            tooltip: "تدوير الشاشة",
                             onPressed: () {
                               setState(() {
                                 _isPortrait = !_isPortrait;
@@ -1702,15 +1702,6 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                   DeviceOrientation.landscapeRight,
                                 ]);
                               }
-                              // Unlock orientation so sensor works again after forced layout
-                              Future.delayed(const Duration(milliseconds: 1500), () {
-                                SystemChrome.setPreferredOrientations([
-                                  DeviceOrientation.landscapeLeft,
-                                  DeviceOrientation.landscapeRight,
-                                  DeviceOrientation.portraitUp,
-                                  DeviceOrientation.portraitDown,
-                                ]);
-                              });
                               _resetHideHUDTimer();
                             },
                           ),
@@ -1914,6 +1905,29 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               ),
                               const SizedBox(width: 8),
 
+                              IconButton(
+                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
+                                icon: Icon(_isPortrait ? Icons.fullscreen_rounded : Icons.fullscreen_exit_rounded, color: Colors.white, size: 20),
+                                tooltip: "ملء الشاشة",
+                                onPressed: () {
+                                  setState(() {
+                                    _isPortrait = !_isPortrait;
+                                  });
+                                  if (_isPortrait) {
+                                    SystemChrome.setPreferredOrientations([
+                                      DeviceOrientation.portraitUp,
+                                      DeviceOrientation.portraitDown,
+                                    ]);
+                                  } else {
+                                    SystemChrome.setPreferredOrientations([
+                                      DeviceOrientation.landscapeLeft,
+                                      DeviceOrientation.landscapeRight,
+                                    ]);
+                                  }
+                                  _resetHideHUDTimer();
+                                },
+                              ),
+                              const SizedBox(width: 8),
                               IconButton(
                                 style: IconButton.styleFrom(backgroundColor: Colors.white10),
                                 icon: const Icon(Icons.list_rounded, color: Colors.white, size: 20),

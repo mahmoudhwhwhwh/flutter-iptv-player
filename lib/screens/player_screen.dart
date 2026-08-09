@@ -195,6 +195,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
     ]);
     
     _initializeController();
@@ -685,6 +687,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           _showHUD = false;
           _showSidebar = false;
         });
+        // Unlock orientation before entering PiP to ensure proper aspect ratio
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
         await _betterController!.enablePictureInPicture(_betterPlayerKey);
       } catch (e) {
         debugPrint("Failed to enable picture in picture: $e");
@@ -1693,6 +1702,15 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                   DeviceOrientation.landscapeRight,
                                 ]);
                               }
+                              // Unlock orientation so sensor works again after forced layout
+                              Future.delayed(const Duration(milliseconds: 1500), () {
+                                SystemChrome.setPreferredOrientations([
+                                  DeviceOrientation.landscapeLeft,
+                                  DeviceOrientation.landscapeRight,
+                                  DeviceOrientation.portraitUp,
+                                  DeviceOrientation.portraitDown,
+                                ]);
+                              });
                               _resetHideHUDTimer();
                             },
                           ),

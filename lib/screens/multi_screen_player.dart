@@ -386,13 +386,25 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
       }
     }
 
+
+    BetterPlayerVideoFormat? format;
+    final urlStr = finalUrl.toLowerCase();
+    if (urlStr.contains('.m3u8')) {
+      format = BetterPlayerVideoFormat.hls;
+    } else if (urlStr.contains('.mpd')) {
+      format = BetterPlayerVideoFormat.dash;
+    }
+
+    bool isAsms = format == BetterPlayerVideoFormat.hls || format == BetterPlayerVideoFormat.dash;
+
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
+      videoFormat: format,
       headers: headers,
-      useAsmsTracks: true,
-      useAsmsSubtitles: true,
-      useAsmsAudioTracks: true,
+      useAsmsTracks: isAsms,
+      useAsmsSubtitles: isAsms,
+      useAsmsAudioTracks: isAsms,
       drmConfiguration: widget.stream.clearKeys != null && widget.stream.clearKeys!.isNotEmpty
           ? BetterPlayerDrmConfiguration(
               drmType: BetterPlayerDrmType.clearKey,

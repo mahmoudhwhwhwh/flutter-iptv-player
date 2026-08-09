@@ -156,6 +156,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       String sSize = prefs.getString('sub_size') ?? "متوسط";
       String sCol = prefs.getString('sub_color') ?? "أبيض";
       String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
+      String appOrient = prefs.getString('app_orientation') ?? "تلقائي";
       
       if (sSize == "صغير") _subSizeVal = 12.0;
       else if (sSize == "متوسط") _subSizeVal = 16.0;
@@ -178,6 +179,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       else if (sBg == "أخضر داكن") _subBgColorVal = Colors.green[900]!.withOpacity(0.8);
       else if (sBg == "أرجواني داكن") _subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
       else _subBgColorVal = Colors.transparent;
+      
+      if (appOrient == "أفقي") {
+        _isPortrait = false;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      } else if (appOrient == "عمودي") {
+        _isPortrait = true;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      }
       
       if (mounted) setState((){});
     } catch(e) {}
@@ -1282,7 +1304,53 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-
+                  Positioned(
+                    top: 40,
+                    right: 24,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5E35B1), // Deep purple / violet as in image
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        "live stream pro",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 40,
+                    left: 24,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E22).withOpacity(0.85), // Dark violet/blackish
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12, width: 0.5),
+                      ),
+                      child: const Text(
+                        "live stream pro",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1533,7 +1601,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
-                        "live strem pro",
+                        "live stream pro",
                         style: TextStyle(
                           color: Colors.white60,
                           fontSize: 14,
@@ -1883,7 +1951,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                   border: Border.all(color: Colors.white10, width: 0.5),
                                 ),
                                 child: const Text(
-                                  "live strem pro",
+                                  "live stream pro",
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 10,

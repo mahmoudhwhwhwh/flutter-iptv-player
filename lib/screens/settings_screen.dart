@@ -242,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 32),
               const Center(
                 child: Text(
-                  "live strem pro",
+                  "live stream pro",
                   style: TextStyle(
                     color: Colors.white24,
                     fontSize: 14,

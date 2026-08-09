@@ -167,6 +167,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: Colors.white12),
               const SizedBox(height: 24),
 
+              const Text("تصفية وتصفح المحتوى", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return _buildSettingItem(
+                    title: "عرض الأفلام والمسلسلات",
+                    description: "إظهار أو إخفاء أقسام وأبواب الأفلام والمسلسلات تماماً من واجهات التطبيق.",
+                    value: provider.showMoviesSeries,
+                    activeColor: Colors.redAccent,
+                    onChanged: (val) {
+                      provider.setShowMoviesSeries(val);
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return _buildDropdownItem(
+                    title: "تصفية القنوات (البث المباشر)",
+                    value: provider.channelFilter,
+                    items: const ["الكل", "القنوات العربية فقط", "القنوات الأجنبية فقط"],
+                    onChanged: (val) {
+                      if (val != null) {
+                        provider.setChannelFilter(val);
+                      }
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 24),
+
               const Text("الإعدادات المتقدمة (Vortex)", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 

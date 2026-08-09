@@ -105,6 +105,28 @@ class IPTVProvider with ChangeNotifier {
   int _activationDurationHours = -1;
   String _subscriptionType = "";
 
+  bool _showMoviesSeries = true;
+  bool get showMoviesSeries => _showMoviesSeries;
+
+  String _channelFilter = "الكل"; // "الكل", "القنوات العربية فقط", "القنوات الأجنبية فقط"
+  String get channelFilter => _channelFilter;
+
+  void setShowMoviesSeries(bool value) async {
+    _showMoviesSeries = value;
+    _applyFilters();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('filter_show_movies_series', value);
+  }
+
+  void setChannelFilter(String value) async {
+    _channelFilter = value;
+    _applyFilters();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('channel_filter', value);
+  }
+
   String get activeTab => _activeTab;
   String _globalUserAgent = '';
   String get globalUserAgent => _globalUserAgent;
@@ -260,6 +282,8 @@ class IPTVProvider with ChangeNotifier {
     }
 
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    _showMoviesSeries = prefs.getBool('filter_show_movies_series') ?? true;
+    _channelFilter = prefs.getString('channel_filter') ?? "الكل";
     _activationCode = prefs.getString('active_code') ?? "";
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
@@ -1085,8 +1109,48 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  bool isArabicStream(PlaylistItem stream) {
+    // 1. Check if the stream name contains any Arabic letters.
+    final arabicRegExp = RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]');
+    if (arabicRegExp.hasMatch(stream.name)) return true;
+
+    // 2. Check if the category name contains Arabic characters
+    if (arabicRegExp.hasMatch(stream.categoryName)) return true;
+
+    // 3. Check name or category for common Arabic keywords/prefixes
+    final String nameUpper = stream.name.toUpperCase();
+    final String catUpper = stream.categoryName.toUpperCase();
+    
+    final List<String> arabicKeywords = [
+      "ARAB", "ARABIC", "AR ", "OSN", "MBC", "BEIN", "ROTANA", "AL JAZEERA", "ALJAZEERA", "ART ", "MYCO", "NIL", "NILE", "AL KASS", "ALKASS", "AD SPORT"
+    ];
+
+    for (final kw in arabicKeywords) {
+      if (nameUpper.contains(kw) || catUpper.contains(kw)) return true;
+    }
+
+    return false;
+  }
+
   void _applyFilters() {
     _filteredStreams = _allStreams.where((stream) {
+      // Filter out movies and series if configured to be hidden
+      if (!_showMoviesSeries) {
+        if (stream.type == "movie" || stream.type == "series" || stream.type == "stalker_movie" || stream.type == "stalker_series") {
+          return false;
+        }
+      }
+
+      // Filter Arabic / Foreign channels
+      if (_channelFilter != "الكل") {
+        final isArab = isArabicStream(stream);
+        if (_channelFilter == "القنوات العربية فقط") {
+          if (!isArab) return false;
+        } else if (_channelFilter == "القنوات الأجنبية فقط") {
+          if (isArab) return false;
+        }
+      }
+
       if (_activeTab != "favorites") {
         if (_activeTab == "live") {
           if (stream.type != "live" && stream.type != "stalker") return false;

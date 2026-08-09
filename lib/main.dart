@@ -370,6 +370,24 @@ class _MainDashboardState extends State<MainDashboard> {
   @override
   Widget build(BuildContext context) {
     final bool useBottomNav = MediaQuery.of(context).size.width < 600 || MediaQuery.of(context).orientation == Orientation.portrait;
+    final provider = Provider.of<IPTVProvider>(context);
+    final showMoviesSeries = provider.showMoviesSeries;
+
+    final List<Map<String, dynamic>> tabs = [
+      {"icon": Icons.home_rounded, "label": "الرئيسية", "index": 0},
+      {"icon": Icons.live_tv_rounded, "label": "مباشر", "index": 1},
+      if (showMoviesSeries) {"icon": Icons.movie_filter_rounded, "label": "أفلام", "index": 2},
+      if (showMoviesSeries) {"icon": Icons.video_library_rounded, "label": "مسلسلات", "index": 3},
+      {"icon": Icons.favorite_rounded, "label": "مفضلة", "index": 4},
+    ];
+
+    int localIndex = tabs.indexWhere((t) => t['index'] == _selectedIndex);
+    if (localIndex == -1) {
+      localIndex = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() => _selectedIndex = 0);
+      });
+    }
 
     return Scaffold(
       appBar: useBottomNav ? AppBar(
@@ -401,8 +419,8 @@ class _MainDashboardState extends State<MainDashboard> {
       ),
       bottomNavigationBar: useBottomNav
           ? BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: updateIndex,
+              currentIndex: localIndex,
+              onTap: (val) => updateIndex(tabs[val]['index']),
               backgroundColor: const Color(0xFF0F0F12),
               selectedItemColor: const Color(0xFFE50914),
               unselectedItemColor: Colors.white54,
@@ -410,13 +428,9 @@ class _MainDashboardState extends State<MainDashboard> {
               showUnselectedLabels: true,
               selectedFontSize: 10,
               unselectedFontSize: 10,
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-                BottomNavigationBarItem(icon: Icon(Icons.live_tv_rounded), label: 'مباشر'),
-                BottomNavigationBarItem(icon: Icon(Icons.movie_filter_rounded), label: 'أفلام'),
-                BottomNavigationBarItem(icon: Icon(Icons.video_library_rounded), label: 'مسلسلات'),
-                BottomNavigationBarItem(icon: Icon(Icons.favorite_rounded), label: 'مفضلة'),
-              ],
+              items: tabs.map((t) {
+                return BottomNavigationBarItem(icon: Icon(t['icon']), label: t['label']);
+              }).toList(),
             )
           : null,
     );
@@ -453,6 +467,16 @@ class ModernSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
+    final provider = Provider.of<IPTVProvider>(context);
+    final showMoviesSeries = provider.showMoviesSeries;
+
+    final List<Map<String, dynamic>> items = [
+      {"icon": Icons.home_rounded, "index": 0},
+      {"icon": Icons.live_tv_rounded, "index": 1},
+      if (showMoviesSeries) {"icon": Icons.movie_filter_rounded, "index": 2},
+      if (showMoviesSeries) {"icon": Icons.video_library_rounded, "index": 3},
+      {"icon": Icons.favorite_rounded, "index": 4},
+    ];
 
     return Container(
       width: isMobile ? 55 : 75,
@@ -479,16 +503,12 @@ class ModernSidebar extends StatelessWidget {
             },
           ),
           SizedBox(height: isMobile ? 16 : 32),
-          _buildItem(Icons.home_rounded, 0, isMobile),
-          _buildItem(Icons.live_tv_rounded, 1, isMobile),
-          _buildItem(Icons.movie_filter_rounded, 2, isMobile),
-          _buildItem(Icons.video_library_rounded, 3, isMobile),
-          _buildItem(Icons.favorite_rounded, 4, isMobile),
+          ...items.map((item) => _buildItem(item['icon'], item['index'], isMobile)),
           const Spacer(),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'تسجيل الخروج',
-            onPressed: () => Provider.of<IPTVProvider>(context, listen: false).logout(),
+            onPressed: () => provider.logout(),
           ),
           SizedBox(height: isMobile ? 12 : 16),
         ],
@@ -1741,6 +1761,16 @@ class DynamicSectionsWidget extends StatelessWidget {
 
     if (provider.activationCode != "2027" || provider.liveCategories.isEmpty) {
       // Default Sections
+      final showMoviesSeries = provider.showMoviesSeries;
+      final List<Widget> staticCards = [
+        _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [Color(0xFFE50914), Color(0xFF8E040B)], isMobile),
+        if (showMoviesSeries)
+          _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF1E88E5), Color(0xFF1565C0)], isMobile),
+        if (showMoviesSeries)
+          _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFF00B4DB), Color(0xFF0083B0)], isMobile),
+        _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFFFF416C), Color(0xFFFF4B2B)], isMobile),
+      ];
+
       if (isMobile) {
         return GridView.count(
           shrinkWrap: true,
@@ -1749,24 +1779,11 @@ class DynamicSectionsWidget extends StatelessWidget {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           childAspectRatio: 1.4,
-          children: [
-            _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [Color(0xFFE50914), Color(0xFF8E040B)], isMobile),
-            _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF1E88E5), Color(0xFF1565C0)], isMobile),
-            _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFF00B4DB), Color(0xFF0083B0)], isMobile),
-            _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFFFF416C), Color(0xFFFF4B2B)], isMobile),
-          ],
+          children: staticCards,
         );
       } else {
         return Row(
-          children: [
-            Expanded(child: _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [Color(0xFFE50914), Color(0xFF8E040B)], isMobile)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF1E88E5), Color(0xFF1565C0)], isMobile)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFF00B4DB), Color(0xFF0083B0)], isMobile)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFFFF416C), Color(0xFFFF4B2B)], isMobile)),
-          ],
+          children: staticCards.map((w) => Expanded(child: w)).toList(),
         );
       }
     }

@@ -1391,21 +1391,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             if (_selectedAiLang.isNotEmpty && _aiSubtitleText.isNotEmpty)
               Positioned(
                 bottom: _showHUD ? 160 : 40,
-                left: 0,
-                right: 0,
+                left: 16,
+                right: 16,
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: _subBgColorVal,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5), width: 1),
+                      border: _subBgColorVal == Colors.transparent 
+                          ? null 
+                          : Border.all(color: Colors.white.withOpacity(0.1), width: 1),
                     ),
                     child: Text(
                       _aiSubtitleText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
+                      style: TextStyle(
+                        color: _subColorVal,
+                        fontSize: _subSizeVal,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Cairo',
                       ),

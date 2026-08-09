@@ -1532,6 +1532,16 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 24),
                         onPressed: () => Navigator.pop(context),
                       ),
+                      const Text(
+                        "live strem pro",
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       IconButton(
                         icon: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 22),
                         tooltip: "قفل الشاشة",
@@ -1717,9 +1727,17 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (!isLive)
+                    _buildHUDCircleBtn(
+                      icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
+                      onTap: () {
+                        _zapNextPrev(provider, false);
+                        _resetHideHUDTimer();
+                      },
+                    ),
+                    if (!isLive) ...[
+                      const SizedBox(width: 16),
                       _buildHUDCircleBtn(
-                        icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 24),
                         onTap: () {
                           if (_betterController != null && _initialized) {
                             final pos = _currentPosition - const Duration(seconds: 10);
@@ -1728,8 +1746,8 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           _resetHideHUDTimer();
                         },
                       ),
-                    if (!isLive) const SizedBox(width: 32),
-                    
+                    ],
+                    const SizedBox(width: 32),
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -1759,11 +1777,10 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         ),
                       ),
                     ),
-                    
-                    if (!isLive) const SizedBox(width: 32),
-                    if (!isLive)
+                    const SizedBox(width: 32),
+                    if (!isLive) ...[
                       _buildHUDCircleBtn(
-                        icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 24),
                         onTap: () {
                           if (_betterController != null && _initialized) {
                             final pos = _currentPosition + const Duration(seconds: 10);
@@ -1772,6 +1789,15 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           _resetHideHUDTimer();
                         },
                       ),
+                      const SizedBox(width: 16),
+                    ],
+                    _buildHUDCircleBtn(
+                      icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
+                      onTap: () {
+                        _zapNextPrev(provider, true);
+                        _resetHideHUDTimer();
+                      },
+                    ),
                   ],
                 ),
                 
@@ -1849,6 +1875,23 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           // Left side controls
                           Row(
                             children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.white10, width: 0.5),
+                                ),
+                                child: const Text(
+                                  "live strem pro",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               IconButton(
                                 icon: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 22),
                                 onPressed: () {

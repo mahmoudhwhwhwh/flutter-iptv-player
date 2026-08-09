@@ -26,6 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _subSize = "متوسط";
   String _subColor = "أبيض";
   String _subBgColor = "شفاف";
+  String _appOrientation = "تلقائي";
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _subSize = prefs.getString('sub_size') ?? "متوسط";
       _subColor = prefs.getString('sub_color') ?? "أبيض";
       _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
+      _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
     });
   }
 
@@ -158,6 +160,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 },
               ),
+              const SizedBox(height: 12),
+              _buildOrientationSettingCard(),
               const SizedBox(height: 24),
               const Divider(color: Colors.white12),
               const SizedBox(height: 24),
@@ -235,9 +239,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _saveSetting('quantum_routing', val);
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+              const Center(
+                child: Text(
+                  "live strem pro",
+                  style: TextStyle(
+                    color: Colors.white24,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrientationSettingCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141416),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: InkWell(
+        onTap: () => _showOrientationDialog(),
+        child: Row(
+          children: [
+            const Icon(Icons.screen_rotation_rounded, color: Colors.blueAccent, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "اتجاه التطبيق (الشاشة)",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _appOrientation,
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOrientationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E1E22),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                "اتجاه الشاشة",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                textAlign: TextAlign.right,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildOrientationRadioOption(setDialogState, "تلقائي"),
+                  _buildOrientationRadioOption(setDialogState, "أفقي"),
+                  _buildOrientationRadioOption(setDialogState, "عمودي"),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildOrientationRadioOption(StateSetter setDialogState, String option) {
+    final bool isSelected = _appOrientation == option;
+    return InkWell(
+      onTap: () async {
+        setState(() {
+          _appOrientation = option;
+        });
+        setDialogState(() {});
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('app_orientation', option);
+        
+        // Apply orientation preference
+        if (option == "أفقي") {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        } else if (option == "عمودي") {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.portraitDown,
+          ]);
+        } else {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.portraitDown,
+          ]);
+        }
+        
+        Navigator.pop(context);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Since it is RTL, we swap positions so circle is on the right and text is on the left
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFE50914) : Colors.white30,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFFE50914),
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            Text(
+              option,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFFE50914) : Colors.white,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 16,
+              ),
+            ),
+          ],
         ),
       ),
     );

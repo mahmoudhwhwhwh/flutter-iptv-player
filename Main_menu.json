@@ -9,7 +9,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "مباراة برشلونة الان ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
     "url": "https://a12.kora-plus.li/live/alwan1.m3u8?token=C0WWFtcRLW-TRLXuk8jDEtk_3mc&exp=1786221480",
@@ -19,7 +19,7 @@
     "referer": "",
     "keys": {}
   },
-  {  
+  {
     "name": "SPORTS 2 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
     "url": "https://live-football-2mf.pages.dev/index_bein%20max2.m3u8",
@@ -79,7 +79,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "beIN Sports 2 HD pro  ⚡",
     "icon": "https://iili.io/CK75iZu.png",
     "url": "https://live-football-2mf.pages.dev/index_bein%20max8.m3u8",
@@ -129,99 +129,75 @@
     "referer": "",
     "keys": {}
   },
-  { 
-    "name": "Kids HD ⚡",
-    "icon": "https://iili.io/Czv9WPV.jpg",
-    "url": "http://185.191.126.127:8080/live///357643467990765/Ofgo3yz8CH/98024.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2",
+  {
+    "name": "LIVE STREAM NETWORK 1  ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport1/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
     "user_agent": "",
     "referer": "",
-    "keys": {
-      "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
-    }
+    "keys": {}
   },
   {
-    "name": "Cartoon Network Arabic ⚡",
-    "icon": "https://iili.io/CzvHpIa.jpg",
-    "url": "http://89.37.117.252:8080/live/18885076681336/14648237268240/5789.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2"
-  },
-  {
-    "name": "MBC 3 Kids HD ⚡",
-    "icon": "https://iili.io/CzvJwTg.jpg",
-    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-3-usa/5d58265a862a476dc7f97694addb5ded/index.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2"
-  },
-  {
-    "name": "Majid Kids HD ⚡",
-    "icon": "https://iili.io/CzvdxAF.jpg",
-    "url": "http://185.191.126.127:8080/live///357643467990765/Ofgo3yz8CH/88020.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2"
-  },
-  {
-    "name": "Baraem Kids TV ⚡",
-    "icon": "https://iili.io/CzvdeR9.jpg",
-    "url": "http://185.191.126.127:8080/live///357643467990765/Ofgo3yz8CH/88023.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2"
-  },
-  {
-    "name": "Spacetoon HD⚡",
-    "icon": "https://iili.io/CRG1mGI.png",
-    "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-spacetoon/d8382fb9ab4b2307058f12c7ea90db54/index.m3u8",
-    "category_name": "أفلام وقنوات أطفال",
-    "category_id": "custom_pro_2"
-  },
-  {
-    "name": "قناة الجزيرة الإخبارية Al Jazeera HD ⚡",
-    "icon": "https://iili.io/CzNY9yJ.jpg",
-    "url": "https://live-hls-web-aja.getaj.net/AJA/index.m3u8",
-    "category_name": "قنوات الأخبار والأحداث",
+    "name": "LIVE STREAM NETWORK 2  ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport2/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
     "category_id": "custom_pro_3",
-    "user_agent": "IPTV-Android-Box",
-    "referer": "https://aljazeera.net",
-    "keys": {
-      "7406a641db1b63cbdcffdaae8df2831f": "daae8df2831f7406a641db1b63cbdcff"
-    }
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
-    "name": "العربية الحدث Al Hadath HD ⚡",
-    "icon": "https://iili.io/CzwcODx.jpg",
-    "url": "https://live.alarabiya.net/alarabiapublish/alarabiya.smil/playlist.m3u8",
-    "category_name": "قنوات الأخبار والأحداث",
-    "category_id": "custom_pro_3"
+    "name": "LIVE STREAM NETWORK 3⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport3/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
-    "name": "قناة العربية Al Arabiya HD ⚡",
-    "icon": "https://iili.io/Czwle7n.jpg",
-    "url": "https://live.kwikmotion.com/alaraby1live/alaraby_abr/playlist.m3u8",
-    "category_name": "قنوات الأخبار والأحداث",
-    "category_id": "custom_pro_3"
+    "name": "LIVE STREAM NETWORK 4 ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport4/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
-    "name": "Sky News Arabia سكاي نيوز ⚡",
-    "icon": "https://iili.io/Czw1ODG.png",
-    "url": "https://live-stream.skynewsarabia.com/c-horizontal-channel/horizontal-stream/index.m3u8",
-    "category_name": "قنوات الأخبار والأحداث",
-    "category_id": "custom_pro_3"
+    "name": "LIVE STREAM NETWORK 5 ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport6/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
-    "name": "BBC Arabic بي بي سي عربي ⚡",
-    "icon": "https://iili.io/CzwEld7.png",
-    "url": "https://vs-cmaf-pushb-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_arabic_tv/mobile_wifi_main_hd_abr_v2.mpd",
-    "category_name": "قنوات الأخبار والأحداث",
-    "category_id": "custom_pro_3"
+    "name": "LIVE STREAM NETWORK 6  ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport6/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
-    "name": "RT Arabic روسيا اليوم ⚡",
-    "icon": "https://iili.io/CzwGfTu.jpg",
-    "url": "https://rt-arb.rttv.com/live/rtarab/playlist_1600Kb.m3u8",
-    "category_name": "قنوات الأخبار والأحداث",
-    "category_id": "custom_pro_3"
+    "name": "LIVE STREAM NETWORK 7  ⚡",
+    "icon": "https://iili.io/CK5M0pR.png",
+    "url": "http://45.67.56.78/Sport7/index.fmp4.m3u8",
+    "category_name": "قنوات البث المباشر",
+    "category_id": "custom_pro_3",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
   },
   {
     "name": "Alkass Sports 1 ⚡",
@@ -285,7 +261,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Starz Play Sports 1 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
     "url": "https://live-football-2mf.pages.dev/index_starz%20play1.m3u8",
@@ -295,7 +271,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Starz Play Sports 2 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
     "url": "https://live-football-2mf.pages.dev/index_starz%20play2.m3u8",
@@ -305,7 +281,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Starz Play Sports 3 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
     "url": "https://live-football-2mf.pages.dev/index_starz%20play3.m3u8",
@@ -315,7 +291,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "THMANYAH  SPORTS 1  ⚡",
     "icon": "https://iili.io/CKGia0x.png",
     "url": "http://marveliptv.life/01112727740kh/khiary7740/474871",
@@ -325,7 +301,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "THMANYAH  SPORTS 2  ⚡",
     "icon": "https://iili.io/CKGia0x.png",
     "url": "http://marveliptv.life/01112727740kh/khiary7740/474867",
@@ -335,7 +311,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "THMANYAH  SPORTS 3  ⚡",
     "icon": "https://iili.io/CKGia0x.png",
     "url": "http://marveliptv.life/01112727740kh/khiary7740/474863",
@@ -345,7 +321,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Abu Dhabi Sport 1 ⚡",
     "icon": "https://iili.io/CBe6i8X.jpg",
     "url": "https://live-football-2mf.pages.dev/index_AD%20sports1.m3u8",
@@ -355,7 +331,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Abu Dhabi Sport 2 ⚡",
     "icon": "https://iili.io/CBe6i8X.jpg",
     "url": "https://live-football-2mf.pages.dev/index_AD%20sports2.m3u8",
@@ -365,7 +341,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "Sharjah SPORTS HD⚡",
     "icon": "https://iili.io/CgrMtWX.jpg",
     "url": "http://marveliptv.life/01112727740kh/khiary7740/261524",
@@ -375,7 +351,7 @@
     "referer": "",
     "keys": {}
   },
-  { 
+  {
     "name": "IRAQI SPORTS HD⚡",
     "icon": "https://iili.io/CgrexDv.jpg",
     "url": "http://marveliptv.life/01112727740kh/khiary7740/154339",
@@ -385,87 +361,52 @@
     "referer": "",
     "keys": {}
   },
-  {  
-    "name": "قناة كربلاء الفضائية 🕌",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/14532.m3u8",
-    "category_name": "القنوات الإسلامية والقرآن",
+  {
+    "name": "قناة الجزيرة الإخبارية Al Jazeera HD ⚡",
+    "icon": "https://iili.io/CzNY9yJ.jpg",
+    "url": "https://live-hls-web-aja.getaj.net/AJA/index.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
     "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
+    "user_agent": "IPTV-Android-Box",
+    "referer": "https://aljazeera.net",
     "keys": {
-      "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
+      "7406a641db1b63cbdcffdaae8df2831f": "daae8df2831f7406a641db1b63cbdcff"
     }
   },
   {
-    "name": "قناة آفاق الفضائية 📡",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/14533.m3u8",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
+    "name": "العربية الحدث Al Hadath HD ⚡",
+    "icon": "https://iili.io/CzwcODx.jpg",
+    "url": "https://live.alarabiya.net/alarabiapublish/alarabiya.smil/playlist.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_5"
   },
   {
-    "name": "قناة الجوادين الفضائية ✨",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/1393016.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
+    "name": "قناة العربية Al Arabiya HD ⚡",
+    "icon": "https://iili.io/Czwle7n.jpg",
+    "url": "https://live.kwikmotion.com/alaraby1live/alaraby_abr/playlist.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_5"
   },
   {
-    "name": "قناة صوت العقيلة 🎤",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/170829.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
+    "name": "Sky News Arabia سكاي نيوز ⚡",
+    "icon": "https://iili.io/Czw1ODG.png",
+    "url": "https://live-stream.skynewsarabia.com/c-horizontal-channel/horizontal-stream/index.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_5"
   },
   {
-    "name": "قناة الثقلين الفضائية 📖",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/170827.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
+    "name": "BBC Arabic بي بي سي عربي ⚡",
+    "icon": "https://iili.io/CzwEld7.png",
+    "url": "https://vs-cmaf-pushb-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_arabic_tv/mobile_wifi_main_hd_abr_v2.mpd",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_5"
   },
   {
-    "name": "قناة الطليعة الفضائية 🚩",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/170826.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "قناة الشعائر الفضائية 🕯️",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://4kgood.org/live/9680723188/kyft6ks0g7gr7uw0xio6/192405.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "قناة الكفيل الفضائية 🕯️",
-    "icon": "https://iili.io/Cz6MpEl.png",
-    "url": "http://max-pro.vip:2052/live/18885076681336/14648237268240/194473.ts",
-    "category_name": "القنوات الإسلامية والقرآن",
-    "category_id": "custom_pro_5",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
+    "name": "RT Arabic روسيا اليوم ⚡",
+    "icon": "https://iili.io/CzwGfTu.jpg",
+    "url": "https://rt-arb.rttv.com/live/rtarab/playlist_1600Kb.m3u8",
+    "category_name": "قنوات الأخبار والأحداث",
+    "category_id": "custom_pro_5"
   },
   {
     "name": "NAT GEO WILD 🌍",
@@ -595,16 +536,6 @@
     "name": "MBC IRAQ 🇮🇶",
     "icon": "https://iili.io/CK7T9St.png",
     "url": "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-iraq/e38c44b1b43474e1c39cb5b90203691e/index.m3u8",
-    "category_name": "القنوات الترفيهية",
-    "category_id": "custom_pro_7",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "MBC Drama 📺",
-    "icon": "https://iili.io/CK7TGOg.png",
-    "url": "https://mbc1-enc.edgenextcdn.net/out/v1/b0b3a0e6750d4408bb86d703d5feffd1/index.m3u8",
     "category_name": "القنوات الترفيهية",
     "category_id": "custom_pro_7",
     "user_agent": "",

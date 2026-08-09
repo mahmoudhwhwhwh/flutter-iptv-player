@@ -20,6 +20,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _quantumEntanglement = true;
   bool _selfHealing = true;
   bool _quantumRouting = true;
+  
+  bool _hwAcceleration = true;
+  bool _autoPlay = true;
+  String _subSize = "متوسط";
+  String _subColor = "أبيض";
+  String _subBgColor = "شفاف";
 
   @override
   void initState() {
@@ -34,12 +40,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _quantumEntanglement = prefs.getBool('quantum_entanglement') ?? true;
       _selfHealing = prefs.getBool('self_healing') ?? true;
       _quantumRouting = prefs.getBool('quantum_routing') ?? true;
+
+      _hwAcceleration = prefs.getBool('hw_acceleration') ?? true;
+      _autoPlay = prefs.getBool('auto_play') ?? true;
+      _subSize = prefs.getString('sub_size') ?? "متوسط";
+      _subColor = prefs.getString('sub_color') ?? "أبيض";
+      _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
     });
   }
 
   Future<void> _saveSetting(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
+  }
+
+  Future<void> _saveStringSetting(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
   }
 
   @override
@@ -49,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("المتقدمة VORTEX إعدادات", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text("إعدادات LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -61,7 +78,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- Theme Toggle ---
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return ListTile(
+                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFE50914)),
+                    title: const Text("المظهر (داكن/فاتح)", style: TextStyle(color: Colors.white)),
+                    trailing: Switch(
+                      value: provider.isDarkMode,
+                      activeColor: const Color(0xFFE50914),
+                      onChanged: (val) {
+                        provider.toggleTheme();
+                      },
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 16),
+              
+              const Text("إعدادات المشغل الأساسية", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: "تسريع الأجهزة (HW Acceleration)",
+                description: "استخدام أجهزة الجهاز لتشغيل الفيديو بسلاسة أكبر وتقليل استهلاك البطارية.",
+                value: _hwAcceleration,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  setState(() => _hwAcceleration = val);
+                  _saveSetting('hw_acceleration', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: "التشغيل التلقائي",
+                description: "تشغيل القناة أو الفيلم تلقائياً عند فتحه.",
+                value: _autoPlay,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) {
+                  setState(() => _autoPlay = val);
+                  _saveSetting('auto_play', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: "حجم خط الترجمة",
+                value: _subSize,
+                items: const ["صغير", "متوسط", "كبير", "ضخم"],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _subSize = val);
+                    _saveStringSetting('sub_size', val);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: "لون الترجمة",
+                value: _subColor,
+                items: const ["أبيض", "أصفر", "أزرق سماوي", "أخضر", "أحمر", "أزرق", "وردي"],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _subColor = val);
+                    _saveStringSetting('sub_color', val);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: "لون خلفية الترجمة",
+                value: _subBgColor,
+                items: const ["شفاف", "أسود", "رمادي داكن", "أحمر داكن", "أزرق داكن", "أخضر داكن", "أرجواني داكن"],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _subBgColor = val);
+                    _saveStringSetting('sub_bg_color', val);
+                  }
+                },
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 24),
+
+              const Text("الإعدادات المتقدمة (Vortex)", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+
               // Warning box
               Container(
                 width: double.infinity,
@@ -89,24 +192,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // --- Theme Toggle ---
-              Consumer<IPTVProvider>(
-                builder: (context, provider, child) {
-                  return ListTile(
-                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFE50914)),
-                    title: const Text("المظهر (داكن/فاتح)", style: TextStyle(color: Colors.white)),
-                    trailing: Switch(
-                      value: provider.isDarkMode,
-                      activeColor: const Color(0xFFE50914),
-                      onChanged: (val) {
-                        provider.toggleTheme();
-                      },
-                    ),
-                  );
-                },
-              ),
-              const Divider(color: Colors.white12),
-              
               _buildSettingItem(
                 title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",
                 description: "تعمل على تحسين استجابة الخادم بشكل فوري لضمان عدم تأخير البث المباشر.",
@@ -118,7 +203,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              
               _buildSettingItem(
                 title: "2. التشابك الكمي للبث (Quantum Entanglement)",
                 description: "ميزة ثورية تزيد من سرعة تدفق البيانات لضمان أعلى جودة ممكنة دون انقطاع.",
@@ -130,7 +214,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
-
               _buildSettingItem(
                 title: "3. نواة المعالجة الذاتية (Self-Healing)",
                 description: "نظام ذكي يقوم باكتشاف وإصلاح أعطال البث تلقائياً دون أي تدخل يدوي.",
@@ -142,7 +225,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
-
               _buildSettingItem(
                 title: "4. توجيه المسارات الكمي (Quantum Routing)",
                 description: "يعيد توجيه اتصالك عبر أسرع المسارات العالمية المتاحة لفتح القنوات في أقل من ثانية.",
@@ -157,6 +239,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownItem({
+    required String title,
+    required String value,
+    required List<String> items,
+    required void Function(String?) onChanged
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141416),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          DropdownButton<String>(
+            value: value,
+            dropdownColor: const Color(0xFF1E1E20),
+            style: const TextStyle(color: Colors.cyanAccent, fontSize: 14),
+            underline: const SizedBox(),
+            icon: const Icon(Icons.arrow_drop_down, color: Colors.cyanAccent),
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList(),
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }
@@ -284,15 +405,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Container(
                   width: 40,
                   height: 40,
-                  color: Colors.red,
+                  color: Colors.redAccent,
                   alignment: Alignment.center,
-                  child: const Text("R", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  child: const Text("L", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Reezn", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text("LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     Text("New version ${widget.version}", style: TextStyle(color: Colors.redAccent, fontSize: 14)),
                   ],
                 ),

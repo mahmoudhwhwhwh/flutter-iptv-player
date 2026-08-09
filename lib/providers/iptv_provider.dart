@@ -287,7 +287,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"), headers: {"Authorization": "token $githubToken"}).timeout(const Duration(seconds: 5));
+      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
@@ -394,7 +394,7 @@ class IPTVProvider with ChangeNotifier {
     _isRegisteringDevice = true;
     try {
         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
-        final res = await http.get(url, headers: {"Authorization": "token $githubToken"});
+        final res = await http.get(url);
         if (res.statusCode == 200) {
             final Map<String, dynamic> configData = json.decode(res.body);
             final users = configData['users'] as Map<String, dynamic>? ?? {};
@@ -441,7 +441,7 @@ class IPTVProvider with ChangeNotifier {
   Future<void> _updateGithubConfig(Map<String, dynamic> configData) async {
     try {
         final getUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-        final getRes = await http.get(getUrl, headers: {"Authorization": "token $githubToken"});
+        final getRes = await http.get(getUrl);
         if (getRes.statusCode == 200) {
             final fileData = json.decode(getRes.body);
             final sha = fileData['sha'];
@@ -617,7 +617,7 @@ class IPTVProvider with ChangeNotifier {
 
     try {
       final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final configRes = await http.get(configUrl, headers: {"Authorization": "token $githubToken"}).timeout(const Duration(seconds: 15));
+      final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
       
       String host = "http://fh.u2i9o.top:80";
       String user = cleanCode;
@@ -846,7 +846,7 @@ class IPTVProvider with ChangeNotifier {
     if (_activationCode == "2027") {
        try {
          final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
-         final res = await http.get(url, headers: {"Authorization": "token $githubToken"});
+         final res = await http.get(url);
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);
             List<Map<String, String>> tempCats = [];

@@ -349,6 +349,18 @@ class _MainDashboardState extends State<MainDashboard> {
     final bool useBottomNav = MediaQuery.of(context).size.width < 600 || MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Scaffold(
+      appBar: useBottomNav ? AppBar(
+        backgroundColor: const Color(0xFF0F0F12),
+        title: const Text("LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white54),
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
+          )
+        ],
+      ) : null,
       body: Row(
         children: [
           if (!useBottomNav)

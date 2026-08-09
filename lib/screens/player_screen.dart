@@ -352,9 +352,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _betterController = null;
       }
       
+      BetterPlayerVideoFormat? format;
+      if (path.endsWith('.m3u8') || urlStr.toLowerCase().contains('.m3u8')) {
+        format = BetterPlayerVideoFormat.hls;
+      } else if (path.endsWith('.mpd') || urlStr.toLowerCase().contains('.mpd')) {
+        format = BetterPlayerVideoFormat.dash;
+      }
+      
       final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
         finalUrl,
+        videoFormat: format,
         headers: headers,
         useAsmsTracks: true,
         useAsmsSubtitles: true,
@@ -717,8 +725,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               validSubtitles.sort((a, b) {
                 final aName = (a.name ?? "").toLowerCase();
                 final bName = (b.name ?? "").toLowerCase();
-                final aLang = "";
-                final bLang = "";
+                final aLang = (a.language ?? "").toLowerCase();
+                final bLang = (b.language ?? "").toLowerCase();
                 
                 bool aIsAr = aName.contains("ar") || aLang.contains("ar") || aName.contains("عرب");
                 bool bIsAr = bName.contains("ar") || bLang.contains("ar") || bName.contains("عرب");
@@ -777,7 +785,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               ),
                               ...validSubtitles.map((sub) {
                                 final isSelected = selectedSub == sub && _selectedAiLang == '';
-                                final name = sub.name ?? "ترجمة";
+                                final name = sub.name ?? "ترجمة (${sub.language ?? 'غير معروف'})";
                                 return ListTile(
                                   title: Text(name, style: TextStyle(color: isSelected ? Colors.amberAccent : Colors.white)),
                                   trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.amberAccent) : null,
@@ -1614,7 +1622,15 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 }
                               },
                             ),
-                          // Sleep Timer button
+                        
+
+  // Sidebar Search & Category
+  String _sidebarSearchQuery = "";
+  String _sidebarSelectedCategory = "all";
+  final FocusNode _sidebarSearchFocusNode = FocusNode();
+
+
+  // Sleep Timer button
                           IconButton(
                             icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? Colors.pinkAccent : Colors.white, size: 24),
                             tooltip: "مؤقت النوم",

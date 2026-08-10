@@ -294,6 +294,8 @@ class IPTVProvider with ChangeNotifier {
   String? get activePlaylistId => _activePlaylistId;
 
   List<Map<String, String>> get liveCategories => _liveCategories;
+  List<Map<String, String>> get movieCategories => _movieCategories;
+  List<Map<String, String>> get seriesCategories => _seriesCategories;
   List<String> get categories {
     List<String> cats = [];
     if (_activeTab == "live") {
@@ -407,14 +409,6 @@ class IPTVProvider with ChangeNotifier {
   Future<void> runActiveSecurityChecks() async {
     try {
       // 1. فحص اتصال مصحح الأخطاء (Debugger attachment) - حماية قوية ضد الهندسة العكسية وتحليل القيم أثناء التشغيل
-      if (developer.isDebuggerAttached) {
-        _isSecured = false;
-        _securityMessage = "تم اكتشاف اتصال بمصحح أخطاء النظام (Debugger Detected). يحظر تشغيل التطبيق لحماية البث من الهندسة العكسية.";
-        _allStreams.clear();
-        _filteredStreams.clear();
-        notifyListeners();
-        return;
-      }
 
       // 2. فحص كسر الحماية (Root detection) - أجهزة الروت تستخدم بشكل رئيسي لتخطي بروتوكولات الأمان وكسر الشهادات
       if (Platform.isAndroid) {

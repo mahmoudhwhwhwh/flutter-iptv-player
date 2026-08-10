@@ -5,11 +5,11 @@
   "servers": [
     {
       "name": "Server 1",
-      "host": "http://megatv.shop:2052",
-      "username": "20299538378191",
-      "password": "36172842922822",
+      "host": "http://digi.dtv3.lol:2082",
+      "username": "mejdoubnew_958581",
+      "password": "CHmNLjSr",
       "users": {
-        "mahmoud2027": {
+        "s1_code1": {
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
@@ -23,8 +23,8 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "202623": {
-          "expiry_date": "بلا بلا حدود",
+        "2026": {
+          "expiry_date": "بلا حدود",
           "devices": [
             "UKQ1.240624.001"
           ]
@@ -47,12 +47,12 @@
     },
     {
       "name": "Server 4",
-      "host": "http://marveliptv.life",
-      "username": "01112727740kh",
-      "password": "khiary7740",
+      "host": "http://longsat.xyz",
+      "username": "delfraissy",
+      "password": "aout0023",
       "users": {
-        "1111": {
-          "expiry_date": "بلا حدود ",
+        "s4_code1": {
+          "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
           ]

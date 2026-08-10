@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'multi_screen_layout.dart';
 import 'multi_screen_player.dart';
 
@@ -14,6 +15,12 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
+
+enum RotationMode {
+  smartAuto,
+  landscapeOnly,
+  portraitOnly,
+}
 
 class PlayerScreen extends StatefulWidget {
   final PlaylistItem stream;
@@ -40,7 +47,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   String _aspectRatioLabel = "تلقائي";
   bool _showSidebar = false;
   
-  String? _zoomIndicatorText;
+  RotationMode _rotationMode = RotationMode.smartAuto;
+  StreamSubscription<AccelerometerEvent>? _accelSubscription;
+  StreamSubscription<GyroscopeEvent>? _gyroSubscription;
+  DeviceOrientation? _lastPhysicalOrientation;
+  String? _onScreenToastText;
+  IconData _onScreenToastIcon = Icons.aspect_ratio_rounded;
 
   // Swipe Gestures
   double _dragStartY = 0.0;
@@ -221,6 +233,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       DeviceOrientation.portraitDown,
     ]);
     
+    _startSensorBasedOrientationListener();
     _initializeController();
     _resetHideHUDTimer();
   }
@@ -580,6 +593,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       });
     }
     WidgetsBinding.instance.removeObserver(this);
+    _accelSubscription?.cancel();
+    _gyroSubscription?.cancel();
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
     _aiSubtitleTimer?.cancel();
@@ -663,6 +678,105 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
+  void _showOnScreenToast(String text, IconData icon) {
+    _zoomIndicatorTimer?.cancel();
+    setState(() {
+      _onScreenToastText = text;
+      _onScreenToastIcon = icon;
+    });
+    _zoomIndicatorTimer = Timer(const Duration(seconds: 2), () {
+      setState(() {
+        _onScreenToastText = null;
+      });
+    });
+  }
+
+  void _startSensorBasedOrientationListener() {
+    _accelSubscription?.cancel();
+    _gyroSubscription?.cancel();
+
+    _accelSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
+      if (_rotationMode != RotationMode.smartAuto) return;
+
+      final double x = event.x;
+      final double y = event.y;
+      const double threshold = 6.0;
+
+      if (x.abs() > threshold && y.abs() < threshold) {
+        if (x > 0) {
+          _changeOrientationIfNeeded(DeviceOrientation.landscapeRight);
+        } else {
+          _changeOrientationIfNeeded(DeviceOrientation.landscapeLeft);
+        }
+      } else if (y.abs() > threshold && x.abs() < threshold) {
+        if (y > 0) {
+          _changeOrientationIfNeeded(DeviceOrientation.portraitUp);
+        } else {
+          _changeOrientationIfNeeded(DeviceOrientation.portraitDown);
+        }
+      }
+    });
+
+    _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
+      if (_rotationMode != RotationMode.smartAuto) return;
+      
+      final double omega = (event.x.abs() + event.y.abs() + event.z.abs());
+      if (omega > 1.0) {
+        debugPrint("Gyroscope rotation detected: $omega rad/s");
+      }
+    });
+  }
+
+  void _changeOrientationIfNeeded(DeviceOrientation newOrient) {
+    if (_rotationMode != RotationMode.smartAuto) return;
+    if (_lastPhysicalOrientation == newOrient) return;
+
+    _lastPhysicalOrientation = newOrient;
+
+    if (newOrient == DeviceOrientation.landscapeLeft || newOrient == DeviceOrientation.landscapeRight) {
+      _isPortrait = false;
+      SystemChrome.setPreferredOrientations([newOrient]);
+      _showOnScreenToast("تدوير تلقائي: أفقي", Icons.screen_rotation_rounded);
+    } else {
+      _isPortrait = true;
+      SystemChrome.setPreferredOrientations([newOrient]);
+      _showOnScreenToast("تدوير تلقائي: عمودي", Icons.screen_rotation_rounded);
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  void _toggleSmartRotation() {
+    setState(() {
+      if (_rotationMode == RotationMode.smartAuto) {
+        _rotationMode = RotationMode.landscapeOnly;
+        _isPortrait = false;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        _showOnScreenToast("تثبيت التدوير: أفقي فقط", Icons.crop_landscape_rounded);
+      } else if (_rotationMode == RotationMode.landscapeOnly) {
+        _rotationMode = RotationMode.portraitOnly;
+        _isPortrait = true;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+        _showOnScreenToast("تثبيت التدوير: عمودي فقط", Icons.crop_portrait_rounded);
+      } else {
+        _rotationMode = RotationMode.smartAuto;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+        _showOnScreenToast("تدوير ذكي: تلقائي حسب حركة الهاتف", Icons.screen_rotation_rounded);
+      }
+    });
+  }
+
   void _cycleBoxFit() {
     setState(() {
       if (_currentBoxFit == BoxFit.contain) {
@@ -676,13 +790,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _aspectRatioLabel = "تلقائي";
       }
       
-      _zoomIndicatorText = _aspectRatioLabel;
-      _zoomIndicatorTimer?.cancel();
-      _zoomIndicatorTimer = Timer(const Duration(seconds: 2), () {
-        setState(() {
-          _zoomIndicatorText = null;
-        });
-      });
+      _showOnScreenToast("أبعاد الشاشة: $_aspectRatioLabel", Icons.aspect_ratio_rounded);
       
       if (_betterController != null) {
         _betterController!.setOverriddenFit(_currentBoxFit);
@@ -1355,8 +1463,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // 2.6 Dynamic Zoom/Aspect Ratio On-Screen Indicator Toast
-            if (_zoomIndicatorText != null)
+            // 2.6 Dynamic On-Screen Indicator Toast (Unified for Zoom, Aspect Ratio, and Rotation)
+            if (_onScreenToastText != null)
               IgnorePointer(
                 child: Align(
                   alignment: Alignment.center,
@@ -1365,15 +1473,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amberAccent.withOpacity(0.5), width: 1.5),
+                      border: Border.all(color: const Color(0xFFE50914).withOpacity(0.5), width: 1.5),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.aspect_ratio_rounded, color: Colors.amberAccent, size: 22),
+                        Icon(_onScreenToastIcon, color: const Color(0xFFE50914), size: 22),
                         const SizedBox(width: 10),
                         Text(
-                          "أبعاد الشاشة: $_zoomIndicatorText",
+                          _onScreenToastText!,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -1765,23 +1873,18 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ),
                           // Screen Rotation
                           IconButton(
-                            icon: const Icon(Icons.screen_rotation_rounded, color: Colors.white, size: 26),
+                            icon: Icon(
+                              _rotationMode == RotationMode.smartAuto
+                                  ? Icons.screen_rotation_rounded
+                                  : (_rotationMode == RotationMode.landscapeOnly
+                                      ? Icons.crop_landscape_rounded
+                                      : Icons.crop_portrait_rounded),
+                              color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFE50914) : Colors.white,
+                              size: 26,
+                            ),
                             tooltip: "تدوير الشاشة",
                             onPressed: () {
-                              setState(() {
-                                _isPortrait = !_isPortrait;
-                              });
-                              if (_isPortrait) {
-                                SystemChrome.setPreferredOrientations([
-                                  DeviceOrientation.portraitUp,
-                                  DeviceOrientation.portraitDown,
-                                ]);
-                              } else {
-                                SystemChrome.setPreferredOrientations([
-                                  DeviceOrientation.landscapeLeft,
-                                  DeviceOrientation.landscapeRight,
-                                ]);
-                              }
+                              _toggleSmartRotation();
                               _resetHideHUDTimer();
                             },
                           ),
@@ -2020,23 +2123,18 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
 
                               IconButton(
                                 style: IconButton.styleFrom(backgroundColor: Colors.white10),
-                                icon: Icon(_isPortrait ? Icons.fullscreen_rounded : Icons.fullscreen_exit_rounded, color: Colors.white, size: 20),
+                                icon: Icon(
+                                  _rotationMode == RotationMode.smartAuto
+                                      ? Icons.screen_rotation_rounded
+                                      : (_rotationMode == RotationMode.landscapeOnly
+                                          ? Icons.crop_landscape_rounded
+                                          : Icons.crop_portrait_rounded),
+                                  color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFE50914) : Colors.white,
+                                  size: 20,
+                                ),
                                 tooltip: "ملء الشاشة",
                                 onPressed: () {
-                                  setState(() {
-                                    _isPortrait = !_isPortrait;
-                                  });
-                                  if (_isPortrait) {
-                                    SystemChrome.setPreferredOrientations([
-                                      DeviceOrientation.portraitUp,
-                                      DeviceOrientation.portraitDown,
-                                    ]);
-                                  } else {
-                                    SystemChrome.setPreferredOrientations([
-                                      DeviceOrientation.landscapeLeft,
-                                      DeviceOrientation.landscapeRight,
-                                    ]);
-                                  }
+                                  _toggleSmartRotation();
                                   _resetHideHUDTimer();
                                 },
                               ),

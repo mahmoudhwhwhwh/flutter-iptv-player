@@ -14,6 +14,7 @@ import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
 import 'models/playlist_item.dart';
+import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 FirebaseAnalytics? appAnalytics;
@@ -111,10 +112,12 @@ class LiveFootballApp extends StatelessWidget {
           textDirection: TextDirection.rtl, // دعم العربية بشكل قسري ومرتب
           child: Consumer<IPTVProvider>(
             builder: (context, provider, _) {
-              if (provider.snifferDetected || provider.vpnDetected || provider.isVersionBlocked) {
+              if (provider.snifferDetected || provider.vpnDetected || provider.isVersionBlocked || !provider.isSecured) {
                 String message = "";
                 if (provider.snifferDetected) {
                   message = "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
+                } else if (!provider.isSecured) {
+                  message = provider.securityMessage.isNotEmpty ? provider.securityMessage : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
                 } else if (provider.vpnDetected) {
                   message = "🚨 يرجى إيقاف تشغيل VPN أو البروكسي للاستمرار!";
                 } else if (provider.isVersionBlocked) {
@@ -792,7 +795,13 @@ class _HomeTabState extends State<HomeTab> {
                         typeLabel = "مسلسل";
                       }
                       return ScaleOnFocus(
-                        onTap: () {
+                        onTap: () async {
+                          final categoryName = item.categoryName;
+                          if (provider.isCategoryLocked(categoryName)) {
+                            bool ok = await showPinDialog(context, provider);
+                            if (!ok) return;
+                            provider.unlockCategorySession(categoryName);
+                          }
                           if (item.type == 'series') {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: item)));
                           } else {
@@ -1112,7 +1121,17 @@ class StreamsListScreen extends StatelessWidget {
                     String catName = i == 0 ? "الكل" : provider.categories[i - 1];
                     bool isSel = provider.selectedCategory == catId;
                     return ScaleOnFocus(
-                      onTap: () => provider.setCategory(catId),
+                      onTap: () async {
+                        if (provider.isCategoryLocked(catName)) {
+                          bool ok = await showPinDialog(context, provider);
+                          if (ok) {
+                            provider.unlockCategorySession(catName);
+                            provider.setCategory(catId);
+                          }
+                        } else {
+                          provider.setCategory(catId);
+                        }
+                      },
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10, horizontal: isMobile ? 6 : 12),
                         margin: EdgeInsets.only(bottom: isMobile ? 2 : 4),
@@ -1297,7 +1316,15 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  void _playEpisode(dynamic ep) {
+  void _playEpisode(dynamic ep) async {
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    final categoryName = widget.series.categoryName;
+    if (provider.isCategoryLocked(categoryName)) {
+      bool ok = await showPinDialog(context, provider);
+      if (!ok) return;
+      provider.unlockCategorySession(categoryName);
+    }
+
     String host = "";
     String user = "";
     String pass = "";
@@ -1644,15 +1671,22 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
   String name = "";
   String imageUrl = "";
   String streamId = "";
+  String categoryName = "";
   try {
     name = stream.name ?? stream.title ?? "بدون اسم";
     imageUrl = stream.streamIcon ?? stream.cover ?? "";
     streamId = stream.streamId ?? stream.id ?? "";
+    categoryName = stream.categoryName ?? "";
   } catch (e) {}
   bool isFav = provider.favorites.contains(streamId);
 
   return ScaleOnFocus(
-    onTap: () {
+    onTap: () async {
+      if (provider.isCategoryLocked(categoryName)) {
+        bool ok = await showPinDialog(context, provider);
+        if (!ok) return;
+        provider.unlockCategorySession(categoryName);
+      }
       if (isSeries) {
         Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: stream)));
       } else {

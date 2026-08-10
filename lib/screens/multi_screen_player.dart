@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/iptv_provider.dart';
 import '../models/playlist_item.dart';
+import '../widgets/pin_dialog.dart';
 import 'multi_screen_layout.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 
@@ -53,6 +54,12 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
 
     if (selected != null) {
+      final categoryName = selected.categoryName;
+      if (iptvProvider.isCategoryLocked(categoryName)) {
+        bool ok = await showPinDialog(context, iptvProvider);
+        if (!ok) return;
+        iptvProvider.unlockCategorySession(categoryName);
+      }
       setState(() {
         _streams[index] = selected;
       });

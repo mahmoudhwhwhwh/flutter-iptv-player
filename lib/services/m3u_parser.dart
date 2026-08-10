@@ -1,11 +1,15 @@
 import '../models/playlist_item.dart';
+import 'filter_service.dart';
 
 class M3UParser {
-  static Map<String, dynamic> parse(String content) {
+  static Map<String, dynamic> parse(String content, {bool blockAdult = true, String channelFilter = "الكل"}) {
+    // 1. اعتراض السلسلة النصية الخام وتنظيفها من القنوات الإباحية قبل الـ Parsing (Interception at source)
+    final cleanedContent = FilterService.interceptAndCleanRawM3U(content, blockAdult: blockAdult);
+
     final List<PlaylistItem> items = [];
     final Set<String> categories = {};
     
-    final lines = content.split('\n');
+    final lines = cleanedContent.split('\n');
     Map<String, String>? currentMeta;
     int counter = 1;
 
@@ -76,9 +80,30 @@ class M3UParser {
       }
     }
 
+    // 2. تصفية الفئات (Category interception)
+    final List<Map<String, String>> categoriesList = categories.map((cat) {
+      final catId = cat.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+      return {
+        'category_id': catId.isEmpty ? 'uncategorized' : catId,
+        'category_name': cat,
+      };
+    }).toList();
+
+    final filteredCategories = FilterService.interceptAndFilterCategories(
+      categoriesList,
+      blockAdult: blockAdult,
+    );
+
+    // 3. تصفية القنوات الناتجة بالكامل (Stream interception)
+    final filteredItems = FilterService.interceptAndFilterStreams(
+      items,
+      blockAdult: blockAdult,
+      channelFilter: channelFilter,
+    );
+
     return {
-      'items': items,
-      'categories': categories.toList(),
+      'items': filteredItems,
+      'categories': filteredCategories.map((c) => c['category_name']!).toList(),
     };
   }
 }

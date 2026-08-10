@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/iptv_provider.dart';
+import '../widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -190,12 +191,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return _buildDropdownItem(
                     title: "تصفية القنوات (البث المباشر)",
                     value: provider.channelFilter,
-                    items: const ["الكل", "القنوات العربية فقط", "القنوات الأجنبية فقط"],
+                    items: const [
+                      "الكل",
+                      "القنوات العربية فقط",
+                      "القنوات الأجنبية فقط",
+                      "قنوات الرياضة فقط",
+                      "القنوات الرياضية العربية فقط",
+                      "القنوات الإخبارية فقط",
+                      "قنوات Alwan فقط"
+                    ],
                     onChanged: (val) {
                       if (val != null) {
                         provider.setChannelFilter(val);
                       }
                     },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return _buildSettingItem(
+                    title: "فلترة وحظر محتوى للكبار (+18)",
+                    description: "حظر وإخفاء كافة القنوات والأقسام التي تحتوي على محتوى غير عائلي أو مخصص للبالغين تلقائياً.",
+                    value: provider.blockAdultContent,
+                    activeColor: Colors.redAccent,
+                    onChanged: (val) {
+                      provider.setBlockAdultContent(val);
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 24),
+
+              const Text("الرقابة الأبوية وحماية الأقسام", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  final isEnabled = provider.isParentalEnabled;
+                  return Column(
+                    children: [
+                      _buildSettingItem(
+                        title: "تفعيل الرقابة الأبوية (رمز الأمان)",
+                        description: isEnabled 
+                            ? "الرقابة الأبوية مفعلة برمز أمان. قم بإلغاء التفعيل لتعطيل قفل الأقسام." 
+                            : "قم بتعيين رمز أمان PIN مكون من 4 أرقام لقفل وحماية الأقسام والتحكم بالوصول إليها.",
+                        value: isEnabled,
+                        activeColor: const Color(0xFFE50914),
+                        onChanged: (val) async {
+                          if (val) {
+                            await showPinDialog(context, provider, isCreating: true);
+                          } else {
+                            bool correct = await showPinDialog(context, provider);
+                            if (correct) {
+                              await provider.clearParentalSettings();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("تم إلغاء تفعيل رمز الأمان بنجاح", style: TextStyle(fontFamily: 'Cairo'))),
+                                );
+                              }
+                            }
+                          }
+                        },
+                      ),
+                      if (isEnabled) ...[
+                        const SizedBox(height: 12),
+                        _buildActionButtonSettingCard(
+                          title: "تغيير رمز الأمان (PIN)",
+                          description: "تعديل الرمز المكون من 4 أرقام المستخدم لحماية الأقسام الخاصة بك.",
+                          actionLabel: "تغيير الرمز",
+                          icon: Icons.lock_reset_rounded,
+                          onTap: () async {
+                            bool correct = await showPinDialog(context, provider);
+                            if (correct) {
+                              await showPinDialog(context, provider, isCreating: true, customTitle: "تعيين رمز جديد");
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("تم تغيير رمز الأمان بنجاح", style: TextStyle(fontFamily: 'Cairo'))),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionButtonSettingCard(
+                          title: "إدارة الأقسام المقفلة",
+                          description: "تحديد واختيار الأقسام وقنوات البث المباشر أو الأفلام والمسلسلات المراد قفلها.",
+                          actionLabel: "تحديد الأقسام",
+                          icon: Icons.category_rounded,
+                          onTap: () async {
+                            bool correct = await showPinDialog(context, provider);
+                            if (correct) {
+                              _showCategoryLockDialog(context, provider);
+                            }
+                          },
+                        ),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -523,6 +620,210 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButtonSettingCard({
+    required String title,
+    required String description,
+    required String actionLabel,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141416),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE50914),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            onPressed: onTap,
+            icon: Icon(icon, size: 16),
+            label: Text(
+              actionLabel,
+              style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCategoryLockDialog(BuildContext context, IPTVProvider provider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String filterText = "";
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final liveCats = provider.liveCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
+            final movieCats = provider.movieCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
+            final seriesCats = provider.seriesCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
+
+            final List<String> filteredLive = liveCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
+            final List<String> filteredMovies = movieCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
+            final List<String> filteredSeries = seriesCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
+
+            return DefaultTabController(
+              length: 3,
+              child: AlertDialog(
+                backgroundColor: const Color(0xFF16161A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.white12, width: 1),
+                ),
+                title: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Text(
+                          "إدارة الأقسام المقفلة",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Cairo', fontSize: 18),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.settings_suggest, color: Color(0xFFE50914)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: TextField(
+                        onChanged: (val) {
+                          setDialogState(() {
+                            filterText = val;
+                          });
+                        },
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Cairo'),
+                        decoration: const InputDecoration(
+                          hintText: "ابحث عن قسم...",
+                          hintStyle: TextStyle(color: Colors.white38, fontSize: 12, fontFamily: 'Cairo'),
+                          prefixIcon: Icon(Icons.search, color: Colors.white38, size: 18),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const TabBar(
+                      indicatorColor: Color(0xFFE50914),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.white54,
+                      labelStyle: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13),
+                      unselectedLabelStyle: TextStyle(fontFamily: 'Cairo', fontSize: 13),
+                      tabs: [
+                        Tab(text: "مسلسلات"),
+                        Tab(text: "أفلام"),
+                        Tab(text: "مباشر"),
+                      ],
+                    ),
+                  ],
+                ),
+                content: Container(
+                  width: 400,
+                  height: 350,
+                  child: TabBarView(
+                    children: [
+                      _buildCategoryList(filteredSeries, provider, setDialogState),
+                      _buildCategoryList(filteredMovies, provider, setDialogState),
+                      _buildCategoryList(filteredLive, provider, setDialogState),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "إغلاق",
+                      style: TextStyle(color: Colors.white70, fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryList(List<String> categories, IPTVProvider provider, StateSetter setDialogState) {
+    if (categories.isEmpty) {
+      return const Center(
+        child: Text(
+          "لا توجد أقسام مطابقة",
+          style: TextStyle(color: Colors.white38, fontFamily: 'Cairo', fontSize: 13),
+        ),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: categories.length,
+      itemBuilder: (ctx, idx) {
+        final cat = categories[idx];
+        final isLocked = provider.lockedCategories.contains(cat);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.02),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            title: Text(
+              cat,
+              style: const TextStyle(color: Colors.white, fontFamily: 'Cairo', fontSize: 13),
+              textAlign: TextAlign.right,
+            ),
+            leading: Switch(
+              value: isLocked,
+              activeColor: const Color(0xFFE50914),
+              onChanged: (val) async {
+                await provider.toggleCategoryLock(cat);
+                setDialogState(() {});
+              },
+            ),
+            trailing: Icon(
+              isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
+              color: isLocked ? const Color(0xFFE50914) : Colors.white30,
+              size: 18,
+            ),
+          ),
+        );
+      },
     );
   }
 }

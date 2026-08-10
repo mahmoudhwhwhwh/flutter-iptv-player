@@ -301,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: Colors.white12),
               const SizedBox(height: 24),
 
-              const Text("الإعدادات المتقدمة (Vortex)", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text("الإعدادات المتقدمة (live strem pro)", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
               // Warning box

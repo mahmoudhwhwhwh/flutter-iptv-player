@@ -91,11 +91,11 @@
     },
     {
       "name": "Server 7",
-      "host": "http://example2.com",
+      "host": "http://line.tvdsz.cc/",
       "type": "stalker",
       "users": {
-        "s7_code1": {
-          "username": "00:1A:79:70:9D:16",
+        "mahmoud20": {
+          "username": "00:1A:79:B6:28,
           "expiry_date": "2027-01-01T00:00:00Z"
         }
       }

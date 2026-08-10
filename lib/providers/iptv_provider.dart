@@ -80,7 +80,7 @@ class IPTVProvider with ChangeNotifier {
   }
 
   static String get githubToken {
-    // Obfuscated representation of "YOUR_GITHUB_TOKEN_HERE"
+
     // Defeats static string scanning and extraction by reverse engineering tools (APK Editor X, dex dump, etc.)
     final List<int> codes = [103, 104, 112, 95, 69, 50, 84, 106, 73, 81, 76, 122, 90, 90, 98, 81, 109, 121, 67, 66, 70, 81, 122, 111, 104, 65, 48, 75, 88, 100, 82, 116, 101, 98, 49, 87, 84, 75, 115, 51];
     return String.fromCharCodes(codes);
@@ -223,9 +223,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 205;
-  String _currentVersionStr = "2.0.11";
-  int _currentVersionCode = 205;
+  static const int APP_VERSION_CODE = 211;
+  String _currentVersionStr = "2.2.11";
+  int _currentVersionCode = 211;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage = "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!";
@@ -352,7 +352,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       _currentVersionStr = packageInfo.version;
-      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 205;
+      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 211;
       final nameClean = packageInfo.appName.toLowerCase().replaceAll(' ', '');
       if (!nameClean.contains("livefootball") && !nameClean.contains("livestrempro")) {
          // في حال تغيير اسم التطبيق يمكن إيقافه
@@ -471,13 +471,13 @@ class IPTVProvider with ChangeNotifier {
 
   bool isOutdatedVersion(String versionStr, int versionCode) {
     if (versionCode > 0) {
-      if (versionCode < 205) {
+      if (versionCode < 211) {
         return true;
-      } else if (versionCode >= 205) {
+      } else if (versionCode >= 211) {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.0.11");
+    return isVersionLowerThan(versionStr, "2.2.11");
   }
 
   Future<void> checkRemoteBlocking() async {
@@ -525,10 +525,10 @@ class IPTVProvider with ChangeNotifier {
             }
           }
 
-          // Force block any version lower than 2.0.11 (outdated versions)
+          // Force block any version lower than 2.2.11 (outdated versions)
           if (isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
             isBlocked = true;
-            _remoteBlockMessage = "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث إلى الإصدار 2.0.11 أو أعلى للاستمرار.";
+            _remoteBlockMessage = "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث إلى الإصدار 2.2.11 أو أعلى للاستمرار.";
           }
 
           if (blockData.containsKey('block_message') && !isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {

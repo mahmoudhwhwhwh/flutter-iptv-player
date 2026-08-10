@@ -28,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _subSize = "متوسط";
   String _subColor = "أبيض";
   String _subBgColor = "شفاف";
+  String _subLang = "تلقائي";
   String _appOrientation = "تلقائي";
 
   @override
@@ -49,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _subSize = prefs.getString('sub_size') ?? "متوسط";
       _subColor = prefs.getString('sub_color') ?? "أبيض";
       _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
+      _subLang = prefs.getString('sub_lang') ?? "تلقائي";
       _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
     });
   }
@@ -142,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDropdownItem(
                 title: "لون الترجمة",
                 value: _subColor,
-                items: const ["أبيض", "أصفر", "أزرق سماوي", "أخضر", "أحمر", "أزرق", "وردي"],
+                items: const ["أبيض", "أصفر", "أزرق سماوي", "أخضر", "أحمر", "أزرق", "وردي", "برتقالي", "بنفسجي", "أسود", "رمادي"],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => _subColor = val);
@@ -154,11 +156,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDropdownItem(
                 title: "لون خلفية الترجمة",
                 value: _subBgColor,
-                items: const ["شفاف", "أسود", "رمادي داكن", "أحمر داكن", "أزرق داكن", "أخضر داكن", "أرجواني داكن"],
+                items: const ["شفاف", "أسود", "رمادي داكن", "أحمر داكن", "أزرق داكن", "أخضر داكن", "أرجواني داكن", "أبيض"],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => _subBgColor = val);
                     _saveStringSetting('sub_bg_color', val);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: "لغة الترجمة المفضلة",
+                value: _subLang,
+                items: const ["تلقائي", "Arabic", "English", "French", "Spanish", "Turkish", "Persian"],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _subLang = val);
+                    _saveStringSetting('sub_lang', val);
                   }
                 },
               ),

@@ -82,6 +82,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _subSizeVal = 16.0;
   Color _subColorVal = Colors.white;
   Color _subBgColorVal = Colors.transparent;
+  String _subLangVal = "تلقائي";
 
   // Screen lock & rotation states
   bool _isLocked = false;
@@ -169,6 +170,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       String sCol = prefs.getString('sub_color') ?? "أبيض";
       String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
       String appOrient = prefs.getString('app_orientation') ?? "تلقائي";
+      _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
       
       if (sSize == "صغير") _subSizeVal = 12.0;
       else if (sSize == "متوسط") _subSizeVal = 16.0;
@@ -176,12 +178,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       else if (sSize == "ضخم") _subSizeVal = 28.0;
       else _subSizeVal = 16.0;
       
+
       if (sCol == "أصفر") _subColorVal = Colors.yellow;
       else if (sCol == "أزرق سماوي") _subColorVal = Colors.cyanAccent;
       else if (sCol == "أخضر") _subColorVal = Colors.greenAccent;
       else if (sCol == "أحمر") _subColorVal = Colors.redAccent;
       else if (sCol == "أزرق") _subColorVal = Colors.blueAccent;
       else if (sCol == "وردي") _subColorVal = Colors.pinkAccent;
+      else if (sCol == "برتقالي") _subColorVal = Colors.orange;
+      else if (sCol == "بنفسجي") _subColorVal = Colors.purpleAccent;
+      else if (sCol == "أسود") _subColorVal = Colors.black;
+      else if (sCol == "رمادي") _subColorVal = Colors.grey;
       else _subColorVal = Colors.white;
       
       if (sBg == "أسود") _subBgColorVal = Colors.black87;
@@ -190,7 +197,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       else if (sBg == "أزرق داكن") _subBgColorVal = Colors.blue[900]!.withOpacity(0.8);
       else if (sBg == "أخضر داكن") _subBgColorVal = Colors.green[900]!.withOpacity(0.8);
       else if (sBg == "أرجواني داكن") _subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
+      else if (sBg == "أبيض") _subBgColorVal = Colors.white70;
       else _subBgColorVal = Colors.transparent;
+
       
       if (appOrient == "أفقي") {
         _isPortrait = false;
@@ -236,6 +245,37 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _startSensorBasedOrientationListener();
     _initializeController();
     _resetHideHUDTimer();
+  }
+
+
+  void _applyPreferredSubtitleLanguage() {
+    if (_subLangVal != "تلقائي" && _betterController != null) {
+       try {
+         final tracks = _betterController!.betterPlayerSubtitlesSourceList;
+         String targetLang = _subLangVal.toLowerCase();
+         if (targetLang == "arabic") targetLang = "ar";
+         else if (targetLang == "english") targetLang = "en";
+         else if (targetLang == "french") targetLang = "fr";
+         else if (targetLang == "spanish") targetLang = "es";
+         else if (targetLang == "turkish") targetLang = "tr";
+         else if (targetLang == "persian") targetLang = "fa";
+         
+         BetterPlayerSubtitlesSource? matchedSource;
+         for (var track in tracks) {
+             String name = (track.name ?? "").toLowerCase();
+             if (name.contains(targetLang) || (targetLang == "ar" && name.contains("عرب"))) {
+                 matchedSource = track;
+                 break;
+             }
+         }
+         
+         if (matchedSource != null) {
+             _betterController!.setupSubtitleSource(matchedSource);
+         }
+       } catch (e) {
+         debugPrint("Failed to set sub lang: $e");
+       }
+    }
   }
 
   void _initializeController({bool isRetry = false}) async {

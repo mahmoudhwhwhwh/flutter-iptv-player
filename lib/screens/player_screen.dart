@@ -1469,7 +1469,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         ],
                       ),
                       child: const Text(
-                        "live stream pro",
+                        "LIVE STREAM PREMIUM",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -1490,7 +1490,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         border: Border.all(color: Colors.white12, width: 0.5),
                       ),
                       child: const Text(
-                        "live stream pro",
+                        "LIVE STREAM PREMIUM",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
@@ -1751,7 +1751,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
-                        "live stream pro",
+                        "LIVE STREAM PREMIUM",
                         style: TextStyle(
                           color: Colors.white60,
                           fontSize: 14,
@@ -2096,7 +2096,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                   border: Border.all(color: Colors.white10, width: 0.5),
                                 ),
                                 child: const Text(
-                                  "live stream pro",
+                                  "LIVE STREAM PREMIUM",
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 10,

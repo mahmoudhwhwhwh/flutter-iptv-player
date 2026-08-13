@@ -1,6 +1,6 @@
 {
-  "app_name": "تطبيق البث المميز",
-  "app_version": "v2.2.11",
+  "app_name": "LIVE STREAM PREMIUM",
+  "app_version": "v12.0.0",
   "users": {},
   "servers": [
     {
@@ -105,12 +105,12 @@
   "default_xtream_user": "mejdoubnew_958581",
   "default_xtream_pass": "CHmNLjSr",
   "blocking": {
-    "min_version_code": 211,
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث إلى الإصدار 2.2.11 أو أعلى للاستمرار."
+    "min_version_code": 1200,
+    "block_message": "🚨 تم إيقاف جميع الإصدارات السابقة نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v12.0.0 للاستمرار."
   },
   "update": {
-    "latest_version": "v2.2.11",
-    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/latest/download/app-release.apk",
-    "update_message": "نسخة جديدة متاحة (2.2.11). يرجى التحديث الآن للحصول على أفضل تجربة."
+    "latest_version": "v12.0.0",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
+    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v12.0.0. يرجى التحديث للحصول على الواجهة الجديدة والاستقرار المحسن."
   }
 }

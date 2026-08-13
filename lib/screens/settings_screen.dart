@@ -72,7 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("إعدادات LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text("إعدادات LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: Colors.white12),
               const SizedBox(height: 24),
 
-              const Text("live strem pro", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
               // Warning box
@@ -391,7 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 32),
               const Center(
                 child: Text(
-                  "live stream pro",
+                  "LIVE STREAM PREMIUM",
                   style: TextStyle(
                     color: Colors.white24,
                     fontSize: 14,
@@ -925,7 +925,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     Text("New version ${widget.version}", style: TextStyle(color: Colors.redAccent, fontSize: 14)),
                   ],
                 ),

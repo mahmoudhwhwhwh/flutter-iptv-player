@@ -69,15 +69,30 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   Widget _buildSlot(int index) {
     final stream = _streams[index];
     return Container(
+      margin: const EdgeInsets.all(3),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white24, width: 2),
-        color: Colors.black,
+        border: Border.all(color: const Color(0xFF8E44AD).withOpacity(0.40), width: 1),
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF14112B),
       ),
       child: stream == null
           ? Center(
-              child: IconButton(
-                icon: const Icon(Icons.add_circle_outline, size: 48, color: Colors.white54),
-                onPressed: () => _selectStreamForSlot(index),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _selectStreamForSlot(index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(color: const Color(0xFF8E44AD).withOpacity(0.16), borderRadius: BorderRadius.circular(16)),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_circle_outline_rounded, size: 34, color: Color(0xFFC084FC)),
+                      SizedBox(height: 5),
+                      Text('إضافة قناة', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 11)),
+                    ],
+                  ),
+                ),
               ),
             )
           : Stack(
@@ -87,7 +102,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   top: 8,
                   right: 8,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
+                    style: IconButton.styleFrom(backgroundColor: Colors.black.withOpacity(0.55)),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
                     onPressed: () {
                       setState(() {
                         _streams[index] = null;
@@ -98,9 +114,10 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: Text(
-                    stream.name,
-                    style: const TextStyle(color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.60), borderRadius: BorderRadius.circular(8)),
+                    child: Text(stream.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, shadows: [Shadow(blurRadius: 4, color: Colors.black)])),
                   ),
                 )
               ],
@@ -158,19 +175,30 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF09091A),
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            _buildLayout(),
-            Positioned(
-              top: 16,
-              left: 16,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
-                onPressed: () => Navigator.pop(context),
+            Container(
+              margin: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(color: const Color(0xFF14112B), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.08))),
+              child: Row(
+                children: [
+                  IconButton(
+                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF8E44AD).withOpacity(0.18)),
+                    icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFC084FC)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(width: 30, height: 30, decoration: BoxDecoration(color: const Color(0xFF8E44AD), borderRadius: BorderRadius.circular(9)), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20)),
+                  const SizedBox(width: 7),
+                  const Expanded(child: Text('LIVE STREAM PREMIUM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13))),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: const Color(0xFFFFC857).withOpacity(0.14), borderRadius: BorderRadius.circular(8)), child: Text('$_screenCount شاشات', style: const TextStyle(color: Color(0xFFFFC857), fontWeight: FontWeight.bold, fontSize: 10))),
+                ],
               ),
             ),
+            Expanded(child: _buildLayout()),
           ],
         ),
       ),
@@ -195,7 +223,7 @@ class _StreamSelectionDialogState extends State<_StreamSelectionDialog> {
     final filtered = liveStreams.where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Dialog(
-      backgroundColor: const Color(0xFF1F2937),
+      backgroundColor: const Color(0xFF14112B),
       child: Container(
         width: 400,
         height: 500,

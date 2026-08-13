@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0C0E),
+      backgroundColor: const Color(0xFF09091A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -90,11 +90,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
                   return ListTile(
-                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFE50914)),
+                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFF8B5CF6)),
                     title: const Text("المظهر (داكن/فاتح)", style: TextStyle(color: Colors.white)),
                     trailing: Switch(
                       value: provider.isDarkMode,
-                      activeColor: const Color(0xFFE50914),
+                      activeColor: const Color(0xFF8B5CF6),
                       onChanged: (val) {
                         provider.toggleTheme();
                       },
@@ -256,7 +256,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? "الرقابة الأبوية مفعلة برمز أمان. قم بإلغاء التفعيل لتعطيل قفل الأقسام." 
                             : "قم بتعيين رمز أمان PIN مكون من 4 أرقام لقفل وحماية الأقسام والتحكم بالوصول إليها.",
                         value: isEnabled,
-                        activeColor: const Color(0xFFE50914),
+                        activeColor: const Color(0xFF8B5CF6),
                         onChanged: (val) async {
                           if (val) {
                             await showPinDialog(context, provider, isCreating: true);
@@ -412,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: const Color(0xFF14112B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
@@ -520,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFE50914) : Colors.white30,
+                  color: isSelected ? const Color(0xFF8B5CF6) : Colors.white30,
                   width: 2,
                 ),
               ),
@@ -531,7 +531,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         height: 10,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xFFE50914),
+                          color: Color(0xFF8B5CF6),
                         ),
                       ),
                     )
@@ -540,7 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(
               option,
               style: TextStyle(
-                color: isSelected ? const Color(0xFFE50914) : Colors.white,
+                color: isSelected ? const Color(0xFF8B5CF6) : Colors.white,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 16,
               ),
@@ -560,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: const Color(0xFF14112B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
@@ -600,7 +600,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: const Color(0xFF14112B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: value ? activeColor.withOpacity(0.3) : Colors.white10),
       ),
@@ -647,7 +647,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: const Color(0xFF14112B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
@@ -673,7 +673,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 12),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE50914),
+              backgroundColor: const Color(0xFF8B5CF6),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -723,7 +723,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Cairo', fontSize: 18),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.settings_suggest, color: Color(0xFFE50914)),
+                        const Icon(Icons.settings_suggest, color: Color(0xFF8B5CF6)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -752,7 +752,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     const TabBar(
-                      indicatorColor: Color(0xFFE50914),
+                      indicatorColor: Color(0xFF8B5CF6),
                       labelColor: Colors.white,
                       unselectedLabelColor: Colors.white54,
                       labelStyle: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13),
@@ -824,7 +824,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             leading: Switch(
               value: isLocked,
-              activeColor: const Color(0xFFE50914),
+              activeColor: const Color(0xFF8B5CF6),
               onChanged: (val) async {
                 await provider.toggleCategoryLock(cat);
                 setDialogState(() {});
@@ -832,7 +832,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-              color: isLocked ? const Color(0xFFE50914) : Colors.white30,
+              color: isLocked ? const Color(0xFF8B5CF6) : Colors.white30,
               size: 18,
             ),
           ),

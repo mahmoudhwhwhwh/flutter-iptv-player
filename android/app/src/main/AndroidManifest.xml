@@ -27,6 +27,15 @@
         <package android:name="tech.httptoolkit.android" />
         <package android:name="tech.httptoolkit.android.v1" />
         <package android:name="com.charlesproxy.android" />
+        <package android:name="com.pcapdroid" />
+        <package android:name="com.farproc.wifi.analyzer" />
+        <package android:name="com.gmail.heagoo.apkeditor" />
+        <package android:name="com.gmail.heagoo.apkeditor.pro" />
+        <package android:name="bin.mt.plus" />
+        <package android:name="com.dimonvideo.luckypatcher" />
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="org.lsposed.manager" />
+        <package android:name="de.robv.android.xposed.installer" />
     </queries>
     
     <!-- Required permissions for streaming IPTV and network connections -->
@@ -35,7 +44,6 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     
     <!-- Enable Android TV / Fire TV leanback mode support -->
@@ -43,12 +51,16 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:label="live strem pro"
+        android:label="LIVE STREAM PREMIUM"
         android:name="${applicationName}"
         android:icon="@drawable/ic_launcher"
         android:banner="@drawable/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:debuggable="false"
         android:hardwareAccelerated="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         
         <activity
             android:name=".MainActivity"

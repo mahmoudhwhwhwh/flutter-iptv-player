@@ -31,6 +31,35 @@ class PremiumPalette {
   static const Color textMuted = Color(0xFFB7B1D6);
 }
 
+class PremiumSectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final String? actionLabel;
+
+  const PremiumSectionTitle({super.key, required this.title, required this.icon, this.actionLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: PremiumPalette.violet.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: PremiumPalette.violetBright),
+        ),
+        const SizedBox(width: 9),
+        Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17))),
+        if (actionLabel != null)
+          Text(actionLabel!, style: const TextStyle(color: PremiumPalette.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+      ],
+    );
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -458,15 +487,43 @@ class _MainDashboardState extends State<MainDashboard> {
     }
 
     return Scaffold(
+      backgroundColor: PremiumPalette.background,
+      drawer: useBottomNav
+          ? PremiumDrawer(
+              selectedIndex: _selectedIndex,
+              onSelected: (index) {
+                Navigator.pop(context);
+                updateIndex(index);
+              },
+            )
+          : null,
       appBar: useBottomNav ? AppBar(
         backgroundColor: PremiumPalette.surface,
-        title: const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.4)),
+        elevation: 0,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(gradient: const LinearGradient(colors: [PremiumPalette.violetBright, PremiumPalette.violet]), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 21),
+            ),
+            const SizedBox(width: 8),
+            const Expanded(child: Text("LIVE STREAM", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.4))),
+          ],
+        ),
         actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(color: PremiumPalette.gold.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
+            child: const Row(children: [Icon(Icons.workspace_premium_rounded, color: PremiumPalette.gold, size: 15), SizedBox(width: 3), Text('Premium', style: TextStyle(color: PremiumPalette.gold, fontSize: 10, fontWeight: FontWeight.bold))]),
+          ),
+          const SizedBox(width: 7),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white54),
-            onPressed: () {
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-            },
+            icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
           )
         ],
       ) : null,
@@ -491,7 +548,7 @@ class _MainDashboardState extends State<MainDashboard> {
               onTap: (val) => updateIndex(tabs[val]['index']),
               backgroundColor: PremiumPalette.surface,
               selectedItemColor: PremiumPalette.violetBright,
-              unselectedItemColor: Colors.white54,
+              unselectedItemColor: const Color(0xFF8B84A9),
               type: BottomNavigationBarType.fixed,
               showUnselectedLabels: true,
               selectedFontSize: 10,
@@ -519,6 +576,115 @@ class _MainDashboardState extends State<MainDashboard> {
       default:
         return const HomeTab();
     }
+  }
+}
+
+class PremiumDrawer extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const PremiumDrawer({super.key, required this.selectedIndex, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<IPTVProvider>(context);
+    final showMoviesSeries = provider.showMoviesSeries;
+    final items = <Map<String, dynamic>>[
+      {'index': 0, 'label': 'الرئيسية', 'icon': Icons.home_rounded},
+      {'index': 1, 'label': 'القنوات المباشرة', 'icon': Icons.live_tv_rounded},
+      if (showMoviesSeries) {'index': 2, 'label': 'الأفلام', 'icon': Icons.movie_filter_rounded},
+      if (showMoviesSeries) {'index': 3, 'label': 'المسلسلات', 'icon': Icons.video_library_rounded},
+      {'index': 4, 'label': 'المفضلة', 'icon': Icons.favorite_rounded},
+    ];
+
+    return Drawer(
+      backgroundColor: PremiumPalette.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(left: Radius.circular(26))),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF30215F), PremiumPalette.surfaceElevated]),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(color: PremiumPalette.gold, borderRadius: BorderRadius.circular(15)),
+                    child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF2A174D), size: 28),
+                  ),
+                  const SizedBox(width: 11),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('LIVE STREAM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
+                        SizedBox(height: 2),
+                        Text('Premium Member', style: TextStyle(color: PremiumPalette.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  ...items.map((item) {
+                    final selected = selectedIndex == item['index'];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: ListTile(
+                        dense: true,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        tileColor: selected ? PremiumPalette.violet.withOpacity(0.22) : Colors.transparent,
+                        leading: Icon(item['icon'], color: selected ? PremiumPalette.violetBright : Colors.white60),
+                        title: Text(item['label'], style: TextStyle(color: selected ? Colors.white : Colors.white70, fontWeight: selected ? FontWeight.bold : FontWeight.w600, fontSize: 13)),
+                        onTap: () => onSelected(item['index']),
+                      ),
+                    );
+                  }),
+                  const Divider(color: Color(0x1FFFFFFF), height: 26),
+                  ListTile(
+                    dense: true,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    leading: const Icon(Icons.settings_outlined, color: Colors.white60),
+                    title: const Text('الإعدادات', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 13)),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                  ),
+                  ListTile(
+                    dense: true,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    leading: const Icon(Icons.headset_mic_outlined, color: PremiumPalette.gold),
+                    title: const Text('الدعم الفني', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 13)),
+                    onTap: () => launchUrl(Uri.parse('https://t.me/+f9NsIzGjN_hjYWRi'), mode: LaunchMode.externalApplication),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+              child: ListTile(
+                dense: true,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                tileColor: Colors.redAccent.withOpacity(0.08),
+                leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                onTap: provider.logout,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -773,27 +939,43 @@ class _HomeTabState extends State<HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("كود الاشتراك: ${provider.activationCode}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                  Text(expiryText, style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => provider.logout(),
-                icon: const Icon(Icons.swap_horiz, size: 18),
-                label: const Text("تغيير الاشتراك"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: PremiumPalette.violet,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isMobile ? 16 : 22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF30215F), PremiumPalette.surfaceElevated], begin: Alignment.topRight, end: Alignment.bottomLeft),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: PremiumPalette.violetBright.withOpacity(0.22)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.22), blurRadius: 22, offset: const Offset(0, 10))],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: isMobile ? 48 : 58,
+                  height: isMobile ? 48 : 58,
+                  decoration: BoxDecoration(color: PremiumPalette.gold, borderRadius: BorderRadius.circular(17)),
+                  child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF2A174D), size: 31),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('أهلاً بك في LIVE STREAM', style: TextStyle(color: Colors.white, fontSize: isMobile ? 15 : 19, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text(expiryText, style: const TextStyle(color: PremiumPalette.gold, fontSize: 11, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text('كود الاشتراك: ${provider.activationCode}', style: const TextStyle(color: PremiumPalette.textMuted, fontSize: 10)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'تغيير الاشتراك',
+                  onPressed: provider.logout,
+                  icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white70),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: isMobile ? 12 : 18),
 
@@ -807,9 +989,9 @@ class _HomeTabState extends State<HomeTab> {
           Container(
             height: isMobile ? 42 : 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF141416),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white10),
+              color: PremiumPalette.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: PremiumPalette.violet.withOpacity(0.18)),
             ),
             child: TextField(
               controller: _searchController,
@@ -822,7 +1004,7 @@ class _HomeTabState extends State<HomeTab> {
               decoration: InputDecoration(
                 hintText: "البحث السريع المباشر عن القنوات والأفلام والمسلسلات...",
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                prefixIcon: const Icon(Icons.search_rounded, color: PremiumPalette.violetBright, size: 20),
                 suffixIcon: _globalSearchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
@@ -843,13 +1025,7 @@ class _HomeTabState extends State<HomeTab> {
 
           // Search results block
           if (_globalSearchQuery.isNotEmpty) ...[
-            Row(
-              children: [
-                const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
-                const SizedBox(width: 8),
-                Text("نتائج البحث السريع", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
+            const PremiumSectionTitle(title: 'نتائج البحث السريع', icon: Icons.search_rounded),
             const SizedBox(height: 10),
             searchResults.isEmpty
                 ? const Padding(
@@ -949,13 +1125,7 @@ class _HomeTabState extends State<HomeTab> {
 
           // 3. Continue Watching Row (Offline state retention)
           if (_globalSearchQuery.isEmpty && provider.recentlyPlayed.isNotEmpty) ...[
-            Row(
-              children: [
-                const Icon(Icons.history, color: Color(0xFFE50914), size: 18),
-                const SizedBox(width: 8),
-                Text("واصل المشاهدة", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
+            const PremiumSectionTitle(title: 'واصل المشاهدة', icon: Icons.history_rounded, actionLabel: 'استكمل الآن'),
             const SizedBox(height: 8),
             SizedBox(
               height: isMobile ? 110 : 140,
@@ -977,12 +1147,12 @@ class _HomeTabState extends State<HomeTab> {
 
           // Default dashboard grid if not searching
           if (_globalSearchQuery.isEmpty) ...[
-            Text("أبرز الإضافات", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            SizedBox(height: isMobile ? 4 : 8),
+            const PremiumSectionTitle(title: 'أبرز الإضافات', icon: Icons.auto_awesome_rounded, actionLabel: 'مختارات Premium'),
+            SizedBox(height: isMobile ? 8 : 12),
             const BannerSliderWidget(),
             SizedBox(height: isMobile ? 12 : 20),
-            Text("تصفح الأقسام", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            SizedBox(height: isMobile ? 6 : 10),
+            const PremiumSectionTitle(title: 'تصفح الأقسام', icon: Icons.grid_view_rounded, actionLabel: 'عرض الكل'),
+            SizedBox(height: isMobile ? 9 : 12),
             const DynamicSectionsWidget(),
           ],
         ],
@@ -1013,7 +1183,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Future<void> _fetchBanners() async {
     try {
       final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url, headers: {"Authorization": "token ${IPTVProvider.githubToken}"});
+      final res = await http.get(url);
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
         setState(() {
@@ -1772,8 +1942,14 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
         Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
       }
     },
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+    child: Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: PremiumPalette.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 10, offset: const Offset(0, 5))],
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -1781,7 +1957,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ? CachedNetworkImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.contain, // Prevent cropping
-                  placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: Color(0xFFE50914), strokeWidth: 2))),
+                  placeholder: (context, url) => Container(color: PremiumPalette.surfaceElevated, child: const Center(child: CircularProgressIndicator(color: PremiumPalette.violetBright, strokeWidth: 2))),
                   errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
               : Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
@@ -1808,18 +1984,27 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ),
             ),
           ),
+          Positioned(
+            top: 7,
+            right: 7,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(7), border: Border.all(color: Colors.white.withOpacity(0.12))),
+              child: Text(isSeries ? 'HD' : 'FHD', style: TextStyle(color: PremiumPalette.gold, fontSize: isMobile ? 8 : 9, fontWeight: FontWeight.w900)),
+            ),
+          ),
           // Fav Icon
           Positioned(
-            top: 4,
-            left: 4,
+            top: 6,
+            left: 6,
             child: InkWell(
               onTap: () => provider.toggleFavorite(streamId),
               child: Container(
                 padding: EdgeInsets.all(isMobile ? 3 : 4),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.12))),
                 child: Icon(
                   isFav ? Icons.favorite : Icons.favorite_border,
-                  color: isFav ? PremiumPalette.violet : Colors.white,
+                  color: isFav ? PremiumPalette.gold : Colors.white,
                   size: isMobile ? 14 : 16,
                 ),
               ),

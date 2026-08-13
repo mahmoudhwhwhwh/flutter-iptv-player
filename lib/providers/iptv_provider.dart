@@ -79,12 +79,8 @@ class IPTVProvider with ChangeNotifier {
     await prefs.setBool('isDarkMode', _isDarkMode);
   }
 
-  static String get githubToken {
-
-    // Defeats static string scanning and extraction by reverse engineering tools (APK Editor X, dex dump, etc.)
-    final List<int> codes = [103, 104, 112, 95, 69, 50, 84, 106, 73, 81, 76, 122, 90, 90, 98, 81, 109, 121, 67, 66, 70, 81, 122, 111, 104, 65, 48, 75, 88, 100, 82, 116, 101, 98, 49, 87, 84, 75, 115, 51];
-    return String.fromCharCodes(codes);
-  }
+  // لا تُحفظ أي رموز وصول إدارية داخل APK؛ التحديثات الإدارية يجب أن تمر عبر خدمة خادمية موثوقة.
+  static String get githubToken => '';
 
   bool _isSecured = true;
   bool get isSecured => _isSecured;
@@ -493,15 +489,9 @@ class IPTVProvider with ChangeNotifier {
           }
         }
         
-        final newDisableVpn = configData['disable_vpn_check'] == true;
-        final newDisableSniffer = configData['disable_sniffer_check'] == true;
-        if (_disableVpnCheck != newDisableVpn || _disableSnifferCheck != newDisableSniffer) {
-          _disableVpnCheck = newDisableVpn;
-          _disableSnifferCheck = newDisableSniffer;
-          if (_disableVpnCheck) _vpnDetected = false;
-          if (_disableSnifferCheck) _snifferDetected = false;
-          notifyListeners();
-        }
+        // لا يسمح لأي إعداد بعيد بتعطيل فحص الـVPN أو أدوات اعتراض الاتصالات.
+        _disableVpnCheck = false;
+        _disableSnifferCheck = false;
         
         if (blockData != null) {
           bool isBlocked = false;
@@ -634,43 +624,18 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _updateGithubConfig(Map<String, dynamic> configData) async {
-    try {
-        final getUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-        final getRes = await http.get(getUrl);
-        if (getRes.statusCode == 200) {
-            final fileData = json.decode(getRes.body);
-            final sha = fileData['sha'];
-            
-            final putUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-            final newContent = base64Encode(utf8.encode(json.encode(configData)));
-            final putBody = json.encode({
-                "message": "Update devices/blocking from app",
-                "content": newContent,
-                "sha": sha
-            });
-            await http.put(putUrl, headers: {"Authorization": "token $githubToken", "Content-Type": "application/json"}, body: putBody);
-        }
-    } catch (e) {
-        print("Failed to update github config: $e");
-    }
+    // لا يجوز أن يملك العميل صلاحية كتابة إعدادات GitHub. يجب تنفيذ إدارة الأجهزة أو الحظر من خادم موثوق فقط.
+    developer.log('Remote configuration writes are disabled in the client for security.');
   }
 
   Future<void> checkSecurity() async {
-    if (_disableSnifferCheck && _disableVpnCheck) {
-      if (_snifferDetected || _vpnDetected) {
-        _snifferDetected = false;
-        _vpnDetected = false;
-        notifyListeners();
-      }
-      return;
-    }
     try {
-      // فحص أمني فائق القوة عبر الجافا (Android) لوقف التطبيق فورا إذا تم اكتشاف تعديل أو بيئة مشبوهة
+      // فحص أمني محلي عبر Android؛ أي إشارة عبث أو اعتراض تُعامل كبيئة غير موثوقة.
       final Map? result = await _securityChannel.invokeMapMethod('checkSecurity');
       if (result != null) {
-        final shouldBlock = _disableSnifferCheck ? false : (result['shouldBlock'] == true || result['snifferInstalled'] == true);
-        final vpnActive = _disableVpnCheck ? false : result['vpnActive'] == true;
-        final proxyActive = _disableVpnCheck ? false : result['proxyActive'] == true;
+        final shouldBlock = result['shouldBlock'] == true || result['snifferInstalled'] == true || result['rootDetected'] == true || result['debugDetected'] == true || result['emulatorDetected'] == true || result['tamperDetected'] == true;
+        final vpnActive = result['vpnActive'] == true;
+        final proxyActive = result['proxyActive'] == true;
 
         bool updated = false;
         if (_snifferDetected != shouldBlock) {
@@ -695,18 +660,9 @@ class IPTVProvider with ChangeNotifier {
       // فحص أمني فائق شامل لكافة القنوات (نظام أندرويد + شبكة Dart)
       await checkSecurity();
       
-      if (_disableVpnCheck && _disableSnifferCheck) {
-        if (_vpnDetected || _snifferDetected) {
-          _vpnDetected = false;
-          _snifferDetected = false;
-          notifyListeners();
-        }
-        return;
-      }
+      bool detected = _vpnDetected || _snifferDetected;
       
-      bool detected = (_disableVpnCheck ? false : _vpnDetected) || (_disableSnifferCheck ? false : _snifferDetected);
-      
-      if (!detected && !_disableVpnCheck) {
+      if (!detected) {
         // 1. فحص إعدادات البروكسي (Proxy) لمنع برامج مثل Charles Proxy أو Reqable أو HttpCanary
         try {
           final systemProxy = HttpClient.findProxyFromEnvironment(Uri.parse("https://google.com"));
@@ -716,7 +672,7 @@ class IPTVProvider with ChangeNotifier {
         } catch (_) {}
       }
 
-      if (!detected && !_disableVpnCheck) {
+      if (!detected) {
         // 2. فحص واجهات الشبكة الفعالة للبحث عن VPN أو أدوات التقاط الحزم (Packet Sniffers)
         final interfaces = await NetworkInterface.list(
           includeLoopback: false,

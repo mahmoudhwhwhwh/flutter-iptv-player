@@ -445,9 +445,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Container(
+          const Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
@@ -946,7 +946,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildCategoryList(List<String> categories, IPTVProvider provider, StateSetter setDialogState) {
     if (categories.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           "لا توجد أقسام مطابقة",
           style: TextStyle(color: _SettingsPalette.textMuted.withOpacity(0.65), fontFamily: 'Cairo', fontSize: 13),

@@ -513,7 +513,7 @@ class _MainDashboardState extends State<MainDashboard> {
                 children: [
                   Container(width: 82, height: 82, decoration: const BoxDecoration(color: Color(0xFF2A2A37), shape: BoxShape.circle)),
                   const SizedBox(width: 17),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

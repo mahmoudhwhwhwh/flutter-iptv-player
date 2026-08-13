@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -94,8 +95,8 @@ class LiveFootballApp extends StatelessWidget {
             useMaterial3: true,
             brightness: Brightness.dark,
             scaffoldBackgroundColor: PremiumPalette.background,
-            colorScheme: const ColorScheme.dark(
-              primary: PremiumPalette.violet,
+            colorScheme: ColorScheme.dark(
+              primary: themeProvider.accentColor,
               secondary: PremiumPalette.gold,
               surface: PremiumPalette.surface,
               background: PremiumPalette.background,
@@ -109,11 +110,11 @@ class LiveFootballApp extends StatelessWidget {
             useMaterial3: true,
             brightness: Brightness.light,
             scaffoldBackgroundColor: const Color(0xFFF7F5FF),
-            colorScheme: const ColorScheme.light(
-              primary: PremiumPalette.violet,
+            colorScheme: ColorScheme.light(
+              primary: themeProvider.accentColor,
               secondary: Color(0xFFB7791F),
               surface: Colors.white,
-              background: Color(0xFFF7F5FF),
+              background: const Color(0xFFF7F5FF),
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
               bodyColor: const Color(0xFF17122F),
@@ -637,6 +638,10 @@ class _MainDashboardState extends State<MainDashboard> {
       );
     }
 
+    final profileImage = provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
+        ? FileImage(File(provider.profileImagePath))
+        : null;
+
     return Drawer(
       width: 340,
       backgroundColor: const Color(0xFF0D0E19),
@@ -651,18 +656,24 @@ class _MainDashboardState extends State<MainDashboard> {
                   Container(
                     width: 82,
                     height: 82,
-                    decoration: const BoxDecoration(color: Color(0xFF2A2A37), shape: BoxShape.circle),
-                    child: Icon(
-                      provider.profileLogo == 'star'
-                          ? Icons.star_rounded
-                          : provider.profileLogo == 'shield'
-                              ? Icons.shield_rounded
-                              : provider.profileLogo == 'bolt'
-                                  ? Icons.bolt_rounded
-                                  : Icons.play_arrow_rounded,
-                      color: const Color(0xFFA855F7),
-                      size: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A37),
+                      shape: BoxShape.circle,
+                      image: profileImage == null ? null : DecorationImage(image: profileImage, fit: BoxFit.cover),
                     ),
+                    child: profileImage == null
+                        ? Icon(
+                            provider.profileLogo == 'star'
+                                ? Icons.star_rounded
+                                : provider.profileLogo == 'shield'
+                                    ? Icons.shield_rounded
+                                    : provider.profileLogo == 'bolt'
+                                        ? Icons.bolt_rounded
+                                        : Icons.play_arrow_rounded,
+                            color: const Color(0xFFA855F7),
+                            size: 44,
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 17),
                   Expanded(
@@ -1726,8 +1737,8 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                           children: [
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black,
+                                backgroundColor: PremiumPalette.violet,
+                                foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: isMobile ? 8 : 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                               ),

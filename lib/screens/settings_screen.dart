@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -124,6 +125,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         items: const ['العربية', 'English'],
                         onChanged: (value) {
                           if (value != null) provider.setAppLanguage(value);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDropdownItem(
+                        title: 'ثيم التطبيق',
+                        value: provider.premiumTheme,
+                        items: const ['البنفسجي الملكي', 'الأزرق الليلي', 'الذهبي الفاخر', 'الزمردي الداكن'],
+                        onChanged: (value) {
+                          if (value != null) provider.setPremiumTheme(value);
                         },
                       ),
                     ],
@@ -514,6 +524,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _pickProfileImage(IPTVProvider provider) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 88,
+      maxWidth: 900,
+    );
+    if (picked == null) return;
+
+    final directory = await getApplicationDocumentsDirectory();
+    final avatar = File('${directory.path}/premium_profile_avatar.jpg');
+    await File(picked.path).copy(avatar.path);
+    await provider.setProfileImagePath(avatar.path);
+  }
+
   Future<void> _showProfileEditor(IPTVProvider provider) async {
     final nameController = TextEditingController(text: provider.profileName);
     var selectedLogo = provider.profileLogo;
@@ -545,6 +569,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fillColor: const Color(0xFF11111B),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _SettingsPalette.purpleBright,
+                    side: BorderSide(color: _SettingsPalette.purple.withOpacity(0.65)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () async {
+                    await _pickProfileImage(provider);
+                    if (dialogContext.mounted) setDialogState(() {});
+                  },
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: const Text('اختيار صورة من المعرض'),
                 ),
                 const SizedBox(height: 18),
                 const Text('شعار الحساب', style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 13)),
@@ -608,8 +646,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               width: 58,
               height: 58,
-              decoration: const BoxDecoration(color: _SettingsPalette.purple, shape: BoxShape.circle),
-              child: Icon(_profileIcon(provider.profileLogo), color: Colors.white, size: 34),
+              decoration: BoxDecoration(
+                color: _SettingsPalette.purple,
+                shape: BoxShape.circle,
+                image: provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
+                    ? DecorationImage(image: FileImage(File(provider.profileImagePath)), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
+                  ? null
+                  : Icon(_profileIcon(provider.profileLogo), color: Colors.white, size: 34),
             ),
             const SizedBox(width: 14),
             Expanded(

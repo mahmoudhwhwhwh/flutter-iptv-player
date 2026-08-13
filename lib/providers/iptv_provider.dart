@@ -81,16 +81,39 @@ class IPTVProvider with ChangeNotifier {
 
   String _appLanguage = 'العربية';
   String get appLanguage => _appLanguage;
+  String _premiumTheme = 'البنفسجي الملكي';
+  String get premiumTheme => _premiumTheme;
+  Color get accentColor {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي':
+        return const Color(0xFF38BDF8);
+      case 'الذهبي الفاخر':
+        return const Color(0xFFFFC857);
+      case 'الزمردي الداكن':
+        return const Color(0xFF34D399);
+      default:
+        return const Color(0xFFA855F7);
+    }
+  }
   String _profileName = 'Premium User';
   String get profileName => _profileName;
   String _profileLogo = 'play';
   String get profileLogo => _profileLogo;
+  String _profileImagePath = '';
+  String get profileImagePath => _profileImagePath;
 
   Future<void> setAppLanguage(String language) async {
     _appLanguage = language;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_language', language);
+  }
+
+  Future<void> setPremiumTheme(String theme) async {
+    _premiumTheme = theme;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('premium_theme', theme);
   }
 
   Future<void> setProfileName(String value) async {
@@ -107,6 +130,13 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('profile_logo', value);
+  }
+
+  Future<void> setProfileImagePath(String value) async {
+    _profileImagePath = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_image_path', value);
   }
 
   int _playerSettingsVersion = 0;
@@ -420,8 +450,10 @@ class IPTVProvider with ChangeNotifier {
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
+    _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
     _profileName = prefs.getString('profile_name') ?? 'Premium User';
     _profileLogo = prefs.getString('profile_logo') ?? 'play';
+    _profileImagePath = prefs.getString('profile_image_path') ?? '';
 
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
     await runActiveSecurityChecks();

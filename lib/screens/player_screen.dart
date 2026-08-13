@@ -223,7 +223,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _initialized;
     _lastPlayerSettingsVersion = version;
     if (shouldRefresh) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _loadSubSettings();
         if (mounted) _initializeController(isRetry: true);
       });
     }
@@ -1293,33 +1294,63 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               }
               return KeyEventResult.handled;
             }
-            if (event is KeyDownEvent) {
-              if (!_showHUD) {
-                // Direct TV Remote shortcuts when HUD is hidden
-                if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
-                    event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                  _cycleBoxFit();
-                  return KeyEventResult.handled;
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+
+            // أزرار OK/Enter والتشغيل في ريموت التلفزيون تتحكم مباشرة بالتشغيل.
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.mediaPlayPause) {
+              if (_betterController != null && _initialized) {
+                if (_betterController!.isPlaying() ?? false) {
+                  _betterController!.pause();
+                } else {
+                  _betterController!.play();
                 }
-                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  _zapNextPrev(provider, false);
-                  return KeyEventResult.handled;
-                }
-                if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                  _zapNextPrev(provider, true);
-                  return KeyEventResult.handled;
-                }
-                
-                setState(() {
-                  _showHUD = true;
-                });
-                Future.delayed(const Duration(milliseconds: 50), () {
-                  if (_firstButtonFocusNode.canRequestFocus) {
-                    _firstButtonFocusNode.requestFocus();
-                  }
-                });
+                setState(() {});
+              }
+              return KeyEventResult.handled;
+            }
+
+            if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+              if (_showHUD) {
+                setState(() => _showHUD = false);
+              } else {
+                Navigator.of(context).maybePop();
+              }
+              return KeyEventResult.handled;
+            }
+
+            if (!_showHUD) {
+              // اختصارات مباشرة عندما تكون لوحة المشغّل مخفية.
+              if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowDown) {
+                _cycleBoxFit();
                 return KeyEventResult.handled;
               }
+              if (key == LogicalKeyboardKey.arrowLeft) {
+                _zapNextPrev(provider, false);
+                return KeyEventResult.handled;
+              }
+              if (key == LogicalKeyboardKey.arrowRight) {
+                _zapNextPrev(provider, true);
+                return KeyEventResult.handled;
+              }
+              if (key == LogicalKeyboardKey.mediaFastForward && _stream.type != 'live') {
+                _betterController?.seekTo(_currentPosition + const Duration(seconds: 10));
+                return KeyEventResult.handled;
+              }
+              if (key == LogicalKeyboardKey.mediaRewind && _stream.type != 'live') {
+                final target = _currentPosition - const Duration(seconds: 10);
+                _betterController?.seekTo(target.isNegative ? Duration.zero : target);
+                return KeyEventResult.handled;
+              }
+
+              setState(() => _showHUD = true);
+              Future.delayed(const Duration(milliseconds: 50), () {
+                if (_firstButtonFocusNode.canRequestFocus) _firstButtonFocusNode.requestFocus();
+              });
+              return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
           },
@@ -1443,23 +1474,47 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 fit: StackFit.expand,
                 children: [
                   Positioned(
-                    bottom: 16,
-                    right: 16,
+                    top: 38,
+                    right: 52,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E22).withOpacity(0.85), // Dark violet/blackish
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white12, width: 0.5),
+                        color: const Color(0xFF6D28D9).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.32)),
+                        boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 3))],
                       ),
                       child: const Text(
-                        "LIVE STREAM PREMIUM",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        'LIVE STREAM PREMIUM',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.25),
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 48,
+                    left: 48,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(3)),
+                          child: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF22212B), size: 25),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF252331).withOpacity(0.90),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Text(
+                            'LIVE STREAM PREMIUM',
+                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

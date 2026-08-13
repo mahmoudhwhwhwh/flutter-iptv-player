@@ -69,30 +69,15 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   Widget _buildSlot(int index) {
     final stream = _streams[index];
     return Container(
-      margin: const EdgeInsets.all(3),
-      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.38), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFF14112B),
+        border: Border.all(color: Colors.white24, width: 2),
+        color: Colors.black,
       ),
       child: stream == null
           ? Center(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _selectStreamForSlot(index),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(color: const Color(0xFF8B5CF6).withOpacity(0.16), borderRadius: BorderRadius.circular(16)),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add_circle_outline_rounded, size: 34, color: Color(0xFFA78BFA)),
-                      SizedBox(height: 5),
-                      Text('إضافة قناة', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 11)),
-                    ],
-                  ),
-                ),
+              child: IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 48, color: Colors.white54),
+                onPressed: () => _selectStreamForSlot(index),
               ),
             )
           : Stack(
@@ -102,8 +87,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   top: 8,
                   right: 8,
                   child: IconButton(
-                    style: IconButton.styleFrom(backgroundColor: Colors.black.withOpacity(0.55)),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
+                    icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
                     onPressed: () {
                       setState(() {
                         _streams[index] = null;
@@ -114,13 +98,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.60), borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      stream.name,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
-                    ),
+                  child: Text(
+                    stream.name,
+                    style: const TextStyle(color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
                   ),
                 )
               ],
@@ -178,30 +158,19 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF09091A),
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            Container(
-              margin: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(color: const Color(0xFF14112B), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.08))),
-              child: Row(
-                children: [
-                  IconButton(
-                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.16)),
-                    icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFA78BFA)),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(width: 30, height: 30, decoration: BoxDecoration(color: const Color(0xFF8B5CF6), borderRadius: BorderRadius.circular(9)), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20)),
-                  const SizedBox(width: 7),
-                  const Expanded(child: Text('LIVE STREAM PREMIUM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13))),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: const Color(0xFFFFC857).withOpacity(0.14), borderRadius: BorderRadius.circular(8)), child: Text('$_screenCount شاشات', style: const TextStyle(color: Color(0xFFFFC857), fontWeight: FontWeight.bold, fontSize: 10))),
-                ],
+            _buildLayout(),
+            Positioned(
+              top: 16,
+              left: 16,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white, shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
-            Expanded(child: _buildLayout()),
           ],
         ),
       ),
@@ -226,7 +195,7 @@ class _StreamSelectionDialogState extends State<_StreamSelectionDialog> {
     final filtered = liveStreams.where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Dialog(
-      backgroundColor: const Color(0xFF14112B),
+      backgroundColor: const Color(0xFF1F2937),
       child: Container(
         width: 400,
         height: 500,
@@ -276,13 +245,12 @@ class _MultiPlayerSlot extends StatefulWidget {
   State<_MultiPlayerSlot> createState() => _MultiPlayerSlotState();
 }
 
-class _MultiPlayerSlotState extends State<_MultiPlayerSlot> with WidgetsBindingObserver {
+class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
   BetterPlayerController? _controller;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _initPlayer();
   }
 
@@ -503,16 +471,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> with WidgetsBindingO
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      _controller?.pause();
-    }
-    super.didChangeAppLifecycleState(state);
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
   }

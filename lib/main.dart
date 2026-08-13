@@ -19,47 +19,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 FirebaseAnalytics? appAnalytics;
 
-class PremiumPalette {
-  PremiumPalette._();
-
-  static const Color background = Color(0xFF09091A);
-  static const Color surface = Color(0xFF14112B);
-  static const Color surfaceElevated = Color(0xFF211C42);
-  static const Color violet = Color(0xFF8B5CF6);
-  static const Color violetBright = Color(0xFFA78BFA);
-  static const Color gold = Color(0xFFFFC857);
-  static const Color textMuted = Color(0xFFB7B1D6);
-}
-
-class PremiumSectionTitle extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String? actionLabel;
-
-  const PremiumSectionTitle({super.key, required this.title, required this.icon, this.actionLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: PremiumPalette.violet.withOpacity(0.18),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 18, color: PremiumPalette.violetBright),
-        ),
-        const SizedBox(width: 9),
-        Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17))),
-        if (actionLabel != null)
-          Text(actionLabel!, style: const TextStyle(color: PremiumPalette.gold, fontWeight: FontWeight.bold, fontSize: 11)),
-      ],
-    );
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -107,54 +66,26 @@ void main() async {
   );
 }
 
-class LiveFootballApp extends StatefulWidget {
+class LiveFootballApp extends StatelessWidget {
   const LiveFootballApp({super.key});
-
-  @override
-  State<LiveFootballApp> createState() => _LiveFootballAppState();
-}
-
-class _LiveFootballAppState extends State<LiveFootballApp> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final provider = Provider.of<IPTVProvider>(context, listen: false);
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      provider.onAppBackgrounded();
-    } else if (state == AppLifecycleState.resumed) {
-      provider.onAppResumed();
-    }
-    super.didChangeAppLifecycleState(state);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<IPTVProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'LIVE STREAM PREMIUM',
+          title: 'live stream pro',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: PremiumPalette.background,
+            scaffoldBackgroundColor: const Color(0xFF141414), // Netflix Background Color
             colorScheme: const ColorScheme.dark(
-              primary: PremiumPalette.violet,
-              secondary: PremiumPalette.gold,
-              surface: PremiumPalette.surface,
-              background: PremiumPalette.background,
+              primary: Color(0xFFE50914), // Netflix Red
+              secondary: Color(0xFFE50914),
+              surface: Color(0xFF181818),
+              background: Color(0xFF141414),
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
               bodyColor: Colors.white,
@@ -164,16 +95,16 @@ class _LiveFootballAppState extends State<LiveFootballApp> with WidgetsBindingOb
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(0xFFF7F5FF),
+            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
             colorScheme: const ColorScheme.light(
-              primary: PremiumPalette.violet,
-              secondary: Color(0xFFB7791F),
-              surface: Colors.white,
-              background: Color(0xFFF7F5FF),
+              primary: Color(0xFFE50914),
+              secondary: Color(0xFFE50914),
+              surface: Color(0xFFFFFFFF),
+              background: Color(0xFFF5F5F5),
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
-              bodyColor: const Color(0xFF17122F),
-              displayColor: const Color(0xFF17122F),
+              bodyColor: Colors.black,
+              displayColor: Colors.black,
             ),
           ),
       builder: (context, child) {
@@ -280,192 +211,139 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isMobile = screenW < 600;
 
     return Scaffold(
-      backgroundColor: PremiumPalette.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF09091A), Color(0xFF17122F), Color(0xFF09091A)],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
-            ),
+          // Background Movie Collage
+          CachedNetworkImage(
+            imageUrl: "https://iili.io/Cj6L3fp.jpg",
+            fit: BoxFit.cover,
+            color: Colors.black.withOpacity(0.70),
+            colorBlendMode: BlendMode.darken,
+            errorWidget: (c, u, e) => Container(color: const Color(0xFF141414)),
           ),
-          Positioned(
-            top: -screenW * 0.22,
-            right: -screenW * 0.15,
-            child: _LoginGlow(size: screenW * 0.72, color: PremiumPalette.violet),
-          ),
-          Positioned(
-            bottom: -screenW * 0.20,
-            left: -screenW * 0.18,
-            child: _LoginGlow(size: screenW * 0.65, color: PremiumPalette.gold),
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [PremiumPalette.violetBright, PremiumPalette.violet],
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    width: isMobile ? screenW * 0.9 : 400,
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20)
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4A148C), Color(0xFF7B1FA2)]),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFF4A148C).withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.24)),
-                          boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.45), blurRadius: 28, offset: const Offset(0, 10))],
-                        ),
-                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 46),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
-                      const SizedBox(height: 6),
-                      const Text("منصة مشاهدة حصرية بتجربة مستقرة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 24),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.all(isMobile ? 20 : 26),
-                            decoration: BoxDecoration(
-                              color: PremiumPalette.surface.withOpacity(0.82),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Colors.white.withOpacity(0.13)),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 36, offset: const Offset(0, 16))],
+                          child: const Text(
+                            "live stream pro",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        if (provider.lastError != null)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                            ),
+                            child: Row(
                               children: [
-                                const Text("تسجيل الدخول", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                                const SizedBox(height: 5),
-                                const Text("أدخل كود اشتراكك للمتابعة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 12)),
-                                const SizedBox(height: 20),
-                                if (provider.lastError != null)
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 14),
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.redAccent.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: Text(provider.lastError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
-                                      ],
-                                    ),
-                                  ),
-                                TextField(
-                                  controller: _codeController,
-                                  obscureText: _obscureCode,
-                                  style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16, letterSpacing: 1),
-                                  decoration: InputDecoration(
-                                    hintText: "كود الاشتراك",
-                                    hintStyle: const TextStyle(color: PremiumPalette.textMuted, fontSize: 13),
-                                    prefixIcon: const Icon(Icons.key_rounded, color: PremiumPalette.gold, size: 20),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(_obscureCode ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: PremiumPalette.textMuted, size: 20),
-                                      onPressed: () => setState(() => _obscureCode = !_obscureCode),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.black.withOpacity(0.18),
-                                    contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 14 : 17, horizontal: 16),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.08))),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.10))),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: PremiumPalette.violetBright, width: 1.5)),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                SizedBox(
-                                  height: isMobile ? 48 : 52,
-                                  child: ElevatedButton.icon(
-                                    onPressed: provider.isLoading
-                                        ? null
-                                        : () async {
-                                            final success = await provider.loginWithCode(_codeController.text);
-                                            if (success) FocusScope.of(context).unfocus();
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: PremiumPalette.violet,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    ),
-                                    icon: provider.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.login_rounded),
-                                    label: Text(provider.isLoading ? "جارٍ التحقق..." : "دخول آمن", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                const Divider(color: Color(0x334D446E)),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  alignment: WrapAlignment.spaceBetween,
-                                  runSpacing: 4,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
-                                      icon: const Icon(Icons.telegram, color: Color(0xFF38BDF8), size: 18),
-                                      label: const Text("القناة الرسمية", style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
-                                      icon: const Icon(Icons.workspace_premium_rounded, color: PremiumPalette.gold, size: 18),
-                                      label: const Text("الاشتراك المميز", style: TextStyle(color: PremiumPalette.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ],
-                                ),
+                                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(provider.lastError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
                               ],
                             ),
                           ),
+                        TextField(
+                          controller: _codeController,
+                          obscureText: _obscureCode,
+                          style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16, letterSpacing: 1),
+                          decoration: InputDecoration(
+                            hintText: "أدخل كود الاشتراك",
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+                            prefixIcon: const Icon(Icons.vpn_key_rounded, color: Colors.white54, size: 18),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscureCode ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 18),
+                              onPressed: () => setState(() => _obscureCode = !_obscureCode),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.05),
+                            contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 12 : 16, horizontal: 16),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE50914), width: 2)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text("LIVE STREAM PREMIUM • SECURE ACCESS", style: TextStyle(color: Color(0xFF817AA5), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                    ],
+                        SizedBox(height: isMobile ? 16 : 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: isMobile ? 40 : 48,
+                          child: ElevatedButton(
+                            onPressed: provider.isLoading
+                                ? null
+                                : () async {
+                                    final success = await provider.loginWithCode(_codeController.text);
+                                    if (success) FocusScope.of(context).unfocus();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE50914),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: provider.isLoading
+                                ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                : Text("تسجيل الدخول", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 16 : 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
+                              icon: Icon(Icons.telegram, color: Colors.blueAccent, size: isMobile ? 18 : 20),
+                              label: Text("القناة الرسمية", style: TextStyle(color: Colors.blueAccent, fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
+                              icon: Icon(Icons.star, color: Colors.amber, size: isMobile ? 18 : 20),
+                              label: Text("الاشتراك Premium", style: TextStyle(color: Colors.amber, fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _LoginGlow extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _LoginGlow({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withOpacity(0.25), color.withOpacity(0.05), Colors.transparent],
-            stops: const [0.0, 0.42, 1.0],
-          ),
-        ),
       ),
     );
   }
@@ -515,43 +393,15 @@ class _MainDashboardState extends State<MainDashboard> {
     }
 
     return Scaffold(
-      backgroundColor: PremiumPalette.background,
-      drawer: useBottomNav
-          ? PremiumDrawer(
-              selectedIndex: _selectedIndex,
-              onSelected: (index) {
-                Navigator.pop(context);
-                updateIndex(index);
-              },
-            )
-          : null,
       appBar: useBottomNav ? AppBar(
-        backgroundColor: PremiumPalette.surface,
-        elevation: 0,
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(gradient: const LinearGradient(colors: [PremiumPalette.violetBright, PremiumPalette.violet]), borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 21),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(child: Text("LIVE STREAM", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.4))),
-          ],
-        ),
+        backgroundColor: const Color(0xFF0F0F12),
+        title: const Text("LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(color: PremiumPalette.gold.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
-            child: const Row(children: [Icon(Icons.workspace_premium_rounded, color: PremiumPalette.gold, size: 15), SizedBox(width: 3), Text('Premium', style: TextStyle(color: PremiumPalette.gold, fontSize: 10, fontWeight: FontWeight.bold))]),
-          ),
-          const SizedBox(width: 7),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            icon: const Icon(Icons.settings, color: Colors.white54),
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
           )
         ],
       ) : null,
@@ -574,9 +424,9 @@ class _MainDashboardState extends State<MainDashboard> {
           ? BottomNavigationBar(
               currentIndex: localIndex,
               onTap: (val) => updateIndex(tabs[val]['index']),
-              backgroundColor: PremiumPalette.surface,
-              selectedItemColor: PremiumPalette.violetBright,
-              unselectedItemColor: const Color(0xFF8B84A9),
+              backgroundColor: const Color(0xFF0F0F12),
+              selectedItemColor: const Color(0xFFE50914),
+              unselectedItemColor: Colors.white54,
               type: BottomNavigationBarType.fixed,
               showUnselectedLabels: true,
               selectedFontSize: 10,
@@ -607,115 +457,6 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 }
 
-class PremiumDrawer extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  const PremiumDrawer({super.key, required this.selectedIndex, required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<IPTVProvider>(context);
-    final showMoviesSeries = provider.showMoviesSeries;
-    final items = <Map<String, dynamic>>[
-      {'index': 0, 'label': 'الرئيسية', 'icon': Icons.home_rounded},
-      {'index': 1, 'label': 'القنوات المباشرة', 'icon': Icons.live_tv_rounded},
-      if (showMoviesSeries) {'index': 2, 'label': 'الأفلام', 'icon': Icons.movie_filter_rounded},
-      if (showMoviesSeries) {'index': 3, 'label': 'المسلسلات', 'icon': Icons.video_library_rounded},
-      {'index': 4, 'label': 'المفضلة', 'icon': Icons.favorite_rounded},
-    ];
-
-    return Drawer(
-      backgroundColor: PremiumPalette.background,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(left: Radius.circular(26))),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(14, 10, 14, 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF30215F), PremiumPalette.surfaceElevated]),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.12)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(color: PremiumPalette.gold, borderRadius: BorderRadius.circular(15)),
-                    child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF2A174D), size: 28),
-                  ),
-                  const SizedBox(width: 11),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('LIVE STREAM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
-                        SizedBox(height: 2),
-                        Text('Premium Member', style: TextStyle(color: PremiumPalette.gold, fontWeight: FontWeight.bold, fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  ...items.map((item) {
-                    final selected = selectedIndex == item['index'];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: ListTile(
-                        dense: true,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        tileColor: selected ? PremiumPalette.violet.withOpacity(0.22) : Colors.transparent,
-                        leading: Icon(item['icon'], color: selected ? PremiumPalette.violetBright : Colors.white60),
-                        title: Text(item['label'], style: TextStyle(color: selected ? Colors.white : Colors.white70, fontWeight: selected ? FontWeight.bold : FontWeight.w600, fontSize: 13)),
-                        onTap: () => onSelected(item['index']),
-                      ),
-                    );
-                  }),
-                  const Divider(color: Color(0x1FFFFFFF), height: 26),
-                  ListTile(
-                    dense: true,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    leading: const Icon(Icons.settings_outlined, color: Colors.white60),
-                    title: const Text('الإعدادات', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 13)),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                  ),
-                  ListTile(
-                    dense: true,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    leading: const Icon(Icons.headset_mic_outlined, color: PremiumPalette.gold),
-                    title: const Text('الدعم الفني', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 13)),
-                    onTap: () => launchUrl(Uri.parse('https://t.me/+f9NsIzGjN_hjYWRi'), mode: LaunchMode.externalApplication),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
-              child: ListTile(
-                dense: true,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                tileColor: Colors.redAccent.withOpacity(0.08),
-                leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                onTap: provider.logout,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // -----------------------------------------------------------------------------
 // SIDEBAR (Responsive Width & Icons - Compact)
 // -----------------------------------------------------------------------------
@@ -741,26 +482,14 @@ class ModernSidebar extends StatelessWidget {
     ];
 
     return Container(
-      width: isMobile ? 55 : 82,
+      width: isMobile ? 55 : 75,
       decoration: BoxDecoration(
-        color: PremiumPalette.surface,
-        border: Border(left: BorderSide(color: PremiumPalette.violet.withOpacity(0.18))),
+        color: Colors.black,
+        border: Border(left: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: isMobile ? 12 : 18, bottom: isMobile ? 6 : 10),
-            child: Container(
-              width: isMobile ? 34 : 42,
-              height: isMobile ? 34 : 42,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [PremiumPalette.violetBright, PremiumPalette.violet]),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.35), blurRadius: 14)],
-              ),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-            ),
-          ),
+          SizedBox(height: isMobile ? 12 : 20),
           IconButton(
             icon: Icon(Icons.settings, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'الإعدادات',
@@ -803,7 +532,7 @@ class ModernSidebar extends StatelessWidget {
               width: 3,
               height: isMobile ? 20 : 24,
               decoration: BoxDecoration(
-                color: isSel ? PremiumPalette.gold : Colors.transparent,
+                color: isSel ? const Color(0xFFE50914) : Colors.transparent,
                 borderRadius: const BorderRadius.horizontal(left: Radius.circular(2)),
               ),
             ),
@@ -875,9 +604,9 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
       height: 38,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: PremiumPalette.violet.withOpacity(0.12),
+        color: const Color(0xFFE50914).withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: PremiumPalette.violet.withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFE50914).withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -967,43 +696,27 @@ class _HomeTabState extends State<HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(isMobile ? 16 : 22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF30215F), PremiumPalette.surfaceElevated], begin: Alignment.topRight, end: Alignment.bottomLeft),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: PremiumPalette.violetBright.withOpacity(0.22)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.22), blurRadius: 22, offset: const Offset(0, 10))],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: isMobile ? 48 : 58,
-                  height: isMobile ? 48 : 58,
-                  decoration: BoxDecoration(color: PremiumPalette.gold, borderRadius: BorderRadius.circular(17)),
-                  child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF2A174D), size: 31),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("كود الاشتراك: ${provider.activationCode}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                  Text(expiryText, style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () => provider.logout(),
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: const Text("تغيير الاشتراك"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE50914),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('أهلاً بك في LIVE STREAM', style: TextStyle(color: Colors.white, fontSize: isMobile ? 15 : 19, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 4),
-                      Text(expiryText, style: const TextStyle(color: PremiumPalette.gold, fontSize: 11, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text('كود الاشتراك: ${provider.activationCode}', style: const TextStyle(color: PremiumPalette.textMuted, fontSize: 10)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'تغيير الاشتراك',
-                  onPressed: provider.logout,
-                  icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white70),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           SizedBox(height: isMobile ? 12 : 18),
 
@@ -1017,9 +730,9 @@ class _HomeTabState extends State<HomeTab> {
           Container(
             height: isMobile ? 42 : 48,
             decoration: BoxDecoration(
-              color: PremiumPalette.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: PremiumPalette.violet.withOpacity(0.18)),
+              color: const Color(0xFF141416),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
             ),
             child: TextField(
               controller: _searchController,
@@ -1032,7 +745,7 @@ class _HomeTabState extends State<HomeTab> {
               decoration: InputDecoration(
                 hintText: "البحث السريع المباشر عن القنوات والأفلام والمسلسلات...",
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                prefixIcon: const Icon(Icons.search_rounded, color: PremiumPalette.violetBright, size: 20),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
                 suffixIcon: _globalSearchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
@@ -1053,7 +766,13 @@ class _HomeTabState extends State<HomeTab> {
 
           // Search results block
           if (_globalSearchQuery.isNotEmpty) ...[
-            const PremiumSectionTitle(title: 'نتائج البحث السريع', icon: Icons.search_rounded),
+            Row(
+              children: [
+                const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                const SizedBox(width: 8),
+                Text("نتائج البحث السريع", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
             const SizedBox(height: 10),
             searchResults.isEmpty
                 ? const Padding(
@@ -1131,7 +850,7 @@ class _HomeTabState extends State<HomeTab> {
                                     const SizedBox(height: 2),
                                     Row(
                                       children: [
-                                        Icon(typeIcon, size: 10, color: PremiumPalette.violet),
+                                        Icon(typeIcon, size: 10, color: const Color(0xFFE50914)),
                                         const SizedBox(width: 4),
                                         Text(typeLabel, style: const TextStyle(color: Colors.white54, fontSize: 10)),
                                         const SizedBox(width: 12),
@@ -1153,7 +872,13 @@ class _HomeTabState extends State<HomeTab> {
 
           // 3. Continue Watching Row (Offline state retention)
           if (_globalSearchQuery.isEmpty && provider.recentlyPlayed.isNotEmpty) ...[
-            const PremiumSectionTitle(title: 'واصل المشاهدة', icon: Icons.history_rounded, actionLabel: 'استكمل الآن'),
+            Row(
+              children: [
+                const Icon(Icons.history, color: Color(0xFFE50914), size: 18),
+                const SizedBox(width: 8),
+                Text("واصل المشاهدة", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ],
+            ),
             const SizedBox(height: 8),
             SizedBox(
               height: isMobile ? 110 : 140,
@@ -1175,12 +900,12 @@ class _HomeTabState extends State<HomeTab> {
 
           // Default dashboard grid if not searching
           if (_globalSearchQuery.isEmpty) ...[
-            const PremiumSectionTitle(title: 'أبرز الإضافات', icon: Icons.auto_awesome_rounded, actionLabel: 'مختارات Premium'),
-            SizedBox(height: isMobile ? 8 : 12),
+            Text("أبرز الإضافات", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            SizedBox(height: isMobile ? 4 : 8),
             const BannerSliderWidget(),
             SizedBox(height: isMobile ? 12 : 20),
-            const PremiumSectionTitle(title: 'تصفح الأقسام', icon: Icons.grid_view_rounded, actionLabel: 'عرض الكل'),
-            SizedBox(height: isMobile ? 9 : 12),
+            Text("تصفح الأقسام", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            SizedBox(height: isMobile ? 6 : 10),
             const DynamicSectionsWidget(),
           ],
         ],
@@ -1211,7 +936,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Future<void> _fetchBanners() async {
     try {
       final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url);
+      final res = await http.get(url, headers: {"Authorization": "token ${IPTVProvider.githubToken}"});
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
         setState(() {
@@ -1411,7 +1136,7 @@ class StreamsListScreen extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10, horizontal: isMobile ? 6 : 12),
                         margin: EdgeInsets.only(bottom: isMobile ? 2 : 4),
                         decoration: BoxDecoration(
-                          color: isSel ? PremiumPalette.violet : Colors.transparent,
+                          color: isSel ? const Color(0xFFE50914) : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1808,7 +1533,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                     Container(
                                         width: isMobile ? 20 : 30,
                                         height: isMobile ? 2 : 3,
-                                        decoration: BoxDecoration(color: PremiumPalette.violet, borderRadius: BorderRadius.circular(1))),
+                                        decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(1))),
                                 ],
                               ),
                             ),
@@ -1970,14 +1695,8 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
         Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
       }
     },
-    child: Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: PremiumPalette.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 10, offset: const Offset(0, 5))],
-      ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -1985,7 +1704,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ? CachedNetworkImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.contain, // Prevent cropping
-                  placeholder: (context, url) => Container(color: PremiumPalette.surfaceElevated, child: const Center(child: CircularProgressIndicator(color: PremiumPalette.violetBright, strokeWidth: 2))),
+                  placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: Color(0xFFE50914), strokeWidth: 2))),
                   errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
               : Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
@@ -2012,27 +1731,18 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ),
             ),
           ),
-          Positioned(
-            top: 7,
-            right: 7,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(7), border: Border.all(color: Colors.white.withOpacity(0.12))),
-              child: Text(isSeries ? 'HD' : 'FHD', style: TextStyle(color: PremiumPalette.gold, fontSize: isMobile ? 8 : 9, fontWeight: FontWeight.w900)),
-            ),
-          ),
           // Fav Icon
           Positioned(
-            top: 6,
-            left: 6,
+            top: 4,
+            left: 4,
             child: InkWell(
               onTap: () => provider.toggleFavorite(streamId),
               child: Container(
                 padding: EdgeInsets.all(isMobile ? 3 : 4),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.12))),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
                 child: Icon(
                   isFav ? Icons.favorite : Icons.favorite_border,
-                  color: isFav ? PremiumPalette.gold : Colors.white,
+                  color: isFav ? const Color(0xFFE50914) : Colors.white,
                   size: isMobile ? 14 : 16,
                 ),
               ),
@@ -2065,7 +1775,7 @@ class DynamicSectionsWidget extends StatelessWidget {
 
   List<Color> _getColorForCategory(String categoryName, int index) {
     final colors = [
-      [PremiumPalette.violet, const Color(0xFF8E040B)],
+      [const Color(0xFFE50914), const Color(0xFF8E040B)],
       [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
       [const Color(0xFF00B4DB), const Color(0xFF0083B0)],
       [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],

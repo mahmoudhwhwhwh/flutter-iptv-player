@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/painting.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -32,43 +33,13 @@ class PremiumPalette {
   static const Color textMuted = Color(0xFFB7B1D6);
 }
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final savedOrient = prefs.getString('app_orientation') ?? 'تلقائي';
-    if (savedOrient == 'أفقي') {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    } else if (savedOrient == 'عمودي') {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-    } else {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-    }
-  } catch (_) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-  }
-  try {
-    await Firebase.initializeApp();
-    appAnalytics = FirebaseAnalytics.instance;
-  } catch (e) {
-    debugPrint("Firebase init error: $e");
-  }
+  // ذاكرة صور أكبر تقلل إعادة تحميل شعارات Xtream أثناء التنقل بين الأقسام.
+  PaintingBinding.instance.imageCache.maximumSize = 260;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 96 << 20;
+  unawaited(_restoreStartupOrientation());
+  unawaited(_initializeFirebaseInBackground());
   runApp(
     MultiProvider(
       providers: [
@@ -77,6 +48,25 @@ void main() async {
       child: const LiveFootballApp(),
     ),
   );
+}
+
+Future<void> _restoreStartupOrientation() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final savedOrient = prefs.getString('app_orientation') ?? 'تلقائي';
+    if (savedOrient == 'أفقي') {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    } else if (savedOrient == 'عمودي') {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+    }
+  } catch (_) {}
+}
+
+Future<void> _initializeFirebaseInBackground() async {
+  try {
+    await Firebase.initializeApp();
+    appAnalytics = FirebaseAnalytics.instance;
+  } catch (_) {}
 }
 
 class LiveFootballApp extends StatelessWidget {
@@ -602,7 +592,7 @@ class _MainDashboardState extends State<MainDashboard> {
         ),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 120),
         child: _buildContent(),
       ),
       bottomNavigationBar: useBottomNav

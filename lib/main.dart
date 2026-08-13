@@ -19,6 +19,18 @@ import 'package:url_launcher/url_launcher.dart';
 
 FirebaseAnalytics? appAnalytics;
 
+class PremiumPalette {
+  PremiumPalette._();
+
+  static const Color background = Color(0xFF09091A);
+  static const Color surface = Color(0xFF14112B);
+  static const Color surfaceElevated = Color(0xFF211C42);
+  static const Color violet = Color(0xFF8B5CF6);
+  static const Color violetBright = Color(0xFFA78BFA);
+  static const Color gold = Color(0xFFFFC857);
+  static const Color textMuted = Color(0xFFB7B1D6);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -74,18 +86,18 @@ class LiveFootballApp extends StatelessWidget {
     return Consumer<IPTVProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'live stream pro',
+          title: 'LIVE STREAM PREMIUM',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF141414), // Netflix Background Color
+            scaffoldBackgroundColor: PremiumPalette.background,
             colorScheme: const ColorScheme.dark(
-              primary: Color(0xFFE50914), // Netflix Red
-              secondary: Color(0xFFE50914),
-              surface: Color(0xFF181818),
-              background: Color(0xFF141414),
+              primary: PremiumPalette.violet,
+              secondary: PremiumPalette.gold,
+              surface: PremiumPalette.surface,
+              background: PremiumPalette.background,
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
               bodyColor: Colors.white,
@@ -95,16 +107,16 @@ class LiveFootballApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+            scaffoldBackgroundColor: const Color(0xFFF7F5FF),
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFE50914),
-              secondary: Color(0xFFE50914),
-              surface: Color(0xFFFFFFFF),
-              background: Color(0xFFF5F5F5),
+              primary: PremiumPalette.violet,
+              secondary: Color(0xFFB7791F),
+              surface: Colors.white,
+              background: Color(0xFFF7F5FF),
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
-              bodyColor: Colors.black,
-              displayColor: Colors.black,
+              bodyColor: const Color(0xFF17122F),
+              displayColor: const Color(0xFF17122F),
             ),
           ),
       builder: (context, child) {
@@ -211,139 +223,192 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isMobile = screenW < 600;
 
     return Scaffold(
+      backgroundColor: PremiumPalette.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background Movie Collage
-          CachedNetworkImage(
-            imageUrl: "https://iili.io/Cj6L3fp.jpg",
-            fit: BoxFit.cover,
-            color: Colors.black.withOpacity(0.70),
-            colorBlendMode: BlendMode.darken,
-            errorWidget: (c, u, e) => Container(color: const Color(0xFF141414)),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF09091A), Color(0xFF17122F), Color(0xFF09091A)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+            ),
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    width: isMobile ? screenW * 0.9 : 400,
-                    padding: EdgeInsets.all(isMobile ? 16 : 24),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20)
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF4A148C), Color(0xFF7B1FA2)]),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-                            boxShadow: [
-                              BoxShadow(color: const Color(0xFF4A148C).withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 4)),
-                            ],
+          Positioned(
+            top: -screenW * 0.22,
+            right: -screenW * 0.15,
+            child: _LoginGlow(size: screenW * 0.72, color: PremiumPalette.violet),
+          ),
+          Positioned(
+            bottom: -screenW * 0.20,
+            left: -screenW * 0.18,
+            child: _LoginGlow(size: screenW * 0.65, color: PremiumPalette.gold),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 430),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [PremiumPalette.violetBright, PremiumPalette.violet],
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
                           ),
-                          child: const Text(
-                            "live stream pro",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withOpacity(0.24)),
+                          boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.45), blurRadius: 28, offset: const Offset(0, 10))],
                         ),
-                        const SizedBox(height: 24),
-                        if (provider.lastError != null)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 46),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                      const SizedBox(height: 6),
+                      const Text("منصة مشاهدة حصرية بتجربة مستقرة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 24),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(isMobile ? 20 : 26),
                             decoration: BoxDecoration(
-                              color: Colors.redAccent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                              color: PremiumPalette.surface.withOpacity(0.82),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withOpacity(0.13)),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 36, offset: const Offset(0, 16))],
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(provider.lastError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+                                const Text("تسجيل الدخول", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                                const SizedBox(height: 5),
+                                const Text("أدخل كود اشتراكك للمتابعة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 12)),
+                                const SizedBox(height: 20),
+                                if (provider.lastError != null)
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 14),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: Text(provider.lastError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+                                      ],
+                                    ),
+                                  ),
+                                TextField(
+                                  controller: _codeController,
+                                  obscureText: _obscureCode,
+                                  style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16, letterSpacing: 1),
+                                  decoration: InputDecoration(
+                                    hintText: "كود الاشتراك",
+                                    hintStyle: const TextStyle(color: PremiumPalette.textMuted, fontSize: 13),
+                                    prefixIcon: const Icon(Icons.key_rounded, color: PremiumPalette.gold, size: 20),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_obscureCode ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: PremiumPalette.textMuted, size: 20),
+                                      onPressed: () => setState(() => _obscureCode = !_obscureCode),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.black.withOpacity(0.18),
+                                    contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 14 : 17, horizontal: 16),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.08))),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.10))),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: PremiumPalette.violetBright, width: 1.5)),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                SizedBox(
+                                  height: isMobile ? 48 : 52,
+                                  child: ElevatedButton.icon(
+                                    onPressed: provider.isLoading
+                                        ? null
+                                        : () async {
+                                            final success = await provider.loginWithCode(_codeController.text);
+                                            if (success) FocusScope.of(context).unfocus();
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: PremiumPalette.violet,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                    icon: provider.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.login_rounded),
+                                    label: Text(provider.isLoading ? "جارٍ التحقق..." : "دخول آمن", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                const Divider(color: Color(0x334D446E)),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  runSpacing: 4,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
+                                      icon: const Icon(Icons.telegram, color: Color(0xFF38BDF8), size: 18),
+                                      label: const Text("القناة الرسمية", style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
+                                      icon: const Icon(Icons.workspace_premium_rounded, color: PremiumPalette.gold, size: 18),
+                                      label: const Text("الاشتراك المميز", style: TextStyle(color: PremiumPalette.gold, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
-                        TextField(
-                          controller: _codeController,
-                          obscureText: _obscureCode,
-                          style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16, letterSpacing: 1),
-                          decoration: InputDecoration(
-                            hintText: "أدخل كود الاشتراك",
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
-                            prefixIcon: const Icon(Icons.vpn_key_rounded, color: Colors.white54, size: 18),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscureCode ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 18),
-                              onPressed: () => setState(() => _obscureCode = !_obscureCode),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
-                            contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 12 : 16, horizontal: 16),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE50914), width: 2)),
-                          ),
                         ),
-                        SizedBox(height: isMobile ? 16 : 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: isMobile ? 40 : 48,
-                          child: ElevatedButton(
-                            onPressed: provider.isLoading
-                                ? null
-                                : () async {
-                                    final success = await provider.loginWithCode(_codeController.text);
-                                    if (success) FocusScope.of(context).unfocus();
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE50914),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: provider.isLoading
-                                ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                                : Text("تسجيل الدخول", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                          ),
-                        ),
-                        SizedBox(height: isMobile ? 16 : 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
-                              icon: Icon(Icons.telegram, color: Colors.blueAccent, size: isMobile ? 18 : 20),
-                              label: Text("القناة الرسمية", style: TextStyle(color: Colors.blueAccent, fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
-                              icon: Icon(Icons.star, color: Colors.amber, size: isMobile ? 18 : 20),
-                              label: Text("الاشتراك Premium", style: TextStyle(color: Colors.amber, fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text("LIVE STREAM PREMIUM • SECURE ACCESS", style: TextStyle(color: Color(0xFF817AA5), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoginGlow extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _LoginGlow({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color.withOpacity(0.25), color.withOpacity(0.05), Colors.transparent],
+            stops: const [0.0, 0.42, 1.0],
+          ),
+        ),
       ),
     );
   }
@@ -394,8 +459,8 @@ class _MainDashboardState extends State<MainDashboard> {
 
     return Scaffold(
       appBar: useBottomNav ? AppBar(
-        backgroundColor: const Color(0xFF0F0F12),
-        title: const Text("LIVE STREAM PRO", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        backgroundColor: PremiumPalette.surface,
+        title: const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.4)),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white54),
@@ -424,8 +489,8 @@ class _MainDashboardState extends State<MainDashboard> {
           ? BottomNavigationBar(
               currentIndex: localIndex,
               onTap: (val) => updateIndex(tabs[val]['index']),
-              backgroundColor: const Color(0xFF0F0F12),
-              selectedItemColor: const Color(0xFFE50914),
+              backgroundColor: PremiumPalette.surface,
+              selectedItemColor: PremiumPalette.violetBright,
               unselectedItemColor: Colors.white54,
               type: BottomNavigationBarType.fixed,
               showUnselectedLabels: true,
@@ -482,14 +547,26 @@ class ModernSidebar extends StatelessWidget {
     ];
 
     return Container(
-      width: isMobile ? 55 : 75,
+      width: isMobile ? 55 : 82,
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border(left: BorderSide(color: Colors.white.withOpacity(0.05))),
+        color: PremiumPalette.surface,
+        border: Border(left: BorderSide(color: PremiumPalette.violet.withOpacity(0.18))),
       ),
       child: Column(
         children: [
-          SizedBox(height: isMobile ? 12 : 20),
+          Padding(
+            padding: EdgeInsets.only(top: isMobile ? 12 : 18, bottom: isMobile ? 6 : 10),
+            child: Container(
+              width: isMobile ? 34 : 42,
+              height: isMobile ? 34 : 42,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [PremiumPalette.violetBright, PremiumPalette.violet]),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.35), blurRadius: 14)],
+              ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.settings, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'الإعدادات',
@@ -532,7 +609,7 @@ class ModernSidebar extends StatelessWidget {
               width: 3,
               height: isMobile ? 20 : 24,
               decoration: BoxDecoration(
-                color: isSel ? const Color(0xFFE50914) : Colors.transparent,
+                color: isSel ? PremiumPalette.gold : Colors.transparent,
                 borderRadius: const BorderRadius.horizontal(left: Radius.circular(2)),
               ),
             ),
@@ -604,9 +681,9 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
       height: 38,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFE50914).withOpacity(0.12),
+        color: PremiumPalette.violet.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE50914).withOpacity(0.3)),
+        border: Border.all(color: PremiumPalette.violet.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -711,7 +788,7 @@ class _HomeTabState extends State<HomeTab> {
                 icon: const Icon(Icons.swap_horiz, size: 18),
                 label: const Text("تغيير الاشتراك"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE50914),
+                  backgroundColor: PremiumPalette.violet,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
@@ -850,7 +927,7 @@ class _HomeTabState extends State<HomeTab> {
                                     const SizedBox(height: 2),
                                     Row(
                                       children: [
-                                        Icon(typeIcon, size: 10, color: const Color(0xFFE50914)),
+                                        Icon(typeIcon, size: 10, color: PremiumPalette.violet),
                                         const SizedBox(width: 4),
                                         Text(typeLabel, style: const TextStyle(color: Colors.white54, fontSize: 10)),
                                         const SizedBox(width: 12),
@@ -1136,7 +1213,7 @@ class StreamsListScreen extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10, horizontal: isMobile ? 6 : 12),
                         margin: EdgeInsets.only(bottom: isMobile ? 2 : 4),
                         decoration: BoxDecoration(
-                          color: isSel ? const Color(0xFFE50914) : Colors.transparent,
+                          color: isSel ? PremiumPalette.violet : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1533,7 +1610,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                     Container(
                                         width: isMobile ? 20 : 30,
                                         height: isMobile ? 2 : 3,
-                                        decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(1))),
+                                        decoration: BoxDecoration(color: PremiumPalette.violet, borderRadius: BorderRadius.circular(1))),
                                 ],
                               ),
                             ),
@@ -1742,7 +1819,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
                 decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
                 child: Icon(
                   isFav ? Icons.favorite : Icons.favorite_border,
-                  color: isFav ? const Color(0xFFE50914) : Colors.white,
+                  color: isFav ? PremiumPalette.violet : Colors.white,
                   size: isMobile ? 14 : 16,
                 ),
               ),
@@ -1775,7 +1852,7 @@ class DynamicSectionsWidget extends StatelessWidget {
 
   List<Color> _getColorForCategory(String categoryName, int index) {
     final colors = [
-      [const Color(0xFFE50914), const Color(0xFF8E040B)],
+      [PremiumPalette.violet, const Color(0xFF8E040B)],
       [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
       [const Color(0xFF00B4DB), const Color(0xFF0083B0)],
       [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],

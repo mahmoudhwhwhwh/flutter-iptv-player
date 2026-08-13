@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
@@ -32,7 +33,7 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
-  final GlobalKey _betterPlayerKey = GlobalKey();
+  GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
   late PlaylistItem _stream;
@@ -83,6 +84,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _subSizeVal = 16.0;
   Color _subColorVal = Colors.white;
   Color _subBgColorVal = Colors.transparent;
+  String _subFontVal = 'Cairo';
   String _subLangVal = "تلقائي";
 
   // Screen lock & rotation states
@@ -94,6 +96,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // Sidebar Search & Category
   String _sidebarSearchQuery = "";
   String _sidebarSelectedCategory = "all";
+  Timer? _sidebarSearchDebounce;
   final FocusNode _sidebarSearchFocusNode = FocusNode();
 
 
@@ -170,7 +173,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       String sSize = prefs.getString('sub_size') ?? "متوسط";
       String sCol = prefs.getString('sub_color') ?? "أبيض";
       String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
-      String appOrient = prefs.getString('app_orientation') ?? "تلقائي";
+      _subFontVal = prefs.getString('sub_font') ?? 'Cairo';
       _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
       
       if (sSize == "صغير") _subSizeVal = 12.0;
@@ -225,6 +228,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (shouldRefresh) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _loadSubSettings();
+        // Better Player يحتفظ بنمط الترجمة في State داخلي؛ المفتاح الجديد
+        // يعيد إنشاء طبقة النص بالقيم المحفوظة بدلاً من الشكل الافتراضي القديم.
+        _betterPlayerKey = GlobalKey();
         if (mounted) _initializeController(isRetry: true);
       });
     }
@@ -248,33 +254,34 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
 
-  void _applyPreferredSubtitleLanguage() {
-    if (_subLangVal != "تلقائي" && _betterController != null) {
-       try {
-         final tracks = _betterController!.betterPlayerSubtitlesSourceList;
-         String targetLang = _subLangVal.toLowerCase();
-         if (targetLang == "arabic") targetLang = "ar";
-         else if (targetLang == "english") targetLang = "en";
-         else if (targetLang == "french") targetLang = "fr";
-         else if (targetLang == "spanish") targetLang = "es";
-         else if (targetLang == "turkish") targetLang = "tr";
-         else if (targetLang == "persian") targetLang = "fa";
-         
-         BetterPlayerSubtitlesSource? matchedSource;
-         for (var track in tracks) {
-             String name = (track.name ?? "").toLowerCase();
-             if (name.contains(targetLang) || (targetLang == "ar" && name.contains("عرب"))) {
-                 matchedSource = track;
-                 break;
-             }
-         }
-         
-         if (matchedSource != null) {
-             _betterController!.setupSubtitleSource(matchedSource);
-         }
-       } catch (e) {
-         debugPrint("Failed to set sub lang: $e");
-       }
+  Future<void> _applyPreferredSubtitleLanguage({int retries = 5}) async {
+    if (_subLangVal == "تلقائي" || _betterController == null) return;
+    try {
+      final tracks = _betterController!.betterPlayerSubtitlesSourceList;
+      String targetLang = _subLangVal.toLowerCase();
+      if (targetLang == "arabic") targetLang = "ar";
+      else if (targetLang == "english") targetLang = "en";
+      else if (targetLang == "french") targetLang = "fr";
+      else if (targetLang == "spanish") targetLang = "es";
+      else if (targetLang == "turkish") targetLang = "tr";
+      else if (targetLang == "persian") targetLang = "fa";
+
+      BetterPlayerSubtitlesSource? matchedSource;
+      for (final track in tracks) {
+        final name = (track.name ?? "").toLowerCase();
+        if (name.contains(targetLang) || (targetLang == "ar" && name.contains("عرب"))) {
+          matchedSource = track;
+          break;
+        }
+      }
+      if (matchedSource != null) {
+        await _betterController!.setupSubtitleSource(matchedSource);
+      } else if (retries > 0 && mounted) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        await _applyPreferredSubtitleLanguage(retries: retries - 1);
+      }
+    } catch (e) {
+      debugPrint("Failed to apply Xtream subtitle language: $e");
     }
   }
 
@@ -465,7 +472,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             backgroundColor: _subBgColorVal,
             outlineColor: Colors.black,
             outlineSize: 2.0,
-            fontFamily: "Arial", // Ensure standard font that supports Arabic
+            fontFamily: _subFontVal,
+            bottomPadding: 48.0,
+            leftPadding: 16.0,
+            rightPadding: 16.0,
           ),
           controlsConfiguration: const BetterPlayerControlsConfiguration(
             showControls: false,
@@ -514,7 +524,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 }
               }
               _betterController!.play();
-              _startAiSubtitleTimer();
+              unawaited(_applyPreferredSubtitleLanguage());
               _startSeekTracker();
             });
           }
@@ -540,16 +550,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _startSeekTracker() {
     _positionTimer?.cancel();
-    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      
-        if (_betterController != null && _betterController!.videoPlayerController != null && _betterController!.videoPlayerController!.value.initialized) {
-          if (mounted) {
-            setState(() {
-              _currentPosition = _betterController!.videoPlayerController!.value.position;
-            });
-          }
-        }
-
+    // البث المباشر لا يحتاج إعادة بناء صفحة المشغّل مرتين في الثانية.
+    if (_stream.type == 'live') return;
+    _positionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final value = _betterController?.videoPlayerController?.value;
+      if (mounted && value != null && value.initialized && value.position != _currentPosition) {
+        setState(() => _currentPosition = value.position);
+      }
     });
   }
 
@@ -650,6 +657,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _zoomIndicatorTimer?.cancel();
     _lockToggleTimer?.cancel();
     _sleepTimer?.cancel();
+    _sidebarSearchDebounce?.cancel();
     _firstButtonFocusNode.dispose();
     _sidebarSearchFocusNode.dispose();
     
@@ -941,11 +949,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           children: [
                             ListTile(
                               title: const Text("إيقاف الترجمة", style: TextStyle(color: Colors.white)),
-                              trailing: (selectedSub == null || selectedSub.type == BetterPlayerSubtitlesSourceType.none) && _selectedAiLang == ''
+                              trailing: (selectedSub == null || selectedSub.type == BetterPlayerSubtitlesSourceType.none)
                                   ? const Icon(Icons.check_circle, color: Colors.amberAccent) : null,
                               onTap: () {
                                 _betterController!.setupSubtitleSource(BetterPlayerSubtitlesSource(type: BetterPlayerSubtitlesSourceType.none));
-                                setState(() { _selectedAiLang = ''; });
                                 setModalState(() {});
                                 Navigator.pop(bContext);
                               },
@@ -956,38 +963,28 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 child: Text("الترجمات المدمجة", style: TextStyle(color: Colors.white54, fontSize: 12)),
                               ),
                               ...validSubtitles.map((sub) {
-                                final isSelected = selectedSub == sub && _selectedAiLang == '';
+                                final isSelected = selectedSub == sub;
                                 final name = sub.name ?? "ترجمة (غير معروف)";
                                 return ListTile(
                                   title: Text(name, style: TextStyle(color: isSelected ? Colors.amberAccent : Colors.white)),
                                   trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.amberAccent) : null,
                                   onTap: () {
                                     _betterController!.setupSubtitleSource(sub);
-                                    setState(() { _selectedAiLang = ''; });
                                     setModalState(() {});
                                     Navigator.pop(bContext);
                                   },
                                 );
                               }).toList(),
                             ],
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: Text("الترجمة بالذكاء الاصطناعي (تجريبي)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
-                            ),
-                            ...['ar', 'en', 'fr'].map((lang) {
-                                final isSelected = _selectedAiLang == lang;
-                                final name = lang == 'ar' ? 'العربية' : lang == 'en' ? 'English' : 'Français';
-                                return ListTile(
-                                  title: Text(name, style: TextStyle(color: isSelected ? Colors.cyanAccent : Colors.white)),
-                                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.cyanAccent) : null,
-                                  onTap: () {
-                                    _betterController!.setupSubtitleSource(BetterPlayerSubtitlesSource(type: BetterPlayerSubtitlesSourceType.none));
-                                    setState(() { _selectedAiLang = lang; });
-                                    setModalState(() {});
-                                    Navigator.pop(bContext);
-                                  },
-                                );
-                            }).toList(),
+                            if (validSubtitles.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'لا توجد ترجمة مدمجة لهذا البث من خادم Xtream.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white60, fontSize: 13),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1554,34 +1551,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
             // 3. HUD Controls Layer
             
-            if (_selectedAiLang.isNotEmpty && _aiSubtitleText.isNotEmpty)
-              Positioned(
-                bottom: _showHUD ? 160 : 40,
-                left: 16,
-                right: 16,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _subBgColorVal,
-                      borderRadius: BorderRadius.circular(8),
-                      border: _subBgColorVal == Colors.transparent 
-                          ? null 
-                          : Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-                    ),
-                    child: Text(
-                      _aiSubtitleText,
-                      style: TextStyle(
-                        color: _subColorVal,
-                        fontSize: _subSizeVal,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Cairo',
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
 if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
 
             // 3.5 Floating Lock/Unlock controls for locked mode
@@ -1718,7 +1687,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
     return Positioned.fill(
       child: AnimatedOpacity(
         opacity: _showHUD ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 120),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -2302,12 +2271,13 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
           child: item.streamIcon.isNotEmpty
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Image.network(
-                    item.streamIcon,
+                  child: CachedNetworkImage(
+                    imageUrl: item.streamIcon,
                     fit: BoxFit.cover,
-                    cacheWidth: 60,
-                    cacheHeight: 60,
-                    errorBuilder: (c, e, s) => const Icon(Icons.tv_rounded, size: 12, color: Colors.white30),
+                    memCacheWidth: 60,
+                    maxWidthDiskCache: 60,
+                    fadeInDuration: const Duration(milliseconds: 60),
+                    errorWidget: (c, e, s) => const Icon(Icons.tv_rounded, size: 12, color: Colors.white30),
                   ),
                 )
               : const Icon(Icons.tv_rounded, size: 12, color: Colors.white30),
@@ -2436,8 +2406,9 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                       ),
                     ),
                     onChanged: (val) {
-                      setState(() {
-                        _sidebarSearchQuery = val;
+                      _sidebarSearchDebounce?.cancel();
+                      _sidebarSearchDebounce = Timer(const Duration(milliseconds: 110), () {
+                        if (mounted) setState(() => _sidebarSearchQuery = val);
                       });
                     },
                   ),

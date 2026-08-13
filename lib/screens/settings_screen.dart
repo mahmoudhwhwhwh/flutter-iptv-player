@@ -44,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _hwAcceleration = true;
   bool _autoPlay = true;
   String _subSize = "متوسط";
+  String _subFont = 'Cairo';
   String _subColor = "أبيض";
   String _subBgColor = "شفاف";
   String _subLang = "تلقائي";
@@ -66,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _hwAcceleration = prefs.getBool('hw_acceleration') ?? true;
       _autoPlay = prefs.getBool('auto_play') ?? true;
       _subSize = prefs.getString('sub_size') ?? "متوسط";
+      _subFont = prefs.getString('sub_font') ?? 'Cairo';
       _subColor = prefs.getString('sub_color') ?? "أبيض";
       _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
       _subLang = prefs.getString('sub_lang') ?? "تلقائي";
@@ -84,10 +86,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeTheme = context.watch<IPTVProvider>();
     return Scaffold(
-      backgroundColor: _SettingsPalette.background,
+      backgroundColor: activeTheme.themeBackground,
       appBar: AppBar(
-        backgroundColor: _SettingsPalette.background,
+        backgroundColor: activeTheme.themeBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -131,7 +134,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildDropdownItem(
                         title: 'ثيم التطبيق',
                         value: provider.premiumTheme,
-                        items: const ['البنفسجي الملكي', 'الأزرق الليلي', 'الذهبي الفاخر', 'الزمردي الداكن'],
+                        items: const [
+                          'البنفسجي الملكي',
+                          'الأزرق الليلي',
+                          'الذهبي الفاخر',
+                          'الزمردي الداكن',
+                          'الروبي السينمائي',
+                          'السماوي الكهربائي',
+                          'الغروب البرتقالي',
+                        ],
                         onChanged: (value) {
                           if (value != null) provider.setPremiumTheme(value);
                         },
@@ -182,6 +193,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (val != null) {
                     setState(() => _subSize = val);
                     _saveStringSetting('sub_size', val);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: "خط الترجمة",
+                value: _subFont,
+                items: const ['Cairo', 'Arial', 'Tahoma', 'Roboto'],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _subFont = val);
+                    _saveStringSetting('sub_font', val);
                   }
                 },
               ),
@@ -637,9 +660,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF2A1A42), Color(0xFF17171A)], begin: Alignment.topRight, end: Alignment.bottomLeft),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: _SettingsPalette.purple.withOpacity(0.6)),
+        gradient: LinearGradient(colors: [provider.accentColor.withOpacity(0.34), provider.themeSurface], begin: Alignment.topRight, end: Alignment.bottomLeft),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: provider.accentColor.withOpacity(0.65)),
         ),
         child: Row(
           children: [
@@ -647,7 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                color: _SettingsPalette.purple,
+                color: provider.accentColor,
                 shape: BoxShape.circle,
                 image: provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
                     ? DecorationImage(image: FileImage(File(provider.profileImagePath)), fit: BoxFit.cover)
@@ -670,7 +693,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.edit_rounded, color: _SettingsPalette.purpleBright),
+            Icon(Icons.edit_rounded, color: provider.accentColor),
           ],
         ),
       ),

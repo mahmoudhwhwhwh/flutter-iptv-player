@@ -84,12 +84,12 @@ class LiveFootballApp extends StatelessWidget {
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: PremiumPalette.background,
+            scaffoldBackgroundColor: themeProvider.themeBackground,
             colorScheme: ColorScheme.dark(
               primary: themeProvider.accentColor,
-              secondary: PremiumPalette.gold,
-              surface: PremiumPalette.surface,
-              background: PremiumPalette.background,
+              secondary: themeProvider.accentColor,
+              surface: themeProvider.themeSurface,
+              background: themeProvider.themeBackground,
             ),
             textTheme: GoogleFonts.cairoTextTheme().apply(
               bodyColor: Colors.white,
@@ -102,7 +102,7 @@ class LiveFootballApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFFF7F5FF),
             colorScheme: ColorScheme.light(
               primary: themeProvider.accentColor,
-              secondary: Color(0xFFB7791F),
+              secondary: themeProvider.accentColor,
               surface: Colors.white,
               background: const Color(0xFFF7F5FF),
             ),
@@ -518,6 +518,7 @@ class _MainDashboardState extends State<MainDashboard> {
   Widget build(BuildContext context) {
     final bool useBottomNav = MediaQuery.of(context).size.width < 600 || MediaQuery.of(context).orientation == Orientation.portrait;
     final provider = Provider.of<IPTVProvider>(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final showMoviesSeries = provider.showMoviesSeries;
 
     final List<Map<String, dynamic>> tabs = [
@@ -537,11 +538,11 @@ class _MainDashboardState extends State<MainDashboard> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0E15),
+      backgroundColor: colorScheme.background,
       drawer: _buildReferenceDrawer(context, provider, showMoviesSeries),
       appBar: AppBar(
         toolbarHeight: 78,
-        backgroundColor: const Color(0xFF0B0E15),
+        backgroundColor: colorScheme.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: Builder(
@@ -566,7 +567,7 @@ class _MainDashboardState extends State<MainDashboard> {
               margin: const EdgeInsets.symmetric(horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
+                border: Border.all(color: colorScheme.primary, width: 1.5),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: const Row(
@@ -599,8 +600,8 @@ class _MainDashboardState extends State<MainDashboard> {
           ? BottomNavigationBar(
               currentIndex: localIndex,
               onTap: (val) => updateIndex(tabs[val]['index']),
-              backgroundColor: const Color(0xFF0B0E15),
-              selectedItemColor: const Color(0xFFA855F7),
+              backgroundColor: colorScheme.background,
+              selectedItemColor: colorScheme.primary,
               unselectedItemColor: const Color(0xFFB7B7C1),
               type: BottomNavigationBarType.fixed,
               showUnselectedLabels: true,
@@ -615,12 +616,14 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Widget _buildReferenceDrawer(BuildContext context, IPTVProvider provider, bool showMoviesSeries) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final surface = Theme.of(context).colorScheme.surface;
     Widget entry({required IconData icon, required String label, required int index}) {
       final bool selected = _selectedIndex == index;
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-        leading: Icon(icon, color: selected ? const Color(0xFFA855F7) : const Color(0xFFD0D0D7), size: 31),
-        title: Text(label, style: TextStyle(color: selected ? const Color(0xFFA855F7) : const Color(0xFFD0D0D7), fontSize: 21, fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+        leading: Icon(icon, color: selected ? accent : const Color(0xFFD0D0D7), size: 31),
+        title: Text(label, style: TextStyle(color: selected ? accent : const Color(0xFFD0D0D7), fontSize: 21, fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
         onTap: () {
           Navigator.pop(context);
           updateIndex(index);
@@ -634,7 +637,7 @@ class _MainDashboardState extends State<MainDashboard> {
 
     return Drawer(
       width: 340,
-      backgroundColor: const Color(0xFF0D0E19),
+      backgroundColor: surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -885,24 +888,20 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
     });
   }
 
-  void _startScrolling() {
-    if (!_scrollController.hasClients) return;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      if (!_scrollController.hasClients) return;
-      double maxScroll = _scrollController.position.maxScrollExtent;
-      double currentScroll = _scrollController.position.pixels;
-      double delta = 1.0;
-      if (currentScroll >= maxScroll) {
-        _scrollController.jumpTo(0.0);
-      } else {
-        _scrollController.animateTo(
-          currentScroll + delta,
-          duration: const Duration(milliseconds: 50),
-          curve: Curves.linear,
-        );
-      }
-    });
+  Future<void> _startScrolling() async {
+    // حركة واحدة متواصلة بدلاً من مؤقّت يعيد بناء الواجهة 20 مرة في الثانية.
+    while (mounted) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted || !_scrollController.hasClients) continue;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll <= 0) continue;
+      await _scrollController.animateTo(
+        maxScroll,
+        duration: const Duration(seconds: 18),
+        curve: Curves.linear,
+      );
+      if (mounted && _scrollController.hasClients) _scrollController.jumpTo(0);
+    }
   }
 
   @override
@@ -914,21 +913,22 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       height: 38,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: PremiumPalette.violet.withOpacity(0.12),
+        color: accent.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: PremiumPalette.violet.withOpacity(0.3)),
+        border: Border.all(color: accent.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: const BoxDecoration(
-              color: PremiumPalette.violet,
-              borderRadius: BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: const BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -990,6 +990,8 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
+    final accent = Theme.of(context).colorScheme.primary;
+    final surface = Theme.of(context).colorScheme.surface;
     final isMobile = MediaQuery.of(context).size.width < 600;
     final liveItems = provider.allStreams
         .where((item) => item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
@@ -999,7 +1001,7 @@ class _HomeTabState extends State<HomeTab> {
     final seriesItems = provider.allStreams.where((item) => item.type == 'series').take(12).toList();
 
     return Container(
-      color: const Color(0xFF0B0E15),
+      color: Theme.of(context).colorScheme.background,
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
@@ -1067,16 +1069,16 @@ class _HomeTabState extends State<HomeTab> {
                 onTap: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(entries[i].index),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF181C2E),
+                    color: surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF30354C)),
+                    border: Border.all(color: accent.withOpacity(0.22)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(entries[i].icon, color: const Color(0xFFA855F7), size: 38),
+                        Icon(entries[i].icon, color: accent, size: 38),
                         const SizedBox(height: 9),
                         Text(entries[i].english, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.45)),
                         const SizedBox(height: 3),
@@ -1117,7 +1119,7 @@ class _HomeTabState extends State<HomeTab> {
                 Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800))),
                 TextButton(
                   onPressed: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(tabIndex),
-                  child: const Text('عرض الكل', style: TextStyle(color: Color(0xFFA855F7), fontSize: 17, fontWeight: FontWeight.w600)),
+                  child: Text('عرض الكل', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 17, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -1187,7 +1189,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
         if (_currentPage < _banners.length - 1) _currentPage++;
         else _currentPage = 0;
         if (_pageController.hasClients) {
-          _pageController.animateToPage(_currentPage, duration: const Duration(milliseconds: 800), curve: Curves.fastOutSlowIn);
+          _pageController.animateToPage(_currentPage, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
         }
       });
     }
@@ -1294,12 +1296,12 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                   children: List.generate(dotCount, (index) {
                     final isActive = (_currentPage % dotCount) == index;
                     return AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
+                      duration: const Duration(milliseconds: 110),
                       width: isActive ? 24 : 9,
                       height: 9,
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFFA855F7) : Colors.white.withOpacity(0.82),
+                        color: isActive ? Theme.of(context).colorScheme.primary : Colors.white.withOpacity(0.82),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     );
@@ -1334,13 +1336,15 @@ class StreamsListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
+    final accent = Theme.of(context).colorScheme.primary;
+    final surface = Theme.of(context).colorScheme.surface;
     final streams = provider.streams;
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
     final categories = <String>['الكل', ...provider.categories];
 
     return Container(
-      color: const Color(0xFF0B0E15),
+      color: Theme.of(context).colorScheme.background,
       child: Column(
         children: [
           Padding(
@@ -1358,9 +1362,9 @@ class StreamsListScreen extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'بحث...',
                       hintStyle: const TextStyle(color: Color(0xFFB6B7C2), fontSize: 13),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFA855F7), size: 22),
+                      prefixIcon: Icon(Icons.search_rounded, color: accent, size: 22),
                       filled: true,
-                      fillColor: const Color(0xFF191D2D),
+                      fillColor: surface,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
@@ -1393,9 +1397,9 @@ class StreamsListScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
                     decoration: BoxDecoration(
-                      color: selected ? const Color(0xFFA855F7) : const Color(0xFF191D2D),
+                      color: selected ? accent : surface,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: selected ? const Color(0xFFA855F7) : const Color(0xFF34394D)),
+                      border: Border.all(color: selected ? accent : accent.withOpacity(0.22)),
                     ),
                     child: Text(category, style: TextStyle(color: selected ? Colors.white : const Color(0xFFD2D2DA), fontSize: 14, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
                   ),
@@ -1406,7 +1410,7 @@ class StreamsListScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Expanded(
             child: provider.isFetchingData
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFA855F7)))
+                ? Center(child: CircularProgressIndicator(color: accent))
                 : GridView.builder(
                     padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 8, isMobile ? 14 : 24, 24),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -1899,9 +1903,9 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
       borderRadius: BorderRadius.circular(8),
       child: AnimatedScale(
         scale: _isFocused ? 1.03 : 1.0,
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 90),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 90),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _isFocused ? Colors.white70 : Colors.transparent, width: 1.5),
@@ -1916,6 +1920,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
 
 // Beautiful Movie/Stream Card (Compact)
 Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic stream, {bool isSeries = false, bool isMobile = false}) {
+  final accent = Theme.of(context).colorScheme.primary;
   String name = "";
   String imageUrl = "";
   String streamId = "";
@@ -1952,7 +1957,10 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ? CachedNetworkImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: PremiumPalette.violet, strokeWidth: 2))),
+                  memCacheWidth: isMobile ? 300 : 420,
+                  maxWidthDiskCache: isMobile ? 300 : 420,
+                  fadeInDuration: const Duration(milliseconds: 80),
+                  placeholder: (context, url) => Container(color: Colors.white10, child: Center(child: CircularProgressIndicator(color: accent, strokeWidth: 2))),
                   errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
               : Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
@@ -1990,7 +1998,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
                 decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
                 child: Icon(
                   isFav ? Icons.favorite : Icons.favorite_border,
-                  color: isFav ? PremiumPalette.violet : Colors.white,
+                  color: isFav ? accent : Colors.white,
                   size: isMobile ? 14 : 16,
                 ),
               ),

@@ -91,8 +91,38 @@ class IPTVProvider with ChangeNotifier {
         return const Color(0xFFFFC857);
       case 'الزمردي الداكن':
         return const Color(0xFF34D399);
+      case 'الروبي السينمائي':
+        return const Color(0xFFFF5C77);
+      case 'السماوي الكهربائي':
+        return const Color(0xFF22D3EE);
+      case 'الغروب البرتقالي':
+        return const Color(0xFFFB923C);
       default:
         return const Color(0xFFA855F7);
+    }
+  }
+
+  Color get themeBackground {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي': return const Color(0xFF07131F);
+      case 'الذهبي الفاخر': return const Color(0xFF171107);
+      case 'الزمردي الداكن': return const Color(0xFF071914);
+      case 'الروبي السينمائي': return const Color(0xFF1B0A10);
+      case 'السماوي الكهربائي': return const Color(0xFF06171D);
+      case 'الغروب البرتقالي': return const Color(0xFF1B0E07);
+      default: return const Color(0xFF09091A);
+    }
+  }
+
+  Color get themeSurface {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي': return const Color(0xFF10253A);
+      case 'الذهبي الفاخر': return const Color(0xFF28200F);
+      case 'الزمردي الداكن': return const Color(0xFF102A22);
+      case 'الروبي السينمائي': return const Color(0xFF30111B);
+      case 'السماوي الكهربائي': return const Color(0xFF0D2933);
+      case 'الغروب البرتقالي': return const Color(0xFF30170C);
+      default: return const Color(0xFF14112B);
     }
   }
   String _profileName = 'Premium User';
@@ -178,6 +208,7 @@ class IPTVProvider with ChangeNotifier {
   String _activeTab = "live"; 
   String _selectedCategory = "all";
   String _searchQuery = "";
+  Timer? _searchDebounce;
   bool _isLoggedIn = false;
 
   List<Map<String, String>> _liveCategories = [];
@@ -1343,9 +1374,19 @@ class IPTVProvider with ChangeNotifier {
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
-    _applyFilters();
-    notifyListeners();
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      _applyFilters();
+      notifyListeners();
+      return;
+    }
+    // يمنع إعادة فلترة آلاف العناصر عند كل حرف أثناء الكتابة.
+    _searchDebounce = Timer(const Duration(milliseconds: 130), () {
+      _applyFilters();
+      notifyListeners();
+    });
   }
 
   bool isArabicStream(PlaylistItem stream) {

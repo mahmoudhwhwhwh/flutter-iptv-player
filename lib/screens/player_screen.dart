@@ -1458,7 +1458,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF5E35B1), // Deep purple / violet as in image
+                        color: const Color(0xFF6D28D9),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
@@ -1513,12 +1513,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE50914).withOpacity(0.5), width: 1.5),
+                      border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.65), width: 1.5),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_onScreenToastIcon, color: const Color(0xFFE50914), size: 22),
+                        Icon(_onScreenToastIcon, color: const Color(0xFFA855F7), size: 22),
                         const SizedBox(width: 10),
                         Text(
                           _onScreenToastText!,
@@ -1719,8 +1719,14 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
             child: Column(
               children: [
                 // TOP HUD BAR
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xE9131020),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF49395E), width: 1),
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1841,7 +1847,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ),
                           if (_stream.type == 'live' || _stream.type == 'stalker')
                             IconButton(
-                              icon: const Icon(Icons.grid_view_rounded, color: Colors.purpleAccent, size: 24),
+                              icon: const Icon(Icons.grid_view_rounded, color: Color(0xFFA855F7), size: 24),
                               tooltip: "شاشات متعددة",
                               onPressed: () async {
                                 _resetHideHUDTimer();
@@ -1868,7 +1874,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
 
   // Sleep Timer button
                           IconButton(
-                            icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? Colors.pinkAccent : Colors.white, size: 24),
+                            icon: Icon(Icons.timer_rounded, color: _sleepTimerMinutes != null ? const Color(0xFFA855F7) : Colors.white, size: 24),
                             tooltip: "مؤقت النوم",
                             onPressed: () {
                                 _showSleepTimerSelector();
@@ -1877,7 +1883,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ),
                           if (!isLive)
                             IconButton(
-                              icon: const Icon(Icons.speed_rounded, color: Colors.orangeAccent, size: 24),
+                              icon: const Icon(Icons.speed_rounded, color: Color(0xFFA855F7), size: 24),
                               tooltip: "سرعة التشغيل",
                               onPressed: () {
                                   _showSpeedSelector();
@@ -1886,7 +1892,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                             ),
                           // Quality Menu button
                           IconButton(
-                            icon: const Icon(Icons.high_quality_rounded, color: Colors.cyanAccent, size: 24),
+                            icon: const Icon(Icons.high_quality_rounded, color: Color(0xFFA855F7), size: 24),
                             tooltip: "جودة البث",
                             onPressed: () {
                                 _showQualitySelector();
@@ -1895,7 +1901,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ),
                           // Subtitles Menu button
                           IconButton(
-                            icon: const Icon(Icons.subtitles_rounded, color: Colors.amberAccent, size: 24),
+                            icon: const Icon(Icons.subtitles_rounded, color: Color(0xFFA855F7), size: 24),
                             tooltip: "الترجمة",
                             onPressed: () {
                                 _showSubtitlesSelector();
@@ -1904,7 +1910,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ),
                           // Picture in Picture
                           IconButton(
-                            icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.tealAccent, size: 24),
+                            icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Color(0xFFA855F7), size: 24),
                             tooltip: "صورة داخل صورة",
                             onPressed: () {
                                 _togglePictureInPicture();
@@ -1919,7 +1925,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                   : (_rotationMode == RotationMode.landscapeOnly
                                       ? Icons.crop_landscape_rounded
                                       : Icons.crop_portrait_rounded),
-                              color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFE50914) : Colors.white,
+                              color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFA855F7) : Colors.white,
                               size: 26,
                             ),
                             tooltip: "تدوير الشاشة",
@@ -1976,7 +1982,7 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.blueAccent.withOpacity(0.9),
+                            color: const Color(0xFFA855F7),
                             shape: BoxShape.circle,
                             boxShadow: const [
                               BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
@@ -2017,8 +2023,14 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                 const Spacer(),
                 
                 // BOTTOM CONTROL BAR
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 8),
+                Container(
+                  margin: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xE9131020),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF49395E), width: 1),
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2033,8 +2045,8 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                             Expanded(
                               child: SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: Colors.blueAccent,
-                                  inactiveTrackColor: Colors.white24,
+                                  activeTrackColor: const Color(0xFFA855F7),
+                                  inactiveTrackColor: const Color(0xFF474252),
                                   thumbColor: Colors.white,
                                   trackHeight: 4.0,
                                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
@@ -2091,9 +2103,9 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.white10, width: 0.5),
+                                  color: const Color(0xFF211B2E),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFF59436F), width: 0.8),
                                 ),
                                 child: const Text(
                                   "LIVE STREAM PREMIUM",
@@ -2122,8 +2134,8 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 width: 80,
                                 child: SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: Colors.blueAccent,
-                                    inactiveTrackColor: Colors.white24,
+                                    activeTrackColor: const Color(0xFFA855F7),
+                                    inactiveTrackColor: const Color(0xFF474252),
                                     trackHeight: 2.0,
                                     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0),
                                   ),
@@ -2148,11 +2160,11 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               TextButton.icon(
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.white,
-                                  backgroundColor: Colors.white10,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  backgroundColor: const Color(0xFF211B2E),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 ),
-                                icon: const Icon(Icons.aspect_ratio_rounded, size: 18, color: Colors.amberAccent),
+                                icon: const Icon(Icons.aspect_ratio_rounded, size: 18, color: Color(0xFFA855F7)),
                                 label: Text(_aspectRatioLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 onPressed: () {
                                   _cycleBoxFit();
@@ -2162,14 +2174,14 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               const SizedBox(width: 8),
 
                               IconButton(
-                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
+                                style: IconButton.styleFrom(backgroundColor: const Color(0xFF211B2E), shape: const CircleBorder()),
                                 icon: Icon(
                                   _rotationMode == RotationMode.smartAuto
                                       ? Icons.screen_rotation_rounded
                                       : (_rotationMode == RotationMode.landscapeOnly
                                           ? Icons.crop_landscape_rounded
                                           : Icons.crop_portrait_rounded),
-                                  color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFE50914) : Colors.white,
+                                  color: _rotationMode == RotationMode.smartAuto ? const Color(0xFFA855F7) : Colors.white,
                                   size: 20,
                                 ),
                                 tooltip: "ملء الشاشة",
@@ -2180,8 +2192,8 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               ),
                               const SizedBox(width: 8),
                               IconButton(
-                                style: IconButton.styleFrom(backgroundColor: Colors.white10),
-                                icon: const Icon(Icons.list_rounded, color: Colors.white, size: 20),
+                                style: IconButton.styleFrom(backgroundColor: const Color(0xFF211B2E), shape: const CircleBorder()),
+                                icon: const Icon(Icons.list_rounded, color: Color(0xFFA855F7), size: 20),
                                 tooltip: "قائمة القنوات",
                                 onPressed: () {
                                   setState(() {
@@ -2211,13 +2223,13 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(50),
-        focusColor: Colors.blueAccent.withOpacity(0.3),
+        focusColor: const Color(0xFFA855F7).withOpacity(0.35),
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white12,
+            color: const Color(0xFF211B2E),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white10, width: 0.5),
+            border: Border.all(color: const Color(0xFF59436F), width: 0.8),
           ),
           child: icon,
         ),

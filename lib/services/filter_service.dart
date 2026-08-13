@@ -1,34 +1,41 @@
 import '../models/playlist_item.dart';
 
 class FilterService {
-  // الكلمات المفتاحية الخاصة بالقنوات الإباحية أو للكبار فقط
+  // مفردات الفلترة العائلية؛ تستخدم فقط في أسماء القنوات والفئات وبيانات M3U.
   static const List<String> adultKeywords = [
-    "+18",
-    "18+",
-    "ADULT",
-    "XXX",
-    "PORN",
-    "SEX",
-    "REDLIGHT",
-    "FORBIDDEN",
-    "ع للكبار",
-    "للكبار",
-    "X-RATED",
-    "BLUE",
-    "PENTHOUSE",
-    "PLAYBOY",
-    "HUSTLER",
-    "EGOIST",
-    "VENUS",
-    "CANDY",
-    "NIGHT",
-    "EROTIC",
-    "MATURE",
-    "SNAKE",
-    "AMATEUR",
-    "MILF",
-    "HARDCORE"
+    '+18',
+    '18+',
+    'ADULT',
+    'ADULTS',
+    'XXX',
+    'PORN',
+    'PORNSTAR',
+    'SEX',
+    'EROTIC',
+    'X-RATED',
+    'MATURE',
+    'HARDCORE',
+    'ONLYFANS',
+    'REDLIGHT',
+    'للكبار',
+    'للبالغين',
+    'محتوى بالغين',
+    'اباحي',
+    'إباحي',
+    'جنسي',
   ];
+
+  static String _normalizeSafetyText(String text) {
+    return text
+        .toUpperCase()
+        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
+        .replaceAll(RegExp(r'[^A-Z0-9\u0600-\u06FF]+'), '');
+  }
+
+  static bool _matchesAdultContent(String text) {
+    final normalized = _normalizeSafetyText(text);
+    return adultKeywords.any((keyword) => normalized.contains(_normalizeSafetyText(keyword)));
+  }
 
   // الكلمات المفتاحية الرياضية
   static const List<String> sportsKeywords = [
@@ -85,15 +92,7 @@ class FilterService {
 
   /// التحقق من أن القناة تحتوي على محتوى غير عائلي/للكبار
   static bool isAdultStream(String name, String categoryName) {
-    final String nameUpper = name.toUpperCase();
-    final String catUpper = categoryName.toUpperCase();
-    
-    for (final kw in adultKeywords) {
-      if (nameUpper.contains(kw) || catUpper.contains(kw)) {
-        return true;
-      }
-    }
-    return false;
+    return _matchesAdultContent('$name $categoryName');
   }
 
   /// التحقق من أن القناة عربية
@@ -174,16 +173,8 @@ class FilterService {
       if (line.isEmpty) continue;
 
       if (line.startsWith('#EXTINF:')) {
-        // فحص السطر الميتا للقناة
-        final String upperLine = line.toUpperCase();
-        bool containsAdult = false;
-        
-        for (final kw in adultKeywords) {
-          if (upperLine.contains(kw)) {
-            containsAdult = true;
-            break;
-          }
-        }
+        // فحص اسم القناة والفئة والمجموعة بعد تطبيع النص لتفادي صيغ الالتفاف الشائعة.
+        final containsAdult = _matchesAdultContent(line);
 
         if (containsAdult) {
           skipNextUrlLine = true; // تخطي سطر الـ URL القادم التابع لهذه القناة
@@ -215,13 +206,8 @@ class FilterService {
     if (!blockAdult) return rawCategories;
 
     return rawCategories.where((cat) {
-      final name = (cat['category_name'] ?? cat['name'] ?? '').toUpperCase();
-      for (final kw in adultKeywords) {
-        if (name.contains(kw)) {
-          return false; // استبعاد الفئة بالكامل
-        }
-      }
-      return true;
+      final name = cat['category_name'] ?? cat['name'] ?? '';
+      return !_matchesAdultContent(name); // استبعاد الفئة بالكامل قبل عرضها
     }).toList();
   }
 

@@ -88,6 +88,7 @@ class LiveFootballApp extends StatelessWidget {
         return MaterialApp(
           title: 'LIVE STREAM PREMIUM',
           debugShowCheckedModeBanner: false,
+          locale: Locale(themeProvider.appLanguage == 'English' ? 'en' : 'ar'),
           themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           darkTheme: ThemeData(
             useMaterial3: true,
@@ -121,7 +122,7 @@ class LiveFootballApp extends StatelessWidget {
           ),
       builder: (context, child) {
         return Directionality(
-          textDirection: TextDirection.rtl, // دعم العربية بشكل قسري ومرتب
+          textDirection: themeProvider.appLanguage == 'English' ? TextDirection.ltr : TextDirection.rtl,
           child: Consumer<IPTVProvider>(
             builder: (context, provider, _) {
               if (provider.snifferDetected || provider.vpnDetected || provider.isVersionBlocked || !provider.isSecured) {
@@ -647,13 +648,28 @@ class _MainDashboardState extends State<MainDashboard> {
               child: Row(
                 textDirection: TextDirection.rtl,
                 children: [
-                  Container(width: 82, height: 82, decoration: const BoxDecoration(color: Color(0xFF2A2A37), shape: BoxShape.circle)),
+                  Container(
+                    width: 82,
+                    height: 82,
+                    decoration: const BoxDecoration(color: Color(0xFF2A2A37), shape: BoxShape.circle),
+                    child: Icon(
+                      provider.profileLogo == 'star'
+                          ? Icons.star_rounded
+                          : provider.profileLogo == 'shield'
+                              ? Icons.shield_rounded
+                              : provider.profileLogo == 'bolt'
+                                  ? Icons.bolt_rounded
+                                  : Icons.play_arrow_rounded,
+                      color: const Color(0xFFA855F7),
+                      size: 44,
+                    ),
+                  ),
                   const SizedBox(width: 17),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Premium User", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                        Text(provider.profileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
                         SizedBox(height: 11),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

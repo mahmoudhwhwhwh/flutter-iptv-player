@@ -79,6 +79,46 @@ class IPTVProvider with ChangeNotifier {
     await prefs.setBool('isDarkMode', _isDarkMode);
   }
 
+  String _appLanguage = 'العربية';
+  String get appLanguage => _appLanguage;
+  String _profileName = 'Premium User';
+  String get profileName => _profileName;
+  String _profileLogo = 'play';
+  String get profileLogo => _profileLogo;
+
+  Future<void> setAppLanguage(String language) async {
+    _appLanguage = language;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_language', language);
+  }
+
+  Future<void> setProfileName(String value) async {
+    final cleanName = value.trim();
+    if (cleanName.isEmpty) return;
+    _profileName = cleanName;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_name', cleanName);
+  }
+
+  Future<void> setProfileLogo(String value) async {
+    _profileLogo = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_logo', value);
+  }
+
+  int _playerSettingsVersion = 0;
+  int get playerSettingsVersion => _playerSettingsVersion;
+
+  Future<void> setPlayerStringPreference(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+    _playerSettingsVersion++;
+    notifyListeners();
+  }
+
   bool _isSecured = true;
   bool get isSecured => _isSecured;
   String _securityMessage = "";
@@ -379,6 +419,9 @@ class IPTVProvider with ChangeNotifier {
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
+    _appLanguage = prefs.getString('app_language') ?? 'العربية';
+    _profileName = prefs.getString('profile_name') ?? 'Premium User';
+    _profileLogo = prefs.getString('profile_logo') ?? 'play';
 
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
     await runActiveSecurityChecks();

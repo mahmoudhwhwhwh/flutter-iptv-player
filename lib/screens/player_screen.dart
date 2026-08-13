@@ -73,6 +73,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // Focus node for TV remote controls and virtual bitrate cap for DASH streams
   final FocusNode _firstButtonFocusNode = FocusNode();
   int? _selectedVirtualBitrate;
+  int _lastPlayerSettingsVersion = -1;
   
   // Position tracker
   Duration _currentPosition = Duration.zero;
@@ -211,6 +212,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       
       if (mounted) setState((){});
     } catch(e) {}
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final version = context.watch<IPTVProvider>().playerSettingsVersion;
+    final shouldRefresh = _lastPlayerSettingsVersion >= 0 &&
+        _lastPlayerSettingsVersion != version &&
+        _initialized;
+    _lastPlayerSettingsVersion = version;
+    if (shouldRefresh) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _initializeController(isRetry: true);
+      });
+    }
   }
 
   @override
@@ -599,6 +615,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _isPipActive = false;
+      _isPortrait = false;
+      _rotationMode = RotationMode.landscapeOnly;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
       if (_betterController != null && _betterController!.videoPlayerController != null) {
         if (!(_betterController!.isPlaying() ?? false)) {
           _betterController!.play();
@@ -821,13 +845,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         setState(() {
           _showHUD = false;
           _showSidebar = false;
+          _isPipActive = true;
+          _isPortrait = false;
+          _rotationMode = RotationMode.landscapeOnly;
         });
-        // Unlock orientation before entering PiP to ensure proper aspect ratio
+        // تظل صورة داخل صورة والمشغّل الأساسي ضمن الاتجاه الأفقي نفسه.
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
         ]);
         await _betterController!.enablePictureInPicture(_betterPlayerKey);
       } catch (e) {
@@ -1418,37 +1443,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 fit: StackFit.expand,
                 children: [
                   Positioned(
-                    top: 40,
-                    right: 24,
+                    bottom: 16,
+                    right: 16,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6D28D9),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        "LIVE STREAM PREMIUM",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 40,
-                    left: 24,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E22).withOpacity(0.85), // Dark violet/blackish
                         borderRadius: BorderRadius.circular(8),
@@ -1458,7 +1456,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         "LIVE STREAM PREMIUM",
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

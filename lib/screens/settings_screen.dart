@@ -78,8 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveStringSetting(String key, String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, value);
+    await context.read<IPTVProvider>().setPlayerStringPreference(key, value);
   }
 
   @override
@@ -113,6 +112,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return Column(
+                    children: [
+                      _buildProfileCard(provider),
+                      const SizedBox(height: 14),
+                      _buildDropdownItem(
+                        title: 'لغة الواجهة',
+                        value: provider.appLanguage,
+                        items: const ['العربية', 'English'],
+                        onChanged: (value) {
+                          if (value != null) provider.setAppLanguage(value);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
                   return _buildThemeSettingCard(
@@ -244,11 +262,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
                   return _buildSettingItem(
-                    title: "فلترة وحظر محتوى للكبار (+18)",
-                    description: "حظر وإخفاء كافة القنوات والأقسام التي تحتوي على محتوى غير عائلي أو مخصص للبالغين تلقائياً.",
+                    title: "الوضع العائلي المحمي",
+                    description: "يفحص أسماء القنوات والفئات وبيانات القوائم ويخفي المحتوى المقيّد قبل أن يظهر في أي قسم.",
                     value: provider.blockAdultContent,
-                    activeColor: _SettingsPalette.danger,
-                    onChanged: (val) {
+                    activeColor: _SettingsPalette.purple,
+                    onChanged: (val) async {
+                      if (!val && provider.isParentalEnabled) {
+                        final verified = await showPinDialog(context, provider);
+                        if (!verified) return;
+                      }
                       provider.setBlockAdultContent(val);
                     },
                   );
@@ -475,6 +497,136 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           Icon(Icons.workspace_premium_rounded, color: _SettingsPalette.gold, size: 21),
         ],
+      ),
+    );
+  }
+
+  IconData _profileIcon(String value) {
+    switch (value) {
+      case 'star':
+        return Icons.star_rounded;
+      case 'shield':
+        return Icons.shield_rounded;
+      case 'bolt':
+        return Icons.bolt_rounded;
+      default:
+        return Icons.play_arrow_rounded;
+    }
+  }
+
+  Future<void> _showProfileEditor(IPTVProvider provider) async {
+    final nameController = TextEditingController(text: provider.profileName);
+    var selectedLogo = provider.profileLogo;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _SettingsPalette.surfaceElevated,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: _SettingsPalette.purple.withOpacity(0.65)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('تخصيص ملف الحساب', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'اسم العرض',
+                    labelStyle: const TextStyle(color: _SettingsPalette.textMuted),
+                    filled: true,
+                    fillColor: const Color(0xFF11111B),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text('شعار الحساب', style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 13)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  children: ['play', 'star', 'shield', 'bolt'].map((logo) {
+                    final selected = selectedLogo == logo;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => setDialogState(() => selectedLogo = logo),
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: selected ? _SettingsPalette.purple : const Color(0xFF11111B),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: selected ? _SettingsPalette.purpleBright : _SettingsPalette.divider),
+                        ),
+                        child: Icon(_profileIcon(logo), color: selected ? Colors.white : _SettingsPalette.textMuted),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    onPressed: () async {
+                      await provider.setProfileName(nameController.text);
+                      await provider.setProfileLogo(selectedLogo);
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
+                    },
+                    child: const Text('حفظ التعديلات'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    nameController.dispose();
+  }
+
+  Widget _buildProfileCard(IPTVProvider provider) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: () => _showProfileEditor(provider),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF2A1A42), Color(0xFF17171A)], begin: Alignment.topRight, end: Alignment.bottomLeft),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _SettingsPalette.purple.withOpacity(0.6)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: const BoxDecoration(color: _SettingsPalette.purple, shape: BoxShape.circle),
+              child: Icon(_profileIcon(provider.profileLogo), color: Colors.white, size: 34),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(provider.profileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  Text(provider.subscriptionType.isEmpty ? 'حساب Premium' : provider.subscriptionType, style: const TextStyle(color: _SettingsPalette.gold, fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text('ينتهي: ${provider.expirationDateFormatted}', style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.edit_rounded, color: _SettingsPalette.purpleBright),
+          ],
+        ),
       ),
     );
   }

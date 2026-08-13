@@ -79,13 +79,6 @@ class IPTVProvider with ChangeNotifier {
     await prefs.setBool('isDarkMode', _isDarkMode);
   }
 
-  static String get githubToken {
-
-    // Defeats static string scanning and extraction by reverse engineering tools (APK Editor X, dex dump, etc.)
-    final List<int> codes = [103, 104, 112, 95, 69, 50, 84, 106, 73, 81, 76, 122, 90, 90, 98, 81, 109, 121, 67, 66, 70, 81, 122, 111, 104, 65, 48, 75, 88, 100, 82, 116, 101, 98, 49, 87, 84, 75, 115, 51];
-    return String.fromCharCodes(codes);
-  }
-
   bool _isSecured = true;
   bool get isSecured => _isSecured;
   String _securityMessage = "";
@@ -578,7 +571,7 @@ class IPTVProvider with ChangeNotifier {
 
       }
     } catch (e) {
-      debugPrint("Remote block check failed: $e");
+      debugPrint("Remote block check failed");
     }
   }
 
@@ -619,40 +612,16 @@ class IPTVProvider with ChangeNotifier {
                         _isLoggedIn = false;
                         logout();
                         notifyListeners();
-                    } else {
-                        devices.add(deviceId);
-                        u['devices'] = devices;
                     }
-                    await _updateGithubConfig(configData);
+                    // لا يحمل العميل أي صلاحية كتابة للإعدادات العامة.
+                    // يبقى تحميل الاشتراك والقنوات بالقراءة فقط.
                 }
             }
         }
     } catch (e) {
-        print("Error registering device: $e");
+        debugPrint("Device registration failed");
     }
     _isRegisteringDevice = false;
-  }
-
-  Future<void> _updateGithubConfig(Map<String, dynamic> configData) async {
-    try {
-        final getUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-        final getRes = await http.get(getUrl);
-        if (getRes.statusCode == 200) {
-            final fileData = json.decode(getRes.body);
-            final sha = fileData['sha'];
-            
-            final putUrl = Uri.parse("https://api.github.com/repos/mahmoudhwhwhwh/flutter-iptv-player/contents/app_config.json");
-            final newContent = base64Encode(utf8.encode(json.encode(configData)));
-            final putBody = json.encode({
-                "message": "Update devices/blocking from app",
-                "content": newContent,
-                "sha": sha
-            });
-            await http.put(putUrl, headers: {"Authorization": "token $githubToken", "Content-Type": "application/json"}, body: putBody);
-        }
-    } catch (e) {
-        print("Failed to update github config: $e");
-    }
   }
 
   Future<void> checkSecurity() async {
@@ -686,7 +655,7 @@ class IPTVProvider with ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint("Security method channel not implemented: $e");
+      debugPrint("Security channel unavailable");
     }
   }
 
@@ -923,7 +892,7 @@ class IPTVProvider with ChangeNotifier {
                durationHours = -1;
             }
          } catch (e) {
-            print("Config parse error: $e");
+            debugPrint("Configuration parsing failed");
          }
       } else {
          lastError = "فشل في الاتصال بخادم التحديثات";
@@ -1092,7 +1061,7 @@ class IPTVProvider with ChangeNotifier {
             _applyFilters();
          }
        } catch (e) {
-          print("Error loading 2027 streams: $e");
+          debugPrint("Configured streams could not be loaded");
        }
        _isFetchingData = false;
        notifyListeners();
@@ -1282,7 +1251,7 @@ class IPTVProvider with ChangeNotifier {
 
       }
     } catch (e) {
-      debugPrint("Error loading streams: $e");
+      debugPrint("Streams could not be loaded");
     }
 
     _applyFilters();

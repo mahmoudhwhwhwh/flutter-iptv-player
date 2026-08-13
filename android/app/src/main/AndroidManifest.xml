@@ -27,6 +27,15 @@
         <package android:name="tech.httptoolkit.android" />
         <package android:name="tech.httptoolkit.android.v1" />
         <package android:name="com.charlesproxy.android" />
+        <package android:name="com.gmail.heagoo.apkeditor" />
+        <package android:name="com.gmail.heagoo.apkeditor.pro" />
+        <package android:name="bin.mt.plus" />
+        <package android:name="com.dimonvideo.luckypatcher" />
+        <package android:name="com.chelpus.lackypatch" />
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="eu.chainfire.supersu" />
+        <package android:name="de.robv.android.xposed.installer" />
+        <package android:name="org.meowcat.edxposed.manager" />
     </queries>
     
     <!-- Required permissions for streaming IPTV and network connections -->

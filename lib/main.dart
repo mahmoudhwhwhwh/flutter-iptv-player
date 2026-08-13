@@ -223,168 +223,119 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isMobile = screenW < 600;
 
     return Scaffold(
-      backgroundColor: PremiumPalette.background,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF09091A), Color(0xFF17122F), Color(0xFF09091A)],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
-            ),
-          ),
-          Positioned(
-            top: -screenW * 0.22,
-            right: -screenW * 0.15,
-            child: _LoginGlow(size: screenW * 0.72, color: PremiumPalette.violet),
-          ),
-          Positioned(
-            bottom: -screenW * 0.20,
-            left: -screenW * 0.18,
-            child: _LoginGlow(size: screenW * 0.65, color: PremiumPalette.gold),
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+      backgroundColor: const Color(0xFF090A12),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 40, vertical: isMobile ? 80 : 56),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.fromLTRB(isMobile ? 28 : 36, isMobile ? 38 : 46, isMobile ? 28 : 36, isMobile ? 34 : 42),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF050509),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0xFF2A2A38), width: 1.2),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      textDirection: TextDirection.rtl,
+                      children: [
+                        Container(
+                          width: isMobile ? 58 : 66,
+                          height: isMobile ? 58 : 66,
+                          decoration: const BoxDecoration(color: Color(0xFFA855F7), shape: BoxShape.circle),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 38),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Text(
+                            "LIVE STREAM PREMIUM",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: 1.1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: isMobile ? 48 : 58),
+                    if (provider.lastError != null)
                       Container(
-                        width: 76,
-                        height: 76,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [PremiumPalette.violetBright, PremiumPalette.violet],
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
-                          ),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.24)),
-                          boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.45), blurRadius: 28, offset: const Offset(0, 10))],
+                          color: Colors.redAccent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.redAccent.withOpacity(0.55)),
                         ),
-                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 46),
+                        child: Text(provider.lastError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                       ),
-                      const SizedBox(height: 16),
-                      const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
-                      const SizedBox(height: 6),
-                      const Text("منصة مشاهدة حصرية بتجربة مستقرة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 24),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.all(isMobile ? 20 : 26),
-                            decoration: BoxDecoration(
-                              color: PremiumPalette.surface.withOpacity(0.82),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Colors.white.withOpacity(0.13)),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 36, offset: const Offset(0, 16))],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                const Text("تسجيل الدخول", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                                const SizedBox(height: 5),
-                                const Text("أدخل كود اشتراكك للمتابعة", style: TextStyle(color: PremiumPalette.textMuted, fontSize: 12)),
-                                const SizedBox(height: 20),
-                                if (provider.lastError != null)
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 14),
-                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.redAccent.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: Text(provider.lastError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
-                                      ],
-                                    ),
-                                  ),
-                                TextField(
-                                  controller: _codeController,
-                                  obscureText: _obscureCode,
-                                  style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16, letterSpacing: 1),
-                                  decoration: InputDecoration(
-                                    hintText: "كود الاشتراك",
-                                    hintStyle: const TextStyle(color: PremiumPalette.textMuted, fontSize: 13),
-                                    prefixIcon: const Icon(Icons.key_rounded, color: PremiumPalette.gold, size: 20),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(_obscureCode ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: PremiumPalette.textMuted, size: 20),
-                                      onPressed: () => setState(() => _obscureCode = !_obscureCode),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.black.withOpacity(0.18),
-                                    contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 14 : 17, horizontal: 16),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.08))),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.10))),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: PremiumPalette.violetBright, width: 1.5)),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                SizedBox(
-                                  height: isMobile ? 48 : 52,
-                                  child: ElevatedButton.icon(
-                                    onPressed: provider.isLoading
-                                        ? null
-                                        : () async {
-                                            final success = await provider.loginWithCode(_codeController.text);
-                                            if (success) FocusScope.of(context).unfocus();
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: PremiumPalette.violet,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    ),
-                                    icon: provider.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.login_rounded),
-                                    label: Text(provider.isLoading ? "جارٍ التحقق..." : "دخول آمن", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                const Divider(color: Color(0x334D446E)),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  alignment: WrapAlignment.spaceBetween,
-                                  runSpacing: 4,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
-                                      icon: const Icon(Icons.telegram, color: Color(0xFF38BDF8), size: 18),
-                                      label: const Text("القناة الرسمية", style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
-                                      icon: const Icon(Icons.workspace_premium_rounded, color: PremiumPalette.gold, size: 18),
-                                      label: const Text("الاشتراك المميز", style: TextStyle(color: PremiumPalette.gold, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                    TextField(
+                      controller: _codeController,
+                      obscureText: _obscureCode,
+                      style: TextStyle(color: Colors.white, fontSize: isMobile ? 18 : 20),
+                      decoration: InputDecoration(
+                        hintText: "أدخل كود الاشتراك",
+                        hintStyle: const TextStyle(color: Color(0xFF74747E), fontSize: 18),
+                        prefixIcon: const Icon(Icons.key_rounded, color: Color(0xFFD1D1D5), size: 30),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureCode ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFFD1D1D5), size: 30),
+                          onPressed: () => setState(() => _obscureCode = !_obscureCode),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF15151B),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 23),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: Color(0xFFA855F7), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      height: isMobile ? 68 : 74,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF7C2CEB), Color(0xFFA855F7)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: provider.isLoading
+                              ? null
+                              : () async {
+                                  final success = await provider.loginWithCode(_codeController.text);
+                                  if (success) FocusScope.of(context).unfocus();
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.transparent,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                           ),
+                          child: provider.isLoading
+                              ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                              : const Text("تسجيل الدخول", style: TextStyle(fontSize: 25, fontWeight: FontWeight.w500)),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      const Text("LIVE STREAM PREMIUM • SECURE ACCESS", style: TextStyle(color: Color(0xFF817AA5), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 44),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
+                        icon: const Icon(Icons.support_agent_rounded, color: Color(0xFFC7C7CF), size: 28),
+                        label: const Text("تواصل مع الدعم الفني", style: TextStyle(color: Color(0xFFC7C7CF), fontSize: 20, fontWeight: FontWeight.w400)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -458,49 +409,170 @@ class _MainDashboardState extends State<MainDashboard> {
     }
 
     return Scaffold(
-      appBar: useBottomNav ? AppBar(
-        backgroundColor: PremiumPalette.surface,
-        title: const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.4)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white54),
-            onPressed: () {
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-            },
-          )
-        ],
-      ) : null,
-      body: Row(
-        children: [
-          if (!useBottomNav)
-            ModernSidebar(
-              selectedIndex: _selectedIndex,
-              onSelected: updateIndex,
-            ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _buildContent(),
-            ),
+      backgroundColor: const Color(0xFF0B0E15),
+      drawer: _buildReferenceDrawer(context, provider, showMoviesSeries),
+      appBar: AppBar(
+        toolbarHeight: 78,
+        backgroundColor: const Color(0xFF0B0E15),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            tooltip: "القائمة",
+            icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 33),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-        ],
+        ),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                "LIVE STREAM PREMIUM",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 0.45),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("PREMIUM", style: TextStyle(color: Color(0xFFFFC857), fontSize: 13, fontWeight: FontWeight.w800)),
+                  SizedBox(width: 5),
+                  Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 19),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: "بحث",
+              icon: const Icon(Icons.search_rounded, color: Colors.white, size: 31),
+              onPressed: () => updateIndex(1),
+            ),
+            IconButton(
+              tooltip: "الإعدادات",
+              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 29),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
+          ],
+        ),
+      ),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        child: _buildContent(),
       ),
       bottomNavigationBar: useBottomNav
           ? BottomNavigationBar(
               currentIndex: localIndex,
               onTap: (val) => updateIndex(tabs[val]['index']),
-              backgroundColor: PremiumPalette.surface,
-              selectedItemColor: PremiumPalette.violetBright,
-              unselectedItemColor: Colors.white54,
+              backgroundColor: const Color(0xFF0B0E15),
+              selectedItemColor: const Color(0xFFA855F7),
+              unselectedItemColor: const Color(0xFFB7B7C1),
               type: BottomNavigationBarType.fixed,
               showUnselectedLabels: true,
-              selectedFontSize: 10,
-              unselectedFontSize: 10,
-              items: tabs.map((t) {
-                return BottomNavigationBarItem(icon: Icon(t['icon']), label: t['label']);
-              }).toList(),
+              selectedFontSize: 12,
+              unselectedFontSize: 12,
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              elevation: 0,
+              items: tabs.map((t) => BottomNavigationBarItem(icon: Icon(t['icon'], size: 28), label: t['label'])).toList(),
             )
           : null,
+    );
+  }
+
+  Widget _buildReferenceDrawer(BuildContext context, IPTVProvider provider, bool showMoviesSeries) {
+    Widget entry({required IconData icon, required String label, required int index}) {
+      final bool selected = _selectedIndex == index;
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+        leading: Icon(icon, color: selected ? const Color(0xFFA855F7) : const Color(0xFFD0D0D7), size: 31),
+        title: Text(label, style: TextStyle(color: selected ? const Color(0xFFA855F7) : const Color(0xFFD0D0D7), fontSize: 21, fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+        onTap: () {
+          Navigator.pop(context);
+          updateIndex(index);
+        },
+      );
+    }
+
+    return Drawer(
+      width: 340,
+      backgroundColor: const Color(0xFF0D0E19),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 28, 26, 26),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  Container(width: 82, height: 82, decoration: const BoxDecoration(color: Color(0xFF2A2A37), shape: BoxShape.circle)),
+                  const SizedBox(width: 17),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Premium User", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                        SizedBox(height: 11),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text("PREMIUM", style: TextStyle(color: Color(0xFFFFC857), fontSize: 12, fontWeight: FontWeight.w800)),
+                              SizedBox(width: 4),
+                              Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 16),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Color(0xFF2C2D38), height: 1),
+            const SizedBox(height: 12),
+            entry(icon: Icons.home_rounded, label: "الرئيسية", index: 0),
+            entry(icon: Icons.live_tv_rounded, label: "قنوات مباشرة", index: 1),
+            if (showMoviesSeries) entry(icon: Icons.movie_rounded, label: "الأفلام", index: 2),
+            if (showMoviesSeries) entry(icon: Icons.video_library_rounded, label: "المسلسلات", index: 3),
+            entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
+            const Divider(color: Color(0xFF2C2D38), height: 34),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.settings_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("الإعدادات", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              },
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.support_agent_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("الدعم والمساعدة", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
+              onTap: () {},
+            ),
+            const Spacer(),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 17),
+              leading: const Icon(Icons.logout_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("تسجيل خروج", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
+              onTap: provider.logout,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -752,239 +824,153 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
-    final isMobile = screenW < 600;
-
     final provider = Provider.of<IPTVProvider>(context);
-    final expiryText = provider.activationDurationHours > 0 
-        ? "صلاحية الاشتراك: ${provider.expirationDateFormatted}"
-        : "اشتراك دائم أو غير محدد";
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final liveItems = provider.allStreams
+        .where((item) => item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
+        .take(12)
+        .toList();
+    final movieItems = provider.allStreams.where((item) => item.type == 'movie').take(12).toList();
+    final seriesItems = provider.allStreams.where((item) => item.type == 'series').take(12).toList();
 
-    // Fast global matching across allLoaded streams
-    List<PlaylistItem> searchResults = [];
-    if (_globalSearchQuery.isNotEmpty) {
-      searchResults = provider.allStreams.where((item) {
-        return item.name.toLowerCase().contains(_globalSearchQuery.toLowerCase());
-      }).take(20).toList();
-    }
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 8 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("كود الاشتراك: ${provider.activationCode}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                  Text(expiryText, style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
+    return Container(
+      color: const Color(0xFF0B0E15),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const BannerSliderWidget(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
+              child: _buildQuickAccessRow(context),
+            ),
+            _buildReferenceSection(
+              context: context,
+              provider: provider,
+              title: 'قنوات مباشرة رائجة',
+              items: liveItems,
+              tabIndex: 1,
+              isSeries: false,
+              cardWidth: isMobile ? 126 : 166,
+              cardHeight: isMobile ? 154 : 198,
+            ),
+            if (provider.showMoviesSeries)
+              _buildReferenceSection(
+                context: context,
+                provider: provider,
+                title: 'أحدث الأفلام',
+                items: movieItems,
+                tabIndex: 2,
+                isSeries: false,
+                cardWidth: isMobile ? 118 : 152,
+                cardHeight: isMobile ? 174 : 226,
               ),
-              ElevatedButton.icon(
-                onPressed: () => provider.logout(),
-                icon: const Icon(Icons.swap_horiz, size: 18),
-                label: const Text("تغيير الاشتراك"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: PremiumPalette.violet,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            if (provider.showMoviesSeries)
+              _buildReferenceSection(
+                context: context,
+                provider: provider,
+                title: 'أحدث المسلسلات',
+                items: seriesItems,
+                tabIndex: 3,
+                isSeries: true,
+                cardWidth: isMobile ? 118 : 152,
+                cardHeight: isMobile ? 174 : 226,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessRow(BuildContext context) {
+    final entries = <({String english, String arabic, IconData icon, int index})>[
+      (english: 'LIVE', arabic: 'قنوات مباشرة', icon: Icons.live_tv_rounded, index: 1),
+      (english: 'MOVIES', arabic: 'أفلام', icon: Icons.movie_rounded, index: 2),
+      (english: 'SERIES', arabic: 'مسلسلات', icon: Icons.video_library_rounded, index: 3),
+      (english: 'FAVOURITES', arabic: 'المفضلة', icon: Icons.favorite_rounded, index: 4),
+    ];
+
+    return SizedBox(
+      height: 132,
+      child: Row(
+        textDirection: TextDirection.rtl,
+        children: [
+          for (var i = 0; i < entries.length; i++) ...[
+            Expanded(
+              child: ScaleOnFocus(
+                onTap: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(entries[i].index),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF181C2E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF30354C)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(entries[i].icon, color: const Color(0xFFA855F7), size: 38),
+                        const SizedBox(height: 9),
+                        Text(entries[i].english, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.45)),
+                        const SizedBox(height: 3),
+                        Text(entries[i].arabic, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFFC0C0CA), fontSize: 11)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 12 : 18),
-
-          // 1. Marquee Announcement Bar (Dynamic)
-          if (provider.announcementText.isNotEmpty) ...[
-            MarqueeAnnouncementWidget(text: provider.announcementText),
-            SizedBox(height: isMobile ? 8 : 12),
-          ],
-
-          // 2. Global Unified Search Box
-          Container(
-            height: isMobile ? 42 : 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF141416),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white10),
             ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                setState(() {
-                  _globalSearchQuery = val;
-                });
-              },
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: "البحث السريع المباشر عن القنوات والأفلام والمسلسلات...",
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                prefixIcon: const Icon(Icons.search, color: PremiumPalette.violet, size: 18),
-                suffixIcon: _globalSearchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _globalSearchQuery = "";
-                          });
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            if (i < entries.length - 1) const SizedBox(width: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReferenceSection({
+    required BuildContext context,
+    required IPTVProvider provider,
+    required String title,
+    required List<PlaylistItem> items,
+    required int tabIndex,
+    required bool isSeries,
+    required double cardWidth,
+    required double cardHeight,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800))),
+                TextButton(
+                  onPressed: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(tabIndex),
+                  child: const Text('عرض الكل', style: TextStyle(color: Color(0xFFA855F7), fontSize: 17, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: cardHeight,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) => SizedBox(
+                width: cardWidth,
+                child: buildStreamCardLocal(context, provider, items[index], isSeries: isSeries, isMobile: true),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Search results block
-          if (_globalSearchQuery.isNotEmpty) ...[
-            Row(
-              children: [
-                const Icon(Icons.search, color: PremiumPalette.violet, size: 18),
-                const SizedBox(width: 8),
-                Text("نتائج البحث السريع", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            searchResults.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text("لا توجد قنوات أو عروض مطابقة", style: TextStyle(color: Colors.white30, fontSize: 13))),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: searchResults.length,
-                    itemBuilder: (context, idx) {
-                      final item = searchResults[idx];
-                      IconData typeIcon = Icons.live_tv;
-                      String typeLabel = "بث مباشر";
-                      if (item.type == 'movie') {
-                        typeIcon = Icons.movie;
-                        typeLabel = "فيلم";
-                      } else if (item.type == 'series') {
-                        typeIcon = Icons.video_library;
-                        typeLabel = "مسلسل";
-                      }
-                      return ScaleOnFocus(
-                        onTap: () async {
-                          final categoryName = item.categoryName;
-                          if (provider.isCategoryLocked(categoryName)) {
-                            bool ok = await showPinDialog(context, provider);
-                            if (!ok) return;
-                            provider.unlockCategorySession(categoryName);
-                          }
-                          if (item.type == 'series') {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: item)));
-                          } else {
-                            provider.selectStream(item);
-                            provider.addToRecentlyPlayed(item);
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: item)));
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white.withOpacity(0.03)),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Container(
-                                  width: 42,
-                                  height: 42,
-                                  color: Colors.white10,
-                                  child: item.streamIcon.isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: item.streamIcon,
-                                          fit: BoxFit.contain,
-                                          placeholder: (c, u) => const Center(child: CircularProgressIndicator(color: PremiumPalette.violet, strokeWidth: 1)),
-                                          errorWidget: (c, u, e) => Icon(typeIcon, color: Colors.white24, size: 20),
-                                        )
-                                      : Icon(typeIcon, color: Colors.white24, size: 20),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.name,
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Icon(typeIcon, size: 10, color: PremiumPalette.violet),
-                                        const SizedBox(width: 4),
-                                        Text(typeLabel, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                                        const SizedBox(width: 12),
-                                        Text(item.categoryName, style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white24),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-            const SizedBox(height: 16),
-          ],
-
-          // 3. Continue Watching Row (Offline state retention)
-          if (_globalSearchQuery.isEmpty && provider.recentlyPlayed.isNotEmpty) ...[
-            Row(
-              children: [
-                const Icon(Icons.history, color: PremiumPalette.violet, size: 18),
-                const SizedBox(width: 8),
-                Text("واصل المشاهدة", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: isMobile ? 110 : 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: provider.recentlyPlayed.length,
-                itemBuilder: (context, idx) {
-                  final item = provider.recentlyPlayed[idx];
-                  return Container(
-                    width: isMobile ? 80 : 100,
-                    margin: const EdgeInsets.only(left: 8),
-                    child: buildStreamCardLocal(context, provider, item, isSeries: item.type == 'series', isMobile: isMobile),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Default dashboard grid if not searching
-          if (_globalSearchQuery.isEmpty) ...[
-            Text("أبرز الإضافات", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            SizedBox(height: isMobile ? 4 : 8),
-            const BannerSliderWidget(),
-            SizedBox(height: isMobile ? 12 : 20),
-            Text("تصفح الأقسام", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            SizedBox(height: isMobile ? 6 : 10),
-            const DynamicSectionsWidget(),
-          ],
         ],
       ),
     );
@@ -1002,7 +988,7 @@ class BannerSliderWidget extends StatefulWidget {
 }
 
 class _BannerSliderWidgetState extends State<BannerSliderWidget> {
-  final PageController _pageController = PageController(viewportFraction: 0.95);
+  final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
 
@@ -1013,7 +999,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Future<void> _fetchBanners() async {
     try {
       final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url, headers: {"Authorization": "token ${IPTVProvider.githubToken}"});
+      final res = await http.get(url);
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
         setState(() {
@@ -1060,67 +1046,104 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
-    final isTablet = screenW >= 600 && screenW < 900;
-
-    // ارتفاع أصغر للواجهة المصغرة
-    double bannerHeight = isMobile ? 140 : (isTablet ? 200 : 280);
+    final bannerHeight = isMobile ? 238.0 : (screenW < 900 ? 330.0 : 440.0);
 
     if (_isLoadingBanners) {
-      return SizedBox(height: bannerHeight, child: const Center(child: CircularProgressIndicator(color: Colors.amber)));
+      return SizedBox(
+        height: bannerHeight,
+        child: const Center(child: CircularProgressIndicator(color: Color(0xFFA855F7))),
+      );
     }
     if (_banners.isEmpty) {
-      return const SizedBox.shrink();
+      return SizedBox(height: bannerHeight);
     }
+
+    final dotCount = _banners.length > 10 ? 10 : _banners.length;
     return SizedBox(
       height: bannerHeight,
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: (idx) => setState(() => _currentPage = idx),
-        itemCount: _banners.length,
-        itemBuilder: (context, index) {
-          bool active = index == _currentPage;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4, vertical: active ? 0 : (isMobile ? 4 : 8)),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: active ? [const BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 5))] : [],
-              color: Colors.black, // خلفية سوداء لضمان عدم ظهور فراغات بيضاء
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (idx) => setState(() => _currentPage = idx),
+            itemCount: _banners.length,
+            itemBuilder: (context, index) {
+              return Stack(
                 fit: StackFit.expand,
                 children: [
-                  // استخدام BoxFit.contain لعرض الصورة كاملة بدون قص
                   CachedNetworkImage(
                     imageUrl: _banners[index],
-                    fit: BoxFit.contain, 
+                    fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    placeholder: (context, url) => Container(color: Colors.grey[900]),
-                    errorWidget: (context, url, error) => Container(color: Colors.grey[900]),
+                    placeholder: (_, __) => const ColoredBox(color: Color(0xFF171324)),
+                    errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF171324)),
                   ),
-                  // تدرج خفيف في الأسفل لتحسين قراءة النصوص إذا أضفتها لاحقاً
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: bannerHeight * 0.3,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black.withOpacity(0.6), Colors.transparent],
-                        ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.38, 1],
+                        colors: [Colors.transparent, Color(0xE6000000)],
                       ),
                     ),
                   ),
+                  Positioned(
+                    right: isMobile ? 20 : 34,
+                    left: isMobile ? 20 : 34,
+                    bottom: isMobile ? 42 : 58,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'LIVE STREAM PREMIUM',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.white, fontSize: isMobile ? 28 : 38, fontWeight: FontWeight.w500, letterSpacing: 0.2),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'استمتع بأفضل القنوات والأفلام والمسلسلات',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: const Color(0xFFE5E5EA), fontSize: isMobile ? 16 : 21, fontWeight: FontWeight.w400),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
+              );
+            },
+          ),
+          Positioned(
+            bottom: isMobile ? 8 : 13,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(color: const Color(0xFF9A7612).withOpacity(0.82), borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(dotCount, (index) {
+                    final isActive = (_currentPage % dotCount) == index;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      width: isActive ? 24 : 9,
+                      height: 9,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: isActive ? const Color(0xFFA855F7) : Colors.white.withOpacity(0.82),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    );
+                  }),
+                ),
               ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -1137,10 +1160,10 @@ class StreamsListScreen extends StatelessWidget {
   const StreamsListScreen({super.key, required this.title, required this.tab, this.isSeries = false});
 
   int _getCrossAxisCount(double width) {
-    if (width < 600) return 3; // Phone (more items per row for compact view)
-    if (width < 900) return 4; // Tablet Portrait
-    if (width < 1200) return 5; // Tablet Landscape
-    return 6; // TV / Desktop
+    if (width < 600) return tab == 'live' ? 2 : 3;
+    if (width < 900) return tab == 'live' ? 3 : 4;
+    if (width < 1200) return 5;
+    return 6;
   }
 
   @override
@@ -1149,107 +1172,90 @@ class StreamsListScreen extends StatelessWidget {
     final streams = provider.streams;
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
+    final categories = <String>['الكل', ...provider.categories];
 
-    return Column(
-      children: [
-        // Modern Top Bar (Compact)
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: isMobile ? 12 : 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: TextStyle(fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.bold, color: Colors.white)),
-              Container(
-                width: isMobile ? 140 : 250,
-                height: isMobile ? 36 : 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: TextField(
-                  onChanged: (val) => provider.setSearchQuery(val),
-                  style: TextStyle(color: Colors.white, fontSize: isMobile ? 12 : 14),
-                  decoration: InputDecoration(
-                    hintText: "بحث...",
-                    hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
-                    prefixIcon: Icon(Icons.search, color: Colors.white54, size: isMobile ? 18 : 20),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: isMobile ? 8 : 10),
+    return Container(
+      color: const Color(0xFF0B0E15),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 16, isMobile ? 16 : 24, 10),
+            child: Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                Expanded(child: Text(title, style: TextStyle(fontSize: isMobile ? 25 : 31, fontWeight: FontWeight.w800, color: Colors.white))),
+                SizedBox(
+                  width: isMobile ? 138 : 240,
+                  height: 43,
+                  child: TextField(
+                    onChanged: provider.setSearchQuery,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'بحث...',
+                      hintStyle: const TextStyle(color: Color(0xFFB6B7C2), fontSize: 13),
+                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFA855F7), size: 22),
+                      filled: true,
+                      fillColor: const Color(0xFF191D2D),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        // Body (Categories + Grid)
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Categories List (Compact)
-              Container(
-                width: isMobile ? 80 : 160,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: ListView.builder(
-                  itemCount: provider.categories.length + 1,
-                  itemBuilder: (ctx, i) {
-                    String catId = i == 0 ? "all" : provider.categories[i - 1];
-                    String catName = i == 0 ? "الكل" : provider.categories[i - 1];
-                    bool isSel = provider.selectedCategory == catId;
-                    return ScaleOnFocus(
-                      onTap: () async {
-                        if (provider.isCategoryLocked(catName)) {
-                          bool ok = await showPinDialog(context, provider);
-                          if (ok) {
-                            provider.unlockCategorySession(catName);
-                            provider.setCategory(catId);
-                          }
-                        } else {
-                          provider.setCategory(catId);
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10, horizontal: isMobile ? 6 : 12),
-                        margin: EdgeInsets.only(bottom: isMobile ? 2 : 4),
-                        decoration: BoxDecoration(
-                          color: isSel ? PremiumPalette.violet : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          catName,
-                          style: TextStyle(
-                              color: isSel ? Colors.white : Colors.white70,
-                              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                              fontSize: isMobile ? 11 : 13),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    );
+          SizedBox(
+            height: 55,
+            child: ListView.separated(
+              reverse: true,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              scrollDirection: Axis.horizontal,
+              itemCount: categories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 9),
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final categoryId = index == 0 ? 'all' : category;
+                final selected = provider.selectedCategory == categoryId;
+                return ScaleOnFocus(
+                  onTap: () async {
+                    if (provider.isCategoryLocked(category)) {
+                      final allowed = await showPinDialog(context, provider);
+                      if (!allowed) return;
+                      provider.unlockCategorySession(category);
+                    }
+                    provider.setCategory(categoryId);
                   },
-                ),
-              ),
-              // Content Grid
-              Expanded(
-                child: provider.isFetchingData
-                    ? const Center(child: CircularProgressIndicator(color: PremiumPalette.violet))
-                    : GridView.builder(
-                        padding: EdgeInsets.only(right: 8, left: isMobile ? 12 : 16, bottom: 16),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: _getCrossAxisCount(screenW),
-                          childAspectRatio: 0.65, // Slightly taller cards for better visibility
-                          crossAxisSpacing: isMobile ? 6 : 12,
-                          mainAxisSpacing: isMobile ? 6 : 12,
-                        ),
-                        itemCount: streams.length,
-                        itemBuilder: (ctx, i) => buildStreamCardLocal(context, provider, streams[i], isSeries: isSeries, isMobile: isMobile),
-                      ),
-              ),
-            ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: selected ? const Color(0xFFA855F7) : const Color(0xFF191D2D),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: selected ? const Color(0xFFA855F7) : const Color(0xFF34394D)),
+                    ),
+                    child: Text(category, style: TextStyle(color: selected ? Colors.white : const Color(0xFFD2D2DA), fontSize: 14, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Expanded(
+            child: provider.isFetchingData
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFA855F7)))
+                : GridView.builder(
+                    padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 8, isMobile ? 14 : 24, 24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _getCrossAxisCount(screenW),
+                      childAspectRatio: tab == 'live' ? 0.90 : 0.64,
+                      crossAxisSpacing: isMobile ? 12 : 16,
+                      mainAxisSpacing: isMobile ? 14 : 18,
+                    ),
+                    itemCount: streams.length,
+                    itemBuilder: (context, index) => buildStreamCardLocal(context, provider, streams[index], isSeries: isSeries, isMobile: isMobile),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1773,14 +1779,14 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
       }
     },
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(16),
       child: Stack(
         fit: StackFit.expand,
         children: [
           imageUrl.isNotEmpty
               ? CachedNetworkImage(
                   imageUrl: imageUrl,
-                  fit: BoxFit.contain, // Prevent cropping
+                  fit: BoxFit.cover,
                   placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: PremiumPalette.violet, strokeWidth: 2))),
                   errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
@@ -1791,7 +1797,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 6, vertical: isMobile ? 6 : 8),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 7 : 9, vertical: isMobile ? 8 : 10),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.black, Colors.transparent],
@@ -1804,7 +1810,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: isMobile ? 10 : 12, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w700, color: Colors.white),
               ),
             ),
           ),

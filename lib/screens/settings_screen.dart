@@ -15,14 +15,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _SettingsPalette {
   const _SettingsPalette._();
 
-  static const Color background = Color(0xFF09091A);
-  static const Color surface = Color(0xFF14112B);
-  static const Color surfaceElevated = Color(0xFF211C42);
-  static const Color purple = Color(0xFF8E44AD);
-  static const Color purpleBright = Color(0xFFA78BFA);
+  static const Color background = Color(0xFF0B0E15);
+  static const Color surface = Color(0xFF17171A);
+  static const Color surfaceElevated = Color(0xFF201A22);
+  static const Color purple = Color(0xFFA855F7);
+  static const Color purpleBright = Color(0xFFC084FC);
   static const Color gold = Color(0xFFFFC857);
-  static const Color textMuted = Color(0xFFB7B1D6);
-  static const Color divider = Color(0x334D446E);
+  static const Color cyan = Color(0xFF24DCE0);
+  static const Color danger = Color(0xFFFF4D5A);
+  static const Color textMuted = Color(0xFFAEAFB7);
+  static const Color divider = Color(0xFF34343A);
 }
 
 class SettingsScreen extends StatefulWidget {
@@ -111,8 +113,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPremiumHeader(),
-              const SizedBox(height: 16),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
                   return _buildThemeSettingCard(
@@ -122,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader("إعدادات المشغّل الأساسية", "الصوت والصورة والترجمة"),
+              _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: "تسريع الأجهزة (HW Acceleration)",
@@ -199,7 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              _buildSectionHeader("تصفية وتصفح المحتوى", "عرض المحتوى بحسب تفضيلاتك"),
+              _buildSectionHeader("تصفية وتصفح المحتوى", ""),
               const SizedBox(height: 12),
 
               Consumer<IPTVProvider>(
@@ -208,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "عرض الأفلام والمسلسلات",
                     description: "إظهار أو إخفاء أقسام وأبواب الأفلام والمسلسلات تماماً من واجهات التطبيق.",
                     value: provider.showMoviesSeries,
-                    activeColor: _SettingsPalette.purple,
+                    activeColor: _SettingsPalette.danger,
                     onChanged: (val) {
                       provider.setShowMoviesSeries(val);
                     },
@@ -247,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "فلترة وحظر محتوى للكبار (+18)",
                     description: "حظر وإخفاء كافة القنوات والأقسام التي تحتوي على محتوى غير عائلي أو مخصص للبالغين تلقائياً.",
                     value: provider.blockAdultContent,
-                    activeColor: _SettingsPalette.purple,
+                    activeColor: _SettingsPalette.danger,
                     onChanged: (val) {
                       provider.setBlockAdultContent(val);
                     },
@@ -259,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              _buildSectionHeader("الرقابة الأبوية وحماية الأقسام", "تحكم آمن في الأقسام المقفلة"),
+              _buildSectionHeader("الرقابة الأبوية وحماية الأقسام", ""),
               const SizedBox(height: 12),
 
               Consumer<IPTVProvider>(
@@ -332,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              _buildSectionHeader("LIVE STREAM PREMIUM", "خصائص التجربة المتقدمة"),
+              _buildSectionHeader("live stream premium", ""),
               const SizedBox(height: 12),
 
               // Warning box
@@ -340,16 +340,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _SettingsPalette.purple.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _SettingsPalette.purpleBright.withOpacity(0.3)),
+                  color: _SettingsPalette.cyan.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _SettingsPalette.cyan.withOpacity(0.58)),
                 ),
                 child: const Column(
                   children: [
                     Text(
                       "تحذير: تفعيل هذه الخيارات يؤدي الى زيادة استهلاك البطارية",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: _SettingsPalette.purpleBright, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(color: _SettingsPalette.cyan, fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -531,30 +531,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionHeader(String title, String subtitle) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: _SettingsPalette.gold,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Text(subtitle, style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 11)),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        title,
+        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -749,11 +729,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required void Function(bool) onChanged
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         color: _SettingsPalette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: value ? activeColor.withOpacity(0.3) : _SettingsPalette.divider),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: value ? activeColor.withOpacity(0.55) : _SettingsPalette.divider, width: value ? 1.4 : 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -764,7 +744,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: value ? activeColor : Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(color: value ? activeColor : Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
                 ),
                 const SizedBox(height: 6),
                 Text(

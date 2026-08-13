@@ -447,10 +447,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Row(
         children: [
-          const Container(
+          Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: _SettingsPalette.purple,
               borderRadius: BorderRadius.all(Radius.circular(14)),
             ),

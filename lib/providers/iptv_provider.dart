@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -216,6 +217,10 @@ class IPTVProvider with ChangeNotifier {
   // أنظمة الحماية المتطورة (Security & Anti-Sniffing)
   // ==========================================
   static const _securityChannel = MethodChannel('com.mahmoud.iptv/security');
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  static const _secureSessionKey = 'premium_session_v1';
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
@@ -239,6 +244,7 @@ class IPTVProvider with ChangeNotifier {
   String get announcementText => _announcementText;
   bool _disableVpnCheck = false;
   bool _disableSnifferCheck = false;
+  Timer? _securityTimer;
 
   // New addition: Recently Played/Continue Watching
   List<PlaylistItem> _recentlyPlayed = [];
@@ -330,19 +336,79 @@ class IPTVProvider with ChangeNotifier {
     return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
   }
 
-  Future<void> init() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<bool> _restoreSecureSession() async {
+    try {
+      final raw = await _secureStorage.read(key: _secureSessionKey);
+      if (raw == null || raw.isEmpty) return false;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      _activationCode = data['activationCode']?.toString() ?? '';
+      _activationTime = (data['activationTime'] as num?)?.toInt() ?? 0;
+      _activationDurationHours = (data['activationDurationHours'] as num?)?.toInt() ?? -1;
+      _subscriptionType = data['subscriptionType']?.toString() ?? '';
+      _activePlaylistId = data['activePlaylistId']?.toString();
+      _isLoggedIn = data['isLoggedIn'] == true;
+      final rawPlaylists = data['playlists'];
+      if (rawPlaylists is List) {
+        _savedPlaylists = rawPlaylists
+            .whereType<Map>()
+            .map((item) => UserPlaylist.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      return _isLoggedIn && _savedPlaylists.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
 
-    // تشغيل نظام الحماية بشكل دوري لضمان عدم تشغيل VPN في الخلفية لاحقاً
+  Future<void> _persistSecureSession() async {
+    final data = <String, dynamic>{
+      'isLoggedIn': _isLoggedIn,
+      'activationCode': _activationCode,
+      'activationTime': _activationTime,
+      'activationDurationHours': _activationDurationHours,
+      'subscriptionType': _subscriptionType,
+      'activePlaylistId': _activePlaylistId,
+      'playlists': _savedPlaylists.map((item) => item.toJson()).toList(),
+    };
+    await _secureStorage.write(key: _secureSessionKey, value: jsonEncode(data));
+  }
+
+  Future<void> _removeLegacySession(SharedPreferences prefs) async {
+    for (final key in const [
+      'active_code',
+      'active_code_activated_at',
+      'active_code_duration_hours',
+      'active_code_sub_name',
+      'app_name_cached',
+      'saved_playlists',
+      'is_logged_in',
+    ]) {
+      await prefs.remove(key);
+    }
+  }
+
+  void _startForegroundSecurityChecks() {
+    _securityTimer?.cancel();
     _checkVpnAndProxyStatus();
     checkSecurity();
     checkRemoteBlocking();
-    Timer.periodic(const Duration(seconds: 15), (_) {
+    _securityTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _checkVpnAndProxyStatus();
       checkSecurity();
       checkRemoteBlocking();
     });
+  }
+
+  void onAppResumed() {
+    _startForegroundSecurityChecks();
+  }
+
+  Future<void> init() async {
+    _isLoading = true;
+    notifyListeners();
+
+    // تعمل الفحوصات فقط عندما يكون التطبيق في المقدمة؛ لا توجد مهام دورية في الخلفية.
+    _startForegroundSecurityChecks();
 
     final prefs = await SharedPreferences.getInstance();
     
@@ -364,23 +430,31 @@ class IPTVProvider with ChangeNotifier {
     }
     loadRecentlyPlayed();
 
-    final playlistsJson = prefs.getString('saved_playlists');
-    if (playlistsJson != null) {
-      try {
-        final List decoded = json.decode(playlistsJson);
-        _savedPlaylists = decoded.map((item) => UserPlaylist.fromJson(item)).toList();
-      } catch (_) {}
+    final restoredSecureSession = await _restoreSecureSession();
+    if (!restoredSecureSession) {
+      final playlistsJson = prefs.getString('saved_playlists');
+      if (playlistsJson != null) {
+        try {
+          final List decoded = json.decode(playlistsJson);
+          _savedPlaylists = decoded.map((item) => UserPlaylist.fromJson(item)).toList();
+        } catch (_) {}
+      }
+      _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+      _activationCode = prefs.getString('active_code') ?? "";
+      _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
+      _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
+      _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
+      if (_isLoggedIn && _savedPlaylists.isNotEmpty) {
+        _activePlaylistId = _savedPlaylists.first.id;
+        await _persistSecureSession();
+        await _removeLegacySession(prefs);
+      }
     }
 
-    _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     _showMoviesSeries = prefs.getBool('filter_show_movies_series') ?? true;
     _channelFilter = prefs.getString('channel_filter') ?? "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
-    _activationCode = prefs.getString('active_code') ?? "";
-    _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
-    _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
-    _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
 
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
@@ -938,12 +1012,6 @@ class IPTVProvider with ChangeNotifier {
           final prefs = await SharedPreferences.getInstance();
           final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-          await prefs.setString('active_code', cleanCode);
-          await prefs.setInt('active_code_activated_at', nowMs);
-          await prefs.setInt('active_code_duration_hours', durationHours);
-          await prefs.setString('active_code_sub_name', subName);
-          await prefs.setString('app_name_cached', _appName);
-
           _activationCode = cleanCode;
           _activationTime = nowMs;
           _activationDurationHours = durationHours;
@@ -961,10 +1029,9 @@ class IPTVProvider with ChangeNotifier {
           _savedPlaylists = [list];
           _activePlaylistId = list.id;
           
-          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-          await prefs.setBool('is_logged_in', true);
-          
           _isLoggedIn = true;
+          await _persistSecureSession();
+          await _removeLegacySession(prefs);
           _isLoading = false;
           notifyListeners();
           
@@ -1377,8 +1444,17 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void onAppBackgrounded() {
+    // يمسح مرجع البث المؤقت ويوقف كل فحص واتصال دوري خارج الواجهة.
+    _securityTimer?.cancel();
+    _securityTimer = null;
+    _currentStream = null;
+    _globalProxy = '';
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    await _secureStorage.delete(key: _secureSessionKey);
     await prefs.clear();
     _isLoggedIn = false;
     _savedPlaylists.clear();

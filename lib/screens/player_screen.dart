@@ -615,12 +615,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (_betterController != null && _betterController!.videoPlayerController != null) {
-        if (!(_betterController!.isPlaying() ?? false)) {
-          _betterController!.play();
-        }
-      }
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      // لا يستمر البث في الخلفية، ولا يُستأنف تلقائياً عند الرجوع إلى التطبيق.
+      _betterController?.pause();
     }
     super.didChangeAppLifecycleState(state);
   }
@@ -850,33 +847,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-  void _togglePictureInPicture() async {
-    if (_betterController != null && _initialized) {
-      try {
-        setState(() {
-          _showHUD = false;
-          _showSidebar = false;
-        });
-        // Unlock orientation before entering PiP to ensure proper aspect ratio
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
-        await _betterController!.enablePictureInPicture(_betterPlayerKey);
-      } catch (e) {
-        debugPrint("Failed to enable picture in picture: $e");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("جهازك لا يدعم خاصية صورة داخل صورة حالياً", textDirection: TextDirection.rtl),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
-    } else {
+  void _togglePictureInPicture() {
+    // تم تعطيل PiP في الإصدار المحمي حتى لا يستمر المحتوى خارج واجهة التطبيق.
+    _betterController?.pause();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("تم تعطيل وضع الصورة داخل صورة لحماية المحتوى. أعد التشغيل من داخل التطبيق.", textDirection: TextDirection.rtl),
+          backgroundColor: Color(0xFF3A275F),
+        ),
+      );
+    }
+  }
+
+  void _legacyPictureInPictureNotice() {
+    if (_betterController == null || !_initialized) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("انتظر حتى يتم تحميل البث لتشغيل صورة داخل صورة", textDirection: TextDirection.rtl),
@@ -1902,15 +1887,6 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 _resetHideHUDTimer();
                             },
                           ),
-                          // Picture in Picture
-                          IconButton(
-                            icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.tealAccent, size: 24),
-                            tooltip: "صورة داخل صورة",
-                            onPressed: () {
-                                _togglePictureInPicture();
-                                _resetHideHUDTimer();
-                            },
-                          ),
                           // Screen Rotation
                           IconButton(
                             icon: Icon(
@@ -2503,14 +2479,6 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                   onTap: () {
                     Navigator.pop(context);
                     _showAudioSelector();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.tealAccent),
-                  title: const Text("صورة داخل صورة", style: TextStyle(color: Colors.white)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _togglePictureInPicture();
                   },
                 ),
               ],

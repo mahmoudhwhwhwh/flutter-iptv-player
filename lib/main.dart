@@ -107,8 +107,36 @@ void main() async {
   );
 }
 
-class LiveFootballApp extends StatelessWidget {
+class LiveFootballApp extends StatefulWidget {
   const LiveFootballApp({super.key});
+
+  @override
+  State<LiveFootballApp> createState() => _LiveFootballAppState();
+}
+
+class _LiveFootballAppState extends State<LiveFootballApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      provider.onAppBackgrounded();
+    } else if (state == AppLifecycleState.resumed) {
+      provider.onAppResumed();
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

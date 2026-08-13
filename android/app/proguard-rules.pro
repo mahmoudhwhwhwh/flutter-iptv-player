@@ -7,3 +7,6 @@
 -keepattributes *Annotation*
 -keep class com.google.firebase.** { *; }
 -dontwarn javax.annotation.**
+
+# Flutter references Play Core deferred-component classes optionally; this app does not ship deferred components.
+-dontwarn com.google.android.play.core.**

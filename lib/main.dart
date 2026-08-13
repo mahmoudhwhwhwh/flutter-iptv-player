@@ -592,9 +592,12 @@ class _MainDashboardState extends State<MainDashboard> {
           ],
         ),
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 120),
-        child: _buildContent(),
+      body: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 120),
+          child: _buildContent(),
+        ),
       ),
       bottomNavigationBar: useBottomNav
           ? BottomNavigationBar(
@@ -1066,6 +1069,7 @@ class _HomeTabState extends State<HomeTab> {
           for (var i = 0; i < entries.length; i++) ...[
             Expanded(
               child: ScaleOnFocus(
+                autofocus: i == 0,
                 onTap: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(entries[i].index),
                 child: Container(
                   decoration: BoxDecoration(
@@ -1165,7 +1169,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
 
   Future<void> _fetchBanners() async {
     try {
-      final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
@@ -1386,6 +1390,7 @@ class StreamsListScreen extends StatelessWidget {
                 final categoryId = index == 0 ? 'all' : category;
                 final selected = provider.selectedCategory == categoryId;
                 return ScaleOnFocus(
+                  autofocus: index == 0,
                   onTap: () async {
                     if (provider.isCategoryLocked(category)) {
                       final allowed = await showPinDialog(context, provider);
@@ -1884,22 +1889,58 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 class ScaleOnFocus extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
+  final bool autofocus;
 
-  const ScaleOnFocus({super.key, required this.child, required this.onTap});
+  const ScaleOnFocus({
+    super.key,
+    required this.child,
+    required this.onTap,
+    this.autofocus = false,
+  });
 
   @override
   State<ScaleOnFocus> createState() => _ScaleOnFocusState();
 }
 
 class _ScaleOnFocusState extends State<ScaleOnFocus> {
+  final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+
+  void _setFocus(bool hasFocus) {
+    if (_isFocused != hasFocus && mounted) setState(() => _isFocused = hasFocus);
+    if (hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Scrollable.ensureVisible(
+            context,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            alignment: 0.5,
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final tvBoxFocusEnabled = context.select<IPTVProvider, bool>((provider) => provider.tvBoxFocusEnabled);
     return InkWell(
+      focusNode: _focusNode,
+      canRequestFocus: tvBoxFocusEnabled,
+      autofocus: widget.autofocus && tvBoxFocusEnabled,
       onTap: widget.onTap,
-      onFocusChange: (hasFocus) => setState(() => _isFocused = hasFocus),
-      onHover: (isHovering) => setState(() => _isFocused = isHovering),
+      onFocusChange: _setFocus,
+      onHover: (isHovering) {
+        if (isHovering && _focusNode.canRequestFocus) _focusNode.requestFocus();
+        _setFocus(isHovering || _focusNode.hasFocus);
+      },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedScale(
         scale: _isFocused ? 1.03 : 1.0,

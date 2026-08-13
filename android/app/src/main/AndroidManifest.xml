@@ -49,7 +49,9 @@
     
     <!-- Enable Android TV / Fire TV leanback mode support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.type.television" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.faketouch" android:required="false" />
 
     <application
         android:label="live strem pro"

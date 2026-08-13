@@ -171,6 +171,15 @@ class IPTVProvider with ChangeNotifier {
 
   int _playerSettingsVersion = 0;
   int get playerSettingsVersion => _playerSettingsVersion;
+  bool _tvBoxFocusEnabled = true;
+  bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
+
+  Future<void> setTvBoxFocusEnabled(bool value) async {
+    _tvBoxFocusEnabled = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tv_box_focus_enabled', value);
+  }
 
   Future<void> setPlayerStringPreference(String key, String value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -485,6 +494,7 @@ class IPTVProvider with ChangeNotifier {
     _profileName = prefs.getString('profile_name') ?? 'Premium User';
     _profileLogo = prefs.getString('profile_logo') ?? 'play';
     _profileImagePath = prefs.getString('profile_image_path') ?? '';
+    _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
 
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
     await runActiveSecurityChecks();
@@ -575,7 +585,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
+      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
@@ -687,7 +697,7 @@ class IPTVProvider with ChangeNotifier {
     if (_isRegisteringDevice) return;
     _isRegisteringDevice = true;
     try {
-        final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
+        final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
         final res = await http.get(url);
         if (res.statusCode == 200) {
             final Map<String, dynamic> configData = json.decode(res.body);
@@ -886,7 +896,7 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
       
       String host = "http://fh.u2i9o.top:80";
@@ -1116,7 +1126,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (_activationCode == "2027") {
        try {
-         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
+         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
          final res = await http.get(url);
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);
@@ -1504,6 +1514,44 @@ class IPTVProvider with ChangeNotifier {
   Future<void> setCategory(String category) async {
     _selectedCategory = category;
     _applyFilters();
+    notifyListeners();
+  }
+
+  Future<void> changeSubscription() async {
+    final prefs = await SharedPreferences.getInstance();
+    // امسح الجلسة وبيانات المحتوى المرتبطة بالكود فقط، مع الاحتفاظ
+    // باللغة والثيم وإعدادات المشغّل وملف الحساب الخاص بالمستخدم.
+    for (final key in <String>[
+      'active_code',
+      'active_code_activated_at',
+      'active_code_duration_hours',
+      'active_code_sub_name',
+      'app_name_cached',
+      'saved_playlists',
+      'is_logged_in',
+      'show_welcome_after_login',
+      'favorites',
+      'recently_played_streams',
+    ]) {
+      await prefs.remove(key);
+    }
+    _isLoggedIn = false;
+    _activationCode = '';
+    _activationTime = 0;
+    _activationDurationHours = -1;
+    _subscriptionType = '';
+    _savedPlaylists.clear();
+    _allStreams.clear();
+    _filteredStreams.clear();
+    _liveCategories.clear();
+    _movieCategories.clear();
+    _seriesCategories.clear();
+    _favorites.clear();
+    _recentlyPlayed.clear();
+    _currentStream = null;
+    _activePlaylistId = null;
+    _selectedCategory = 'all';
+    _searchQuery = '';
     notifyListeners();
   }
 

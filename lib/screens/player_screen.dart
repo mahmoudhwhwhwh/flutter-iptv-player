@@ -86,6 +86,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Color _subBgColorVal = Colors.transparent;
   String _subFontVal = 'Cairo';
   String _subLangVal = "تلقائي";
+  bool _remoteControlEnabled = true;
+  bool _mouseControlEnabled = true;
 
   // Screen lock & rotation states
   bool _isLocked = false;
@@ -175,6 +177,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
       _subFontVal = prefs.getString('sub_font') ?? 'Cairo';
       _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
+      _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
+      _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       
       if (sSize == "صغير") _subSizeVal = 12.0;
       else if (sSize == "متوسط") _subSizeVal = 16.0;
@@ -253,6 +257,42 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _resetHideHUDTimer();
   }
 
+
+  Future<void> _prepareXtreamSubtitles(
+    BetterPlayerController controller,
+    Map<String, String> headers,
+  ) async {
+    // Better Player يقرأ قائمة HLS/DASH برؤوس البث، لكن مسارات الترجمة
+    // المكتشفة لا ترثها تلقائياً. ننسخها هنا لمسارات Xtream الحقيقية.
+    for (var attempt = 0; attempt < 8 && mounted; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      final sources = controller.betterPlayerSubtitlesSourceList;
+      final trackIndexes = <int>[];
+      for (var i = 0; i < sources.length; i++) {
+        if (sources[i].type != BetterPlayerSubtitlesSourceType.none) {
+          trackIndexes.add(i);
+        }
+      }
+      if (trackIndexes.isEmpty) continue;
+
+      for (final index in trackIndexes) {
+        final source = sources[index];
+        sources[index] = BetterPlayerSubtitlesSource(
+          type: source.type,
+          name: source.name,
+          urls: source.urls,
+          content: source.content,
+          selectedByDefault: source.selectedByDefault,
+          headers: Map<String, String>.from(headers),
+          asmsIsSegmented: source.asmsIsSegmented,
+          asmsSegmentsTime: source.asmsSegmentsTime,
+          asmsSegments: source.asmsSegments,
+        );
+      }
+      await _applyPreferredSubtitleLanguage(retries: 0);
+      return;
+    }
+  }
 
   Future<void> _applyPreferredSubtitleLanguage({int retries = 5}) async {
     if (_subLangVal == "تلقائي" || _betterController == null) return;
@@ -524,7 +564,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 }
               }
               _betterController!.play();
-              unawaited(_applyPreferredSubtitleLanguage());
+              unawaited(_prepareXtreamSubtitles(newBetterController, headers));
               _startSeekTracker();
             });
           }
@@ -1281,6 +1321,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         child: Focus(
           autofocus: true,
           onKeyEvent: (FocusNode node, KeyEvent event) {
+            if (!_remoteControlEnabled) return KeyEventResult.ignored;
             _resetHideHUDTimer();
             if (_isLocked) {
               if (event is KeyDownEvent) {
@@ -1355,6 +1396,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             children: [
             // 1. Core Video Frame Container
             GestureDetector(
+              mouseCursor: _mouseControlEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
               onTap: () {
                 if (_isLocked) {
                   setState(() {

@@ -49,6 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _subBgColor = "شفاف";
   String _subLang = "تلقائي";
   String _appOrientation = "تلقائي";
+  bool _remoteControlEnabled = true;
+  bool _mouseControlEnabled = true;
+  bool _tvBoxFocusEnabled = true;
 
   @override
   void initState() {
@@ -72,6 +75,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
       _subLang = prefs.getString('sub_lang') ?? "تلقائي";
       _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
+      _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
+      _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
+      _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
     });
   }
 
@@ -160,6 +166,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
+              const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) => _buildActionButtonSettingCard(
+                  title: 'تغيير الاشتراك',
+                  description: 'إدخال كود اشتراك جديد. سيتم حذف القنوات والمفضلة الخاصة بالكود السابق، مع الاحتفاظ بالثيم واللغة وإعدادات المشغّل.',
+                  actionLabel: 'تغيير الكود',
+                  icon: Icons.swap_horiz_rounded,
+                  onTap: () => _confirmSubscriptionChange(provider),
+                ),
+              ),
               const SizedBox(height: 24),
               _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
@@ -246,6 +262,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('التحكم والأجهزة', ''),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تحكم الريموت',
+                description: 'تشغيل أزرار الأسهم وOK وBack والتقديم والتأخير على الشاشات وTV Box.',
+                value: _remoteControlEnabled,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (value) {
+                  setState(() => _remoteControlEnabled = value);
+                  _saveSetting('remote_control_enabled', value);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تحكم الماوس',
+                description: 'إظهار المؤشر والتفاعل بالنقر والتمرير لفتح الأدوات والتنقل في الواجهات الكبيرة.',
+                value: _mouseControlEnabled,
+                activeColor: _SettingsPalette.cyan,
+                onChanged: (value) {
+                  setState(() => _mouseControlEnabled = value);
+                  _saveSetting('mouse_control_enabled', value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) => _buildSettingItem(
+                  title: 'تركيز TV Box والشاشات',
+                  description: 'ينقل التركيز تلقائياً بين الأقسام والبطاقات عند استعمال الأسهم بدون ماوس.',
+                  value: provider.tvBoxFocusEnabled,
+                  activeColor: _SettingsPalette.gold,
+                  onChanged: provider.setTvBoxFocusEnabled,
+                ),
+              ),
               const SizedBox(height: 24),
               const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
@@ -544,6 +594,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Icons.bolt_rounded;
       default:
         return Icons.play_arrow_rounded;
+    }
+  }
+
+  Future<void> _confirmSubscriptionChange(IPTVProvider provider) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: _SettingsPalette.surfaceElevated,
+        title: const Text('تغيير الاشتراك', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        content: const Text(
+          'سيتم إنهاء الاشتراك الحالي وإرجاعك إلى شاشة إدخال الكود الجديد. ستبقى اللغة والثيم وإعدادات المشغّل محفوظة.',
+          style: TextStyle(color: Colors.white70, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('متابعة'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+    await provider.changeSubscription();
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     }
   }
 

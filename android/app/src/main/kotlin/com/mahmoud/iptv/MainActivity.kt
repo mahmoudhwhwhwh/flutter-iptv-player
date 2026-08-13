@@ -143,9 +143,8 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isRootedOrHooked(): Boolean {
-        val buildTags = Build.TAGS ?: ""
-        if (buildTags.contains("test-keys")) return true
-
+        // كثير من أجهزة TV Box تستخدم test-keys في روم المصنع رغم عدم وجود
+        // روت أو أدوات اعتراض؛ لذلك لا نمنعها بهذه العلامة وحدها.
         val rootPaths = listOf(
             "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
             "/data/adb/magisk", "/sbin/.magisk", "/system/framework/XposedBridge.jar"

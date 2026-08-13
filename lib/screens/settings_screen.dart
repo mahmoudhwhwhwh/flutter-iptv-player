@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/iptv_provider.dart';
 import '../widgets/pin_dialog.dart';
@@ -9,6 +10,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// لوحة موحّدة لشاشة الإعدادات؛ تبقي واجهة LIVE STREAM PREMIUM متسقة.
+class _SettingsPalette {
+  const _SettingsPalette._();
+
+  static const Color background = Color(0xFF09091A);
+  static const Color surface = Color(0xFF14112B);
+  static const Color surfaceElevated = Color(0xFF211C42);
+  static const Color purple = Color(0xFF8E44AD);
+  static const Color purpleBright = Color(0xFFA78BFA);
+  static const Color gold = Color(0xFFFFC857);
+  static const Color textMuted = Color(0xFFB7B1D6);
+  static const Color divider = Color(0x334D446E);
+}
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -68,14 +83,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0C0E),
+      backgroundColor: _SettingsPalette.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _SettingsPalette.background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text("إعدادات LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        scrolledUnderElevation: 0,
+        title: Text(
+          "إعدادات LIVE STREAM PREMIUM",
+          style: GoogleFonts.cairo(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 17,
+            letterSpacing: 0.1,
+          ),
+        ),
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -86,32 +111,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Theme Toggle ---
+              _buildPremiumHeader(),
+              const SizedBox(height: 16),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
-                  return ListTile(
-                    leading: Icon(provider.isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFE50914)),
-                    title: const Text("المظهر (داكن/فاتح)", style: TextStyle(color: Colors.white)),
-                    trailing: Switch(
-                      value: provider.isDarkMode,
-                      activeColor: const Color(0xFFE50914),
-                      onChanged: (val) {
-                        provider.toggleTheme();
-                      },
-                    ),
+                  return _buildThemeSettingCard(
+                    isDarkMode: provider.isDarkMode,
+                    onChanged: (_) => provider.toggleTheme(),
                   );
                 },
               ),
-              const Divider(color: Colors.white12),
-              const SizedBox(height: 16),
-              
-              const Text("إعدادات المشغل الأساسية", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              _buildSectionHeader("إعدادات المشغّل الأساسية", "الصوت والصورة والترجمة"),
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: "تسريع الأجهزة (HW Acceleration)",
                 description: "استخدام أجهزة الجهاز لتشغيل الفيديو بسلاسة أكبر وتقليل استهلاك البطارية.",
                 value: _hwAcceleration,
-                activeColor: Colors.blueAccent,
+                activeColor: _SettingsPalette.purpleBright,
                 onChanged: (val) {
                   setState(() => _hwAcceleration = val);
                   _saveSetting('hw_acceleration', val);
@@ -122,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "التشغيل التلقائي",
                 description: "تشغيل القناة أو الفيلم تلقائياً عند فتحه.",
                 value: _autoPlay,
-                activeColor: Colors.amberAccent,
+                activeColor: _SettingsPalette.gold,
                 onChanged: (val) {
                   setState(() => _autoPlay = val);
                   _saveSetting('auto_play', val);
@@ -179,10 +196,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),
               const SizedBox(height: 24),
-              const Divider(color: Colors.white12),
+              const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              const Text("تصفية وتصفح المحتوى", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildSectionHeader("تصفية وتصفح المحتوى", "عرض المحتوى بحسب تفضيلاتك"),
               const SizedBox(height: 12),
 
               Consumer<IPTVProvider>(
@@ -191,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "عرض الأفلام والمسلسلات",
                     description: "إظهار أو إخفاء أقسام وأبواب الأفلام والمسلسلات تماماً من واجهات التطبيق.",
                     value: provider.showMoviesSeries,
-                    activeColor: Colors.redAccent,
+                    activeColor: _SettingsPalette.purple,
                     onChanged: (val) {
                       provider.setShowMoviesSeries(val);
                     },
@@ -230,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "فلترة وحظر محتوى للكبار (+18)",
                     description: "حظر وإخفاء كافة القنوات والأقسام التي تحتوي على محتوى غير عائلي أو مخصص للبالغين تلقائياً.",
                     value: provider.blockAdultContent,
-                    activeColor: Colors.redAccent,
+                    activeColor: _SettingsPalette.purple,
                     onChanged: (val) {
                       provider.setBlockAdultContent(val);
                     },
@@ -239,10 +256,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Divider(color: Colors.white12),
+              const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              const Text("الرقابة الأبوية وحماية الأقسام", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildSectionHeader("الرقابة الأبوية وحماية الأقسام", "تحكم آمن في الأقسام المقفلة"),
               const SizedBox(height: 12),
 
               Consumer<IPTVProvider>(
@@ -256,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? "الرقابة الأبوية مفعلة برمز أمان. قم بإلغاء التفعيل لتعطيل قفل الأقسام." 
                             : "قم بتعيين رمز أمان PIN مكون من 4 أرقام لقفل وحماية الأقسام والتحكم بالوصول إليها.",
                         value: isEnabled,
-                        activeColor: const Color(0xFFE50914),
+                        activeColor: _SettingsPalette.purple,
                         onChanged: (val) async {
                           if (val) {
                             await showPinDialog(context, provider, isCreating: true);
@@ -312,10 +329,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Divider(color: Colors.white12),
+              const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              _buildSectionHeader("LIVE STREAM PREMIUM", "خصائص التجربة المتقدمة"),
               const SizedBox(height: 12),
 
               // Warning box
@@ -323,16 +340,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF081C22), // Dark greenish/teal background
+                  color: _SettingsPalette.purple.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.tealAccent.withOpacity(0.3)),
+                  border: Border.all(color: _SettingsPalette.purpleBright.withOpacity(0.3)),
                 ),
                 child: const Column(
                   children: [
                     Text(
                       "تحذير: تفعيل هذه الخيارات يؤدي الى زيادة استهلاك البطارية",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(color: _SettingsPalette.purpleBright, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -349,7 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",
                 description: "تعمل على تحسين استجابة الخادم بشكل فوري لضمان عدم تأخير البث المباشر.",
                 value: _bioLink,
-                activeColor: Colors.deepPurpleAccent,
+                activeColor: _SettingsPalette.purple,
                 onChanged: (val) {
                   setState(() => _bioLink = val);
                   _saveSetting('bio_link', val);
@@ -360,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "2. التشابك الكمي للبث (Quantum Entanglement)",
                 description: "ميزة ثورية تزيد من سرعة تدفق البيانات لضمان أعلى جودة ممكنة دون انقطاع.",
                 value: _quantumEntanglement,
-                activeColor: Colors.greenAccent.shade400,
+                activeColor: _SettingsPalette.purpleBright,
                 onChanged: (val) {
                   setState(() => _quantumEntanglement = val);
                   _saveSetting('quantum_entanglement', val);
@@ -371,7 +388,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "3. نواة المعالجة الذاتية (Self-Healing)",
                 description: "نظام ذكي يقوم باكتشاف وإصلاح أعطال البث تلقائياً دون أي تدخل يدوي.",
                 value: _selfHealing,
-                activeColor: Colors.deepOrangeAccent,
+                activeColor: _SettingsPalette.purpleBright,
                 onChanged: (val) {
                   setState(() => _selfHealing = val);
                   _saveSetting('self_healing', val);
@@ -382,7 +399,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "4. توجيه المسارات الكمي (Quantum Routing)",
                 description: "يعيد توجيه اتصالك عبر أسرع المسارات العالمية المتاحة لفتح القنوات في أقل من ثانية.",
                 value: _quantumRouting,
-                activeColor: Colors.lightBlueAccent,
+                activeColor: _SettingsPalette.purpleBright,
                 onChanged: (val) {
                   setState(() => _quantumRouting = val);
                   _saveSetting('quantum_routing', val);
@@ -408,19 +425,153 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildPremiumHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_SettingsPalette.surfaceElevated, _SettingsPalette.surface],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _SettingsPalette.purple.withOpacity(0.32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _SettingsPalette.purple,
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+            ),
+            child: Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "تفضيلات المشاهدة",
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  "خصّص التجربة بما يناسبك",
+                  style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.workspace_premium_rounded, color: _SettingsPalette.gold, size: 21),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeSettingCard({
+    required bool isDarkMode,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: _SettingsPalette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _SettingsPalette.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _SettingsPalette.purple.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              color: _SettingsPalette.purpleBright,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("المظهر", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                SizedBox(height: 2),
+                Text("التبديل بين النمط الداكن والفاتح", style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 11)),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: isDarkMode,
+            activeColor: _SettingsPalette.purpleBright,
+            activeTrackColor: _SettingsPalette.purple,
+            inactiveThumbColor: Colors.white70,
+            inactiveTrackColor: Colors.white12,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: _SettingsPalette.gold,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(subtitle, style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOrientationSettingCard() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: _SettingsPalette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _SettingsPalette.divider),
       ),
       child: InkWell(
         onTap: () => _showOrientationDialog(),
         child: Row(
           children: [
-            const Icon(Icons.screen_rotation_rounded, color: Colors.blueAccent, size: 24),
+            const Icon(Icons.screen_rotation_rounded, color: _SettingsPalette.purpleBright, size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -433,12 +584,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _appOrientation,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 16),
+            const Icon(Icons.arrow_forward_ios_rounded, color: _SettingsPalette.textMuted, size: 16),
           ],
         ),
       ),
@@ -452,7 +603,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1E1E22),
+              backgroundColor: _SettingsPalette.surfaceElevated,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Text(
                 "اتجاه الشاشة",
@@ -520,7 +671,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFE50914) : Colors.white30,
+                  color: isSelected ? _SettingsPalette.purple : Colors.white30,
                   width: 2,
                 ),
               ),
@@ -531,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         height: 10,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xFFE50914),
+                          color: _SettingsPalette.purple,
                         ),
                       ),
                     )
@@ -540,7 +691,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(
               option,
               style: TextStyle(
-                color: isSelected ? const Color(0xFFE50914) : Colors.white,
+                color: isSelected ? _SettingsPalette.purple : Colors.white,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 16,
               ),
@@ -560,9 +711,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: _SettingsPalette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _SettingsPalette.divider),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -573,10 +724,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           DropdownButton<String>(
             value: value,
-            dropdownColor: const Color(0xFF1E1E20),
-            style: const TextStyle(color: Colors.cyanAccent, fontSize: 14),
+            dropdownColor: _SettingsPalette.surfaceElevated,
+            style: const TextStyle(color: _SettingsPalette.purpleBright, fontSize: 14),
             underline: const SizedBox(),
-            icon: const Icon(Icons.arrow_drop_down, color: Colors.cyanAccent),
+            icon: const Icon(Icons.arrow_drop_down, color: _SettingsPalette.purpleBright),
             items: items.map((String item) {
               return DropdownMenuItem<String>(
                 value: item,
@@ -600,9 +751,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: _SettingsPalette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: value ? activeColor.withOpacity(0.3) : Colors.white10),
+        border: Border.all(color: value ? activeColor.withOpacity(0.3) : _SettingsPalette.divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,7 +769,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                  style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.4),
                 ),
               ],
             ),
@@ -629,7 +780,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             activeColor: Colors.white,
             activeTrackColor: activeColor,
             inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.white10,
+            inactiveTrackColor: _SettingsPalette.divider,
             onChanged: onChanged,
           ),
         ],
@@ -647,9 +798,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141416),
+        color: _SettingsPalette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _SettingsPalette.divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -665,7 +816,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                  style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.4),
                 ),
               ],
             ),
@@ -673,7 +824,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 12),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE50914),
+              backgroundColor: _SettingsPalette.purple,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -708,7 +859,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return DefaultTabController(
               length: 3,
               child: AlertDialog(
-                backgroundColor: const Color(0xFF16161A),
+                backgroundColor: _SettingsPalette.surfaceElevated,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: const BorderSide(color: Colors.white12, width: 1),
@@ -723,7 +874,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Cairo', fontSize: 18),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.settings_suggest, color: Color(0xFFE50914)),
+                        const Icon(Icons.settings_suggest, color: _SettingsPalette.purple),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -741,10 +892,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           });
                         },
                         style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Cairo'),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: "ابحث عن قسم...",
-                          hintStyle: TextStyle(color: Colors.white38, fontSize: 12, fontFamily: 'Cairo'),
-                          prefixIcon: Icon(Icons.search, color: Colors.white38, size: 18),
+                          hintStyle: TextStyle(color: _SettingsPalette.textMuted.withOpacity(0.65), fontSize: 12, fontFamily: 'Cairo'),
+                          prefixIcon: Icon(Icons.search, color: _SettingsPalette.textMuted.withOpacity(0.65), size: 18),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
@@ -752,9 +903,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     const TabBar(
-                      indicatorColor: Color(0xFFE50914),
+                      indicatorColor: _SettingsPalette.purple,
                       labelColor: Colors.white,
-                      unselectedLabelColor: Colors.white54,
+                      unselectedLabelColor: _SettingsPalette.textMuted,
                       labelStyle: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13),
                       unselectedLabelStyle: TextStyle(fontFamily: 'Cairo', fontSize: 13),
                       tabs: [
@@ -798,7 +949,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return const Center(
         child: Text(
           "لا توجد أقسام مطابقة",
-          style: TextStyle(color: Colors.white38, fontFamily: 'Cairo', fontSize: 13),
+          style: TextStyle(color: _SettingsPalette.textMuted.withOpacity(0.65), fontFamily: 'Cairo', fontSize: 13),
         ),
       );
     }
@@ -824,7 +975,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             leading: Switch(
               value: isLocked,
-              activeColor: const Color(0xFFE50914),
+              activeColor: _SettingsPalette.purple,
               onChanged: (val) async {
                 await provider.toggleCategoryLock(cat);
                 setDialogState(() {});
@@ -832,7 +983,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-              color: isLocked ? const Color(0xFFE50914) : Colors.white30,
+              color: isLocked ? _SettingsPalette.purple : Colors.white30,
               size: 18,
             ),
           ),
@@ -904,7 +1055,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF2D2D2D),
+      backgroundColor: _SettingsPalette.surfaceElevated,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -917,7 +1068,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Container(
                   width: 40,
                   height: 40,
-                  color: Colors.redAccent,
+                  color: _SettingsPalette.purple,
                   alignment: Alignment.center,
                   child: const Text("L", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 ),
@@ -926,7 +1077,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text("New version ${widget.version}", style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                    Text("New version ${widget.version}", style: TextStyle(color: _SettingsPalette.purple, fontSize: 14)),
                   ],
                 ),
               ],
@@ -951,21 +1102,21 @@ class _UpdateDialogState extends State<UpdateDialog> {
               LinearProgressIndicator(
                 value: _progress,
                 backgroundColor: Colors.white24,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                valueColor: const AlwaysStoppedAnimation<Color>(_SettingsPalette.purple),
               ),
               const SizedBox(height: 8),
-              Text(_status, style: const TextStyle(color: Colors.white54, fontSize: 12), textDirection: TextDirection.rtl),
+              Text(_status, style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12), textDirection: TextDirection.rtl),
             ] else ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("لاحقاً", style: TextStyle(color: Colors.white54)),
+                    child: const Text("لاحقاً", style: TextStyle(color: _SettingsPalette.textMuted)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                    style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple),
                     onPressed: _startDownload,
                     child: const Text("تحديث الآن", style: TextStyle(color: Colors.white)),
                   ),

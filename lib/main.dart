@@ -143,7 +143,7 @@ class LiveFootballApp extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.warning_amber_rounded, color: Color(0xFFE50914), size: 80),
+                          const Icon(Icons.warning_amber_rounded, color: PremiumPalette.violet, size: 80),
                           const SizedBox(height: 20),
                           Text(
                             message,
@@ -177,7 +177,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, provider, _) {
         if (provider.isLoading && !provider.isLoggedIn) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))),
+            body: Center(child: CircularProgressIndicator(color: PremiumPalette.violet)),
           );
         }
         if (provider.isLoggedIn && !provider.isExpired) {
@@ -690,7 +690,7 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: const BoxDecoration(
-              color: Color(0xFFE50914),
+              color: PremiumPalette.violet,
               borderRadius: BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
             ),
             child: const Row(
@@ -822,7 +822,7 @@ class _HomeTabState extends State<HomeTab> {
               decoration: InputDecoration(
                 hintText: "البحث السريع المباشر عن القنوات والأفلام والمسلسلات...",
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                prefixIcon: const Icon(Icons.search, color: PremiumPalette.violet, size: 18),
                 suffixIcon: _globalSearchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
@@ -845,7 +845,7 @@ class _HomeTabState extends State<HomeTab> {
           if (_globalSearchQuery.isNotEmpty) ...[
             Row(
               children: [
-                const Icon(Icons.search, color: Color(0xFFE50914), size: 18),
+                const Icon(Icons.search, color: PremiumPalette.violet, size: 18),
                 const SizedBox(width: 8),
                 Text("نتائج البحث السريع", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
               ],
@@ -907,7 +907,7 @@ class _HomeTabState extends State<HomeTab> {
                                       ? CachedNetworkImage(
                                           imageUrl: item.streamIcon,
                                           fit: BoxFit.contain,
-                                          placeholder: (c, u) => const Center(child: CircularProgressIndicator(color: Color(0xFFE50914), strokeWidth: 1)),
+                                          placeholder: (c, u) => const Center(child: CircularProgressIndicator(color: PremiumPalette.violet, strokeWidth: 1)),
                                           errorWidget: (c, u, e) => Icon(typeIcon, color: Colors.white24, size: 20),
                                         )
                                       : Icon(typeIcon, color: Colors.white24, size: 20),
@@ -951,7 +951,7 @@ class _HomeTabState extends State<HomeTab> {
           if (_globalSearchQuery.isEmpty && provider.recentlyPlayed.isNotEmpty) ...[
             Row(
               children: [
-                const Icon(Icons.history, color: Color(0xFFE50914), size: 18),
+                const Icon(Icons.history, color: PremiumPalette.violet, size: 18),
                 const SizedBox(width: 8),
                 Text("واصل المشاهدة", style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: Colors.white)),
               ],
@@ -1233,7 +1233,7 @@ class StreamsListScreen extends StatelessWidget {
               // Content Grid
               Expanded(
                 child: provider.isFetchingData
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
+                    ? const Center(child: CircularProgressIndicator(color: PremiumPalette.violet))
                     : GridView.builder(
                         padding: EdgeInsets.only(right: 8, left: isMobile ? 12 : 16, bottom: 16),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -1436,7 +1436,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final pad = isMobile ? 16.0 : 32.0;
 
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))));
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: PremiumPalette.violet)));
     }
 
     if (_seriesData == null || (_seriesData!['seasons'] as List).isEmpty) {
@@ -1781,7 +1781,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
               ? CachedNetworkImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.contain, // Prevent cropping
-                  placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: Color(0xFFE50914), strokeWidth: 2))),
+                  placeholder: (context, url) => Container(color: Colors.white10, child: const Center(child: CircularProgressIndicator(color: PremiumPalette.violet, strokeWidth: 2))),
                   errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
               : Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
@@ -1874,12 +1874,12 @@ class DynamicSectionsWidget extends StatelessWidget {
       // Default Sections
       final showMoviesSeries = provider.showMoviesSeries;
       final List<Widget> staticCards = [
-        _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [Color(0xFFE50914), Color(0xFF8E040B)], isMobile),
+        _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [PremiumPalette.violet, Color(0xFF5B258A)], isMobile),
         if (showMoviesSeries)
-          _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF1E88E5), Color(0xFF1565C0)], isMobile),
+          _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF9B59B6), Color(0xFF6D3586)], isMobile),
         if (showMoviesSeries)
-          _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFF00B4DB), Color(0xFF0083B0)], isMobile),
-        _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFFFF416C), Color(0xFFFF4B2B)], isMobile),
+          _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFFA78BFA), Color(0xFF7C3AED)], isMobile),
+        _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFF8E44AD), Color(0xFF5B258A)], isMobile),
       ];
 
       if (isMobile) {

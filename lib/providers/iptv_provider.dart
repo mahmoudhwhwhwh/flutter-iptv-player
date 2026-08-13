@@ -223,9 +223,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 1200;
-  String _currentVersionStr = "12.0.0";
-  int _currentVersionCode = 1200;
+  static const int APP_VERSION_CODE = 212;
+  String _currentVersionStr = "2.2.12";
+  int _currentVersionCode = 212;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage = "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!";
@@ -354,7 +354,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       _currentVersionStr = packageInfo.version;
-      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 1200;
+      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 212;
       final nameClean = packageInfo.appName.toLowerCase().replaceAll(' ', '');
       if (!nameClean.contains("livefootball") && !nameClean.contains("livestrempro")) {
          // في حال تغيير اسم التطبيق يمكن إيقافه

@@ -322,13 +322,40 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ),
                     ),
-                    const SizedBox(height: 44),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
-                        icon: const Icon(Icons.support_agent_rounded, color: Color(0xFFC7C7CF), size: 28),
-                        label: const Text("تواصل مع الدعم الفني", style: TextStyle(color: Color(0xFFC7C7CF), fontSize: 20, fontWeight: FontWeight.w400)),
-                      ),
+                    const SizedBox(height: 36),
+                    const Center(
+                      child: Text("تابعنا على Telegram", style: TextStyle(color: Color(0xFFB7B7C1), fontSize: 15, fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFA855F7),
+                            side: const BorderSide(color: Color(0xFFA855F7)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.telegram_rounded, size: 20),
+                          label: const Text("القناة الرسمية", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF211B2E),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 20),
+                          label: const Text("قناة الاشتراك", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -377,6 +404,115 @@ class MainDashboard extends StatefulWidget {
 
 class _MainDashboardState extends State<MainDashboard> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _showWelcomeAfterLogin();
+  }
+
+  Future<void> _openTelegram(String link) async {
+    final uri = Uri.parse(link);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _showWelcomeAfterLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final showWelcome = prefs.getBool('show_welcome_after_login') ?? false;
+    if (!showWelcome) return;
+    await prefs.remove('show_welcome_after_login');
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = Provider.of<IPTVProvider>(context, listen: false);
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 460),
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF11111B),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: const Color(0xFFA855F7), width: 1.3),
+              boxShadow: [BoxShadow(color: const Color(0xFFA855F7).withOpacity(0.18), blurRadius: 28, spreadRadius: 2)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: const BoxDecoration(color: Color(0xFFA855F7), shape: BoxShape.circle),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 50),
+                ),
+                const SizedBox(height: 18),
+                const Text('أهلاً بك في LIVE STREAM PREMIUM', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                Text(
+                  provider.subscriptionType.isEmpty ? 'تم تفعيل اشتراكك بنجاح' : 'اشتراكك: ${provider.subscriptionType}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xFFC8C8D0), fontSize: 15),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openTelegram('https://t.me/+f9NsIzGjN_hjYWRi'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFA855F7),
+                          side: const BorderSide(color: Color(0xFFA855F7)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.telegram_rounded, size: 19),
+                        label: const Text('القناة الرسمية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF251B36),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 19),
+                        label: const Text('قناة الاشتراك', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFA855F7),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('ابدأ المشاهدة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
 
   void updateIndex(int i) {
     if (i > 0) {
@@ -559,9 +695,21 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.telegram_rounded, color: Color(0xFFA855F7), size: 31),
+              title: const Text("القناة الرسمية", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
+              onTap: () => _openTelegram('https://t.me/+f9NsIzGjN_hjYWRi'),
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 31),
+              title: const Text("قناة الاشتراك", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
+              onTap: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
               leading: const Icon(Icons.support_agent_rounded, color: Color(0xFFD0D0D7), size: 31),
               title: const Text("الدعم والمساعدة", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
-              onTap: () {},
+              onTap: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
             ),
             const Spacer(),
             ListTile(

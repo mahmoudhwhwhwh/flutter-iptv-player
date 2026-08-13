@@ -47,7 +47,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   String _aspectRatioLabel = "تلقائي";
   bool _showSidebar = false;
   
-  RotationMode _rotationMode = RotationMode.smartAuto;
+  RotationMode _rotationMode = RotationMode.landscapeOnly;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
   StreamSubscription<GyroscopeEvent>? _gyroSubscription;
   DeviceOrientation? _lastPhysicalOrientation;
@@ -201,26 +201,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       else _subBgColorVal = Colors.transparent;
 
       
-      if (appOrient == "أفقي") {
-        _isPortrait = false;
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-      } else if (appOrient == "عمودي") {
-        _isPortrait = true;
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
-      } else {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
-      }
+      // المشغّل يُعرض أفقياً دائماً لتثبيت الأزرار ومنع التدوير غير المتوقع.
+      _isPortrait = false;
+      _rotationMode = RotationMode.landscapeOnly;
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
       
       if (mounted) setState((){});
     } catch(e) {}
@@ -233,16 +220,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _loadSubSettings();
     _stream = widget.stream;
     
-    // Auto-scale and configure device for horizontal immersive screen view
+    // عرض ثابت أفقي للمشغّل؛ لا تُستخدم حساسات الحركة لتفادي التدوير العشوائي.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
     ]);
-    
-    _startSensorBasedOrientationListener();
     _initializeController();
     _resetHideHUDTimer();
   }
@@ -788,32 +771,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _toggleSmartRotation() {
     setState(() {
-      if (_rotationMode == RotationMode.smartAuto) {
-        _rotationMode = RotationMode.landscapeOnly;
-        _isPortrait = false;
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-        _showOnScreenToast("تثبيت التدوير: أفقي فقط", Icons.crop_landscape_rounded);
-      } else if (_rotationMode == RotationMode.landscapeOnly) {
-        _rotationMode = RotationMode.portraitOnly;
-        _isPortrait = true;
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
-        _showOnScreenToast("تثبيت التدوير: عمودي فقط", Icons.crop_portrait_rounded);
-      } else {
-        _rotationMode = RotationMode.smartAuto;
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-        ]);
-        _showOnScreenToast("تدوير ذكي: تلقائي حسب حركة الهاتف", Icons.screen_rotation_rounded);
-      }
+      // يبقى زر التدوير موجوداً، لكن يعيد تثبيت العرض الأفقي بدلاً من التنقل العشوائي بين الاتجاهات.
+      _rotationMode = RotationMode.landscapeOnly;
+      _isPortrait = false;
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      _showOnScreenToast("العرض مثبت: أفقي", Icons.crop_landscape_rounded);
     });
   }
 
@@ -1802,14 +1767,14 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: isLive ? Colors.redAccent.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2),
+                                    color: isLive ? Colors.redAccent.withOpacity(0.2) : const Color(0xFFA855F7).withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: isLive ? Colors.redAccent : Colors.blueAccent, width: 0.5),
+                                    border: Border.all(color: isLive ? Colors.redAccent : const Color(0xFFA855F7), width: 0.5),
                                   ),
                                   child: Text(
                                     isLive ? "LIVE" : "VOD",
                                     style: TextStyle(
-                                      color: isLive ? Colors.redAccent : Colors.blueAccent,
+                                      color: isLive ? Colors.redAccent : const Color(0xFFA855F7),
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.5,
@@ -1830,10 +1795,14 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                           ],
                         ),
                       ),
-                      // Top Right Action Buttons (RTL means Left side)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                      // مجموعة الأزرار نفسها ضمن مسار أفقي ثابت يمنع التداخل.
+                      SizedBox(
+                        width: 348,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                           IconButton(
                             icon: Icon(
                               provider.favorites.contains(_stream.streamId) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
@@ -1934,7 +1903,9 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                               _resetHideHUDTimer();
                             },
                           ),
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1942,10 +1913,12 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                 
                 const Spacer(),
                 
-                // CENTER CONTROLS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                // CENTER CONTROLS: تبقى أفقية على جميع قياسات العرض.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                     _buildHUDCircleBtn(
                       icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
                       onTap: () {
@@ -2017,7 +1990,8 @@ if (_showHUD && !_isLocked) _buildHUDOverlay(provider),
                         _resetHideHUDTimer();
                       },
                     ),
-                  ],
+                    ],
+                  ),
                 ),
                 
                 const Spacer(),

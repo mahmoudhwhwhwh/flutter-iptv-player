@@ -975,6 +975,7 @@ class IPTVProvider with ChangeNotifier {
           _activePlaylistId = list.id;
           
           await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+          await prefs.setBool('show_welcome_after_login', true);
           await prefs.setBool('is_logged_in', true);
           
           _isLoggedIn = true;

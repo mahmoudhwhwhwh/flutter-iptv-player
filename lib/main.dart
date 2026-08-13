@@ -990,8 +990,6 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
-    final accent = Theme.of(context).colorScheme.primary;
-    final surface = Theme.of(context).colorScheme.surface;
     final isMobile = MediaQuery.of(context).size.width < 600;
     final liveItems = provider.allStreams
         .where((item) => item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
@@ -1051,6 +1049,8 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildQuickAccessRow(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final surface = Theme.of(context).colorScheme.surface;
     final entries = <({String english, String arabic, IconData icon, int index})>[
       (english: 'LIVE', arabic: 'قنوات مباشرة', icon: Icons.live_tv_rounded, index: 1),
       (english: 'MOVIES', arabic: 'أفلام', icon: Icons.movie_rounded, index: 2),

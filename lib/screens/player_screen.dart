@@ -1396,7 +1396,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             children: [
             // 1. Core Video Frame Container
             GestureDetector(
-              mouseCursor: _mouseControlEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
               onTap: () {
                 if (_isLocked) {
                   setState(() {

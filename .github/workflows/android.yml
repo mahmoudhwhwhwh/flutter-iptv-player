@@ -29,20 +29,19 @@ jobs:
 
       - name: Build Android APK
         run: |
-          # Build a release APK (now patched to use debug signing if needed)
-          flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
+          flutter build apk --debug
+          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.16.apk
 
-      - name: Create or Update Release
+      - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.15-final
-          name: LIVE STREAM PREMIUM v2.2.15 (Stable)
+          tag_name: v2.2.16-stable
+          name: LIVE STREAM PREMIUM v2.2.16 (Final)
           body: |
-            🚀 النسخة النهائية v2.2.15.
-            ✅ تم حل مشكلة فشل البناء نهائياً.
-            ✅ تحديث تلقائي من GitHub للسلايدر والمنيو.
+            🚀 النسخة النهائية v2.2.16.
+            ✅ بناء يدوي مستقر.
+            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
             ✅ نظام تسجيل دخول آمن ومشفر.
-          files: LIVE_STREAM_PREMIUM_V2.2.15.apk
+          files: LIVE_STREAM_PREMIUM_V2.2.16.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

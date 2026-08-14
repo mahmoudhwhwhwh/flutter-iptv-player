@@ -1,6 +1,6 @@
 {
   "app_name": "LIVE STREAM PREMIUM",
-  "app_version": "2.2.23",
+  "app_version": "2.2.24",
   "announcement": "🔒 تم تفعيل النظام الأمني v2.2.15. يرجى التحديث الآن لضمان عمل كافة الاشتراكات تلقائياً.",
   "api_url": "https://iptv-subscription-api.tvkora56.workers.dev",
   "disable_vpn_check": false,

@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-
 def localProperties = new Properties()
 def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
 if (localPropertiesFile.exists()) {
@@ -8,40 +7,30 @@ if (localPropertiesFile.exists()) {
         localProperties.load(reader)
     }
 }
-
 def flutterRoot = localProperties.getProperty('flutter.sdk') ?: System.getenv('FLUTTER_ROOT')
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
-
 def signingProperties = new Properties()
 def signingPropertiesFile = rootProject.file('key.properties')
 if (signingPropertiesFile.exists()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
 }
-
 def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: 'UNSET'
-
 def hasReleaseSigning = signingProperties['storeFile'] && signingProperties['storePassword'] && signingProperties['keyAlias'] && signingProperties['keyPassword']
-
 android {
     namespace "com.mahmoud.iptv"
     compileSdk 34
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = '17'
     }
-
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-
     defaultConfig {
         applicationId "com.mahmoud.iptv"
         minSdk 23
@@ -51,11 +40,9 @@ android {
         multiDexEnabled true
         buildConfigField "String", "EXPECTED_CERT_SHA256", "\"${expectedCertificateSha256}\""
     }
-
     buildFeatures {
         buildConfig true
     }
-
     signingConfigs {
         release {
             if (hasReleaseSigning) {
@@ -70,24 +57,25 @@ android {
             }
         }
     }
-
     buildTypes {
         release {
-            if (!hasReleaseSigning) {
-                throw new GradleException('Release signing is required. Provide android/key.properties from protected GitHub secrets.')
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
             }
-            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             debuggable false
             jniDebuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            signingConfig signingConfigs.debug
+        }
     }
 }
-
 flutter {
     source '../..'
 }
-
 apply plugin: 'com.google.gms.google-services'

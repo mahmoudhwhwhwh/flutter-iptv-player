@@ -632,7 +632,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final configRes = await http
           .get(Uri.parse(
-              "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"))
+              "https://iptv-subscription-api.tvkora56.workers.dev/config"))
           .timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);

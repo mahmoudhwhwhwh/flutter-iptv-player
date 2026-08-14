@@ -30,13 +30,7 @@ jobs:
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
       - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: LIVE STREAM PREMIUM - ${{ github.ref_name }}
-          body: |
-            ✅ النسخة ${{ github.ref_name }} النهائية.
-            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
-          files: LIVE_STREAM_PREMIUM_V2.2.15.apk
+        run: |
+          gh release create "v2.2.15-final" LIVE_STREAM_PREMIUM_V2.2.15.apk --title "LIVE STREAM PREMIUM v2.2.15" --notes "نسخة مستقرة وآمنة" --target main || echo "Release already exists"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

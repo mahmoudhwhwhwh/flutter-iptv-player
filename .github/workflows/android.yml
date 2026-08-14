@@ -30,11 +30,11 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.17.apk
+          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.18.apk
 
       - name: Create GitHub Release
         run: |
-          gh release delete v2.2.17-stable --yes || true
-          gh release create v2.2.17-stable LIVE_STREAM_PREMIUM_V2.2.17.apk --title "LIVE STREAM PREMIUM v2.2.17" --notes "النسخة النهائية v2.2.17. تم السماح بتصوير الشاشة وإلغاء القيود الأمنية."
+          gh release delete v2.2.18-stable --yes || true
+          gh release create v2.2.18-stable LIVE_STREAM_PREMIUM_V2.2.18.apk --title "LIVE STREAM PREMIUM v2.2.18" --notes "النسخة النهائية والمستقرة v2.2.18. تم تفعيل الحماية والسماح بتصوير الشاشة."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

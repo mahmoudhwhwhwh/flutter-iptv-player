@@ -556,7 +556,7 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-    Future<void> runActiveSecurityChecks() async {
+  Future<void> runActiveSecurityChecks() async {
     try {
       // فحص أمني فائق القوة
       await checkSecurity();
@@ -582,9 +582,6 @@ class IPTVProvider with ChangeNotifier {
             return;
           }
         }
-      }
-    } catch (_) {}
-  }
       }
     } catch (_) {}
   }

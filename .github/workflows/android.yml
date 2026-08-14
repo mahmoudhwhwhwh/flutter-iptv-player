@@ -4,6 +4,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,16 +33,17 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v2.2.15-stable
-          name: LIVE STREAM PREMIUM - v2.2.15 Final
+          tag_name: v2.2.15-v2
+          name: LIVE STREAM PREMIUM - v2.2.15 Final Stable
           body: |
-            ✅ نسخة مستقرة v2.2.15.
-            ✅ تحديث تلقائي للسلايدر والمنيو والإعدادات من GitHub.
-            ✅ نظام تسجيل دخول آمن.
-          files: LIVE_STREAM_PREMIUM_V2.2.15.apk
-          token: ${{ secrets.GITHUB_TOKEN }}
+            ✅ النسخة v2.2.15 النهائية والمستقرة.
+            ✅ تدعم التحديث التلقائي للسلايدر والمنيو من GitHub.
+            ✅ نظام تسجيل دخول آمن ومشفر.
+          files: LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

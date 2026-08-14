@@ -2,6 +2,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -27,16 +28,15 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.15-final
-          name: LIVE STREAM PREMIUM - v2.2.15 Final Stable
+          tag_name: ${{ github.ref_name }}
+          name: LIVE STREAM PREMIUM - ${{ github.ref_name }}
           body: |
-            ✅ النسخة v2.2.15 النهائية والمستقرة.
+            ✅ النسخة ${{ github.ref_name }} النهائية.
             ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
-            ✅ نظام تسجيل دخول آمن ومشفر.
-          files: LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
+          files: LIVE_STREAM_PREMIUM_V2.2.15.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

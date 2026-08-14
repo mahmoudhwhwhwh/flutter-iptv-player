@@ -1,9 +1,6 @@
 name: Build Android APK
 on:
-  push:
-    branches: [ main, master ]
-    tags: [ 'v*' ]
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger only
 
 permissions:
   contents: write
@@ -38,12 +35,12 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.15-stable-final
-          name: LIVE STREAM PREMIUM - v2.2.15 (Final Stable)
+          tag_name: v2.2.15-final-manual
+          name: LIVE STREAM PREMIUM - v2.2.15 (Manual Build)
           body: |
-            ✅ النسخة v2.2.15 المستقرة والنهائية.
-            ✅ تم حل مشاكل التوافق مع Flutter.
-            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
+            ✅ النسخة v2.2.15 النهائية.
+            ✅ بناء يدوي فقط.
+            ✅ تحديث تلقائي من GitHub للملفات.
           files: LIVE_STREAM_PREMIUM_V2.2.15.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

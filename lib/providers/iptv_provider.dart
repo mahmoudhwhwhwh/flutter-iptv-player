@@ -944,7 +944,7 @@ class IPTVProvider with ChangeNotifier {
       }
 
       final data = json.decode(response.body);
-      if (data['ok'] != true && data['success'] != true) {
+      if (data['ok'] != true) {
         lastError = data['message'] ?? 'تعذر الاتصال. تأكد من الإنترنت وصحة الاشتراك';
         _isLoading = false;
         notifyListeners();
@@ -977,6 +977,10 @@ class IPTVProvider with ChangeNotifier {
         username: userData['username'],
         password: userData['password'],
       );
+      
+      if (userData['server_type'] == 'stalker') {
+        _globalUserAgent = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3";
+      }
       
       _savedPlaylists = [list];
       _activePlaylistId = list.id;

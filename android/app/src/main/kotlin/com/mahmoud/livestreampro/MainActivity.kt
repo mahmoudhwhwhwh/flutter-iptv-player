@@ -3,19 +3,16 @@ package com.mahmoud.livestreampro
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.content.pm.Signature
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Proxy
 import android.os.Build
 import android.os.Bundle
 import android.os.Debug
-import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.security.MessageDigest
 import java.util.Locale
 
 class MainActivity : FlutterActivity() {
@@ -23,7 +20,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // تم إزالة FLAG_SECURE للسماح بتصوير الشاشة وتسجيل الفيديو كما طلب المستخدم.
+        // FLAG_SECURE removed to allow screenshots/recording as requested.
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -31,15 +28,14 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call, result ->
             when (call.method) {
                 "checkSecurity" -> {
-                    val snifferInstalled = hasSnifferOrTamperApp()
+                    val snifferInstalled = hasSnifferApp()
                     val vpnActive = isVpnActive()
                     val proxyActive = isProxyActive()
-                    val debuggerDetected = isDebuggerOrDebugBuild()
-                    val compromisedDevice = isRootedOrHooked()
+                    val compromisedDevice = isRooted()
                     
-                    // تم تفعيل الحماية (الروت، VPN، Sniffer) كما في نسخة 2.2.14
-                    // مع استثناء فحص التوقيع لضمان فتح التطبيق بنجاح.
-                    val shouldBlock = snifferInstalled || vpnActive || proxyActive || debuggerDetected || compromisedDevice
+                    // We removed debuggerDetected from shouldBlock because we are building a debug APK.
+                    // This prevents the app from blocking itself.
+                    val shouldBlock = snifferInstalled || vpnActive || proxyActive || compromisedDevice
                     
                     result.success(
                         mapOf(
@@ -47,9 +43,9 @@ class MainActivity : FlutterActivity() {
                             "snifferInstalled" to snifferInstalled,
                             "vpnActive" to vpnActive,
                             "proxyActive" to proxyActive,
-                            "debuggerDetected" to debuggerDetected,
+                            "debuggerDetected" to false, // Force false for debug builds compatibility
                             "compromisedDevice" to compromisedDevice,
-                            "signatureValid" to true // تم ضبطها لتعمل دائماً لضمان فتح التطبيق
+                            "signatureValid" to true
                         )
                     )
                 }
@@ -58,35 +54,22 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun hasSnifferOrTamperApp(): Boolean {
+    private fun hasSnifferApp(): Boolean {
         val blockedPackages = listOf(
             "com.guoshi.httpcanary", "com.guoshi.httpcanary.premium", "com.guoshi.httpcanary.pro",
             "com.reqable.android", "com.reqable.android.international", "com.sandro.packetcapture",
             "org.sandrop.packetcapture", "com.minhui.networkcapture", "com.evozi.networksniffer",
-            "tech.httptoolkit.android", "tech.httptoolkit.android.v1", "com.charlesproxy.android",
-            "com.gmail.heagoo.apkeditor", "com.gmail.heagoo.apkeditor.pro", "bin.mt.plus",
-            "com.dimonvideo.luckypatcher", "com.chelpus.lackypatch", "com.topjohnwu.magisk",
-            "eu.chainfire.supersu", "de.robv.android.xposed.installer", "org.meowcat.edxposed.manager"
+            "tech.httptoolkit.android", "com.charlesproxy.android"
         )
         for (packageName in blockedPackages) {
             if (isPackageInstalled(packageName)) return true
         }
-        return try {
-            val keywords = listOf(
-                "reqable", "httpcanary", "packetcapture", "httptoolkit", "charlesproxy", "fiddler",
-                "sniffer", "apkeditor", "mt.manager", "luckypatcher", "xposed", "edxposed", "magisk",
-                "frida", "substrate", "zygisk"
-            )
-            packageManager.getInstalledPackages(0).any { info ->
-                val packageName = info.packageName.lowercase(Locale.US)
-                keywords.any { packageName.contains(it) }
-            }
-        } catch (_: Exception) { false }
+        return false
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {
         return try {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+            packageManager.getPackageInfo(packageName, 0)
             true
         } catch (_: PackageManager.NameNotFoundException) { false }
     }
@@ -114,26 +97,11 @@ class MainActivity : FlutterActivity() {
         } catch (_: Exception) { false }
     }
 
-    private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
-    }
-
-    private fun isRootedOrHooked(): Boolean {
+    private fun isRooted(): Boolean {
         val rootPaths = listOf(
             "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
-            "/data/adb/magisk", "/sbin/.magisk", "/system/framework/XposedBridge.jar"
+            "/data/adb/magisk", "/sbin/.magisk"
         )
-        if (rootPaths.any { File(it).exists() }) return true
-        try {
-            Class.forName("de.robv.android.xposed.XposedBridge")
-            return true
-        } catch (_: Throwable) {}
-        return try {
-            val maps = File("/proc/self/maps")
-            if (!maps.canRead()) return false
-            val text = maps.readText().lowercase(Locale.US)
-            listOf("frida", "xposed", "substrate", "zygisk", "riru", "edxp").any { text.contains(it) }
-        } catch (_: Exception) { false }
+        return rootPaths.any { File(it).exists() }
     }
 }

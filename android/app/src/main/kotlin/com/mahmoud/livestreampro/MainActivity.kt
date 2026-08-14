@@ -1,26 +1,23 @@
 package com.mahmoud.livestreampro
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Proxy
 import android.os.Build
 import android.os.Bundle
-import android.os.Debug
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val channel = "com.mahmoud.iptv/security"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // FLAG_SECURE removed to allow screenshots/recording as requested.
+        // السماح بتصوير الشاشة وتسجيل الفيديو بناءً على طلب المستخدم
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -33,8 +30,7 @@ class MainActivity : FlutterActivity() {
                     val proxyActive = isProxyActive()
                     val compromisedDevice = isRooted()
                     
-                    // We removed debuggerDetected from shouldBlock because we are building a debug APK.
-                    // This prevents the app from blocking itself.
+                    // تم تفعيل الحماية مع استثناء الـ Debug لضمان عمل النسخة المرفوعة
                     val shouldBlock = snifferInstalled || vpnActive || proxyActive || compromisedDevice
                     
                     result.success(
@@ -43,7 +39,7 @@ class MainActivity : FlutterActivity() {
                             "snifferInstalled" to snifferInstalled,
                             "vpnActive" to vpnActive,
                             "proxyActive" to proxyActive,
-                            "debuggerDetected" to false, // Force false for debug builds compatibility
+                            "debuggerDetected" to false,
                             "compromisedDevice" to compromisedDevice,
                             "signatureValid" to true
                         )
@@ -56,10 +52,8 @@ class MainActivity : FlutterActivity() {
 
     private fun hasSnifferApp(): Boolean {
         val blockedPackages = listOf(
-            "com.guoshi.httpcanary", "com.guoshi.httpcanary.premium", "com.guoshi.httpcanary.pro",
-            "com.reqable.android", "com.reqable.android.international", "com.sandro.packetcapture",
-            "org.sandrop.packetcapture", "com.minhui.networkcapture", "com.evozi.networksniffer",
-            "tech.httptoolkit.android", "com.charlesproxy.android"
+            "com.guoshi.httpcanary", "com.reqable.android", "com.sandro.packetcapture",
+            "org.sandrop.packetcapture", "com.minhui.networkcapture", "tech.httptoolkit.android"
         )
         for (packageName in blockedPackages) {
             if (isPackageInstalled(packageName)) return true
@@ -98,10 +92,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isRooted(): Boolean {
-        val rootPaths = listOf(
-            "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
-            "/data/adb/magisk", "/sbin/.magisk"
-        )
+        val rootPaths = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su", "/data/adb/magisk")
         return rootPaths.any { File(it).exists() }
     }
 }

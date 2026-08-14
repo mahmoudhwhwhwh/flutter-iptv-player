@@ -32,21 +32,21 @@ jobs:
         run: |
           flutter build apk --debug
           # Find any apk generated and rename it
-          find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} LIVE_STREAM_PREMIUM_V2.2.21.apk \;
+          find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} LIVE_STREAM_PREMIUM_V2.2.24.apk \;
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LIVE_STREAM_PREMIUM_V2.2.21
-          path: LIVE_STREAM_PREMIUM_V2.2.21.apk
+          name: LIVE_STREAM_PREMIUM_V2.2.24
+          path: LIVE_STREAM_PREMIUM_V2.2.24.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.21-stable
-          name: LIVE STREAM PREMIUM v2.2.21
-          body: "النسخة النهائية والمستقرة v2.2.21. تم تفعيل الحماية والسماح بتصوير الشاشة."
-          files: LIVE_STREAM_PREMIUM_V2.2.21.apk
+          tag_name: v2.2.24-stable
+          name: LIVE STREAM PREMIUM v2.2.24
+          body: "إصدار تصحيحي يضمن توجيه Xtream وStalker حسب نوع السيرفر الصحيح."
+          files: LIVE_STREAM_PREMIUM_V2.2.24.apk
           draft: false
           prerelease: false
         env:

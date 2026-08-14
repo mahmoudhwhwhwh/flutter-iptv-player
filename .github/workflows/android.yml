@@ -1,6 +1,8 @@
 name: Build Android APK
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -8,7 +10,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on:
+  push:
+    branches: [ main ] ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -17,13 +21,19 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
-          distribution: zulu
-          java-version: '17'
+          distribution:
+  push:
+    branches: [ main ] zulu
+          java-version:
+  push:
+    branches: [ main ] '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.x'
+          flutter-version:
+  push:
+    branches: [ main ] '3.19.x'
           channel: stable
 
       - name: Configure protected release signing

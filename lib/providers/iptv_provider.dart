@@ -944,7 +944,7 @@ class IPTVProvider with ChangeNotifier {
       final list = UserPlaylist(
         id: 'main_subscription',
         name: _appName,
-        type: userData['server_type'] == 'stalker' ? 'stalker' : 'custom',
+        type: userData['server_type'] ?? 'xtream',
         host: userData['host'],
         username: userData['username'],
         password: userData['password'],

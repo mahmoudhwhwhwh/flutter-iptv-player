@@ -1,13 +1,11 @@
 name: Build Android APK
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
   contents: write
-  packages: write
-  actions: write
 
 jobs:
   build:
@@ -15,34 +13,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-
       - name: Install dependencies
         run: flutter pub get
-
       - name: Build Android APK
         run: |
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v2.2.15-v2
+          tag_name: v2.2.15-final
           name: LIVE STREAM PREMIUM - v2.2.15 Final Stable
           body: |
             ✅ النسخة v2.2.15 النهائية والمستقرة.
-            ✅ تدعم التحديث التلقائي للسلايدر والمنيو من GitHub.
+            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
             ✅ نظام تسجيل دخول آمن ومشفر.
           files: LIVE_STREAM_PREMIUM_V2.2.15_STABLE.apk
         env:

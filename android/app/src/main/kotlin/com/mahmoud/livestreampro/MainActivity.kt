@@ -1,98 +1,117 @@
 package com.mahmoud.livestreampro
 
-import android.content.Context
-import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.Proxy
-import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.net.NetworkInterface
+import java.util.*
 
-class MainActivity : FlutterActivity() {
-    private val channel = "com.mahmoud.iptv/security"
+class MainActivity: FlutterActivity() {
+    private val CHANNEL = "com.mahmoud.iptv/security"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // السماح بتصوير الشاشة وتسجيل الفيديو بناءً على طلب المستخدم
+        // إعادة تفعيل حماية الشاشة السوداء لمنع التصوير والسرقة (أقوى حماية)
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "checkSecurity" -> {
-                    val snifferInstalled = hasSnifferApp()
-                    val vpnActive = isVpnActive()
-                    val proxyActive = isProxyActive()
-                    val compromisedDevice = isRooted()
-                    
-                    // تم تفعيل الحماية مع استثناء الـ Debug لضمان عمل النسخة المرفوعة
-                    val shouldBlock = snifferInstalled || vpnActive || proxyActive || compromisedDevice
-                    
-                    result.success(
-                        mapOf(
-                            "shouldBlock" to shouldBlock,
-                            "snifferInstalled" to snifferInstalled,
-                            "vpnActive" to vpnActive,
-                            "proxyActive" to proxyActive,
-                            "debuggerDetected" to false,
-                            "compromisedDevice" to compromisedDevice,
-                            "signatureValid" to true
-                        )
-                    )
-                }
-                else -> result.notImplemented()
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "checkSecurity") {
+                val securityInfo = mutableMapOf<String, Any>()
+                
+                val isRooted = checkRootMethod1() || checkRootMethod2() || checkRootMethod3()
+                val isVpnActive = isVpnConnectionActive()
+                val isProxyActive = isProxyActive()
+                val isSnifferDetected = isSnifferAppInstalled() || isDebuggerAttached()
+
+                securityInfo["shouldBlock"] = isRooted || isSnifferDetected
+                securityInfo["vpnActive"] = isVpnActive
+                securityInfo["proxyActive"] = isProxyActive
+                securityInfo["isRooted"] = isRooted
+                securityInfo["snifferInstalled"] = isSnifferDetected
+                
+                result.success(securityInfo)
+            } else {
+                result.notImplemented()
             }
         }
     }
 
-    private fun hasSnifferApp(): Boolean {
-        val blockedPackages = listOf(
-            "com.guoshi.httpcanary", "com.reqable.android", "com.sandro.packetcapture",
-            "org.sandrop.packetcapture", "com.minhui.networkcapture", "tech.httptoolkit.android"
+    private fun checkRootMethod1(): Boolean {
+        val paths = arrayOf(
+            "/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su",
+            "/data/local/xbin/su", "/data/local/bin/su", "/system/sd/xbin/su",
+            "/system/bin/failsafe/su", "/data/local/su", "/su/bin/su"
         )
-        for (packageName in blockedPackages) {
-            if (isPackageInstalled(packageName)) return true
+        for (path in paths) {
+            if (File(path).exists()) return true
         }
         return false
     }
 
-    private fun isPackageInstalled(packageName: String): Boolean {
+    private fun checkRootMethod2(): Boolean {
+        var process: Process? = null
         return try {
-            packageManager.getPackageInfo(packageName, 0)
-            true
-        } catch (_: PackageManager.NameNotFoundException) { false }
+            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            val `in` = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            `in`.readLine() != null
+        } catch (t: Throwable) {
+            false
+        } finally {
+            process?.destroy()
+        }
     }
 
-    private fun isVpnActive(): Boolean {
-        return try {
-            val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = manager.activeNetwork ?: return false
-                val capabilities = manager.getNetworkCapabilities(network) ?: return false
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-            } else {
-                manager.allNetworks.any { network ->
-                    manager.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+    private fun checkRootMethod3(): Boolean {
+        val buildTags = android.os.Build.TAGS
+        return buildTags != null && buildTags.contains("test-keys")
+    }
+
+    private fun isVpnConnectionActive(): Boolean {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                val name = networkInterface.name.lowercase(Locale.getDefault())
+                if (name.contains("tun") || name.contains("ppp") || name.contains("pptp") || 
+                    name.contains("l2tp") || name.contains("ipsec") || name.contains("vpn")) {
+                    return true
                 }
             }
-        } catch (_: Exception) { false }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
     }
 
     private fun isProxyActive(): Boolean {
-        return try {
-            val host = System.getProperty("http.proxyHost")
-            val port = System.getProperty("http.proxyPort")
-            (!host.isNullOrBlank() && !port.isNullOrBlank()) || !Proxy.getDefaultHost().isNullOrBlank()
-        } catch (_: Exception) { false }
+        val proxyAddress = System.getProperty("http.proxyHost")
+        val proxyPort = System.getProperty("http.proxyPort")
+        return !proxyAddress.isNullOrEmpty() && !proxyPort.isNullOrEmpty()
     }
 
-    private fun isRooted(): Boolean {
-        val rootPaths = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su", "/data/adb/magisk")
-        return rootPaths.any { File(it).exists() }
+    private fun isSnifferAppInstalled(): Boolean {
+        val snifferPackages = arrayOf(
+            "com.guoshi.httpcanary", "com.guoshi.httpcanary.premium",
+            "com.charles.proxy", "org.proxydroid", "com.minhui.networkcapture",
+            "com.evbadrit.networklog", "com.adguard.android", "com.reqable.android"
+        )
+        val pm = packageManager
+        for (pkg in snifferPackages) {
+            try {
+                pm.getPackageInfo(pkg, 0)
+                return true
+            } catch (e: Exception) { }
+        }
+        return false
+    }
+
+    private fun isDebuggerAttached(): Boolean {
+        return android.os.Debug.isDebuggerConnected()
     }
 }

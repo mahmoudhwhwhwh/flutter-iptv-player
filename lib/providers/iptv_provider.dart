@@ -1038,6 +1038,30 @@ List<PlaylistItem> _parseStalkerChannels(
     }
   }
 
+  Future<String> _getStalkerToken(String host, String mac) async {
+    try {
+      final handshakeUrl = '$host/server/load.php?type=stb&action=handshake&JsHttpRequest=1-xml';
+      final response = await http.get(Uri.parse(handshakeUrl), headers: {'Cookie': 'mac=$mac', 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3'}).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['js']['token']?.toString() ?? '';
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<void> _loginStalker(String host, String mac) async {
+    try {
+      _stalkerToken = await _getStalkerToken(host, mac);
+      final loginUrl = '$host/server/load.php?type=stb&action=get_profile&JsHttpRequest=1-xml';
+      await http.get(Uri.parse(loginUrl), headers: {
+        'Cookie': 'mac=$mac',
+        'Authorization': 'Bearer $_stalkerToken',
+        'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3'
+      }).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
+
   Future<void> loadPlaylistStreams(String id) async {
     _isFetchingData = true;
     notifyListeners();
@@ -1124,77 +1148,71 @@ List<PlaylistItem> _parseStalkerChannels(
       final user = (playlist.username ?? '').trim();
       final pass = (playlist.password ?? '').trim();
 
-      if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
+            if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
+        await _loginStalker(host, user);
         final headers = <String, String>{
           'Cookie': 'mac=$user',
           'Authorization': 'Bearer $_stalkerToken',
-          'User-Agent':
-              'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
+          'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
         };
-        final liveCatsRes = await http
-            .get(
-              Uri.parse(
-                  '$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'),
-              headers: headers,
-            )
-            .timeout(const Duration(seconds: 15));
-
+        
+        // Fetch Live Categories
+        final liveCatsRes = await http.get(Uri.parse('$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
         List<Map<String, String>> tempLiveCats = [];
         if (liveCatsRes.statusCode == 200) {
           final data = json.decode(liveCatsRes.body);
           if (data['js'] is List) {
             for (final item in data['js']) {
-              tempLiveCats.add({
-                'category_id': item['id']?.toString() ?? '',
-                'category_name': item['title']?.toString() ?? '',
-              });
+              tempLiveCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
             }
           }
         }
+        _liveCategories = FilterService.interceptAndFilterCategories(tempLiveCats, blockAdult: _blockAdultContent);
 
-        tempLiveCats = FilterService.interceptAndFilterCategories(
-          tempLiveCats,
-          blockAdult: _blockAdultContent,
-        );
-
-        // نعرض أول صفحة صغيرة فوراً بدلاً من انتظار آلاف القنوات من الخادم البطيء.
-        List<PlaylistItem> initialStreams = [];
-        try {
-          final firstPageRes = await http
-              .get(
-                Uri.parse(
-                  '$host/server/load.php?type=itv&action=get_ordered_list&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml',
-                ),
-                headers: headers,
-              )
-              .timeout(const Duration(seconds: 15));
-          if (firstPageRes.statusCode == 200) {
-            initialStreams = _parseStalkerChannels(
-              json.decode(firstPageRes.body),
-              tempLiveCats,
-            );
+        // Fetch VOD Categories
+        final vodCatsRes = await http.get(Uri.parse('$host/server/load.php?type=vod&action=get_categories&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
+        if (vodCatsRes.statusCode == 200) {
+          final data = json.decode(vodCatsRes.body);
+          List<Map<String, String>> tempVodCats = [];
+          if (data['js'] is List) {
+            for (final item in data['js']) {
+              tempVodCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
+            }
           }
-        } catch (_) {
-          // تستمر الخلفية بمحاولة الحصول على القائمة الكاملة عند تأخر الصفحة الأولى.
+          _movieCategories = FilterService.interceptAndFilterCategories(tempVodCats, blockAdult: _blockAdultContent);
         }
 
-        _allStreams = FilterService.interceptAndFilterStreams(
-          initialStreams,
-          blockAdult: _blockAdultContent,
-          channelFilter: _channelFilter,
-        );
-        _liveCategories = tempLiveCats;
+        // Fetch Series Categories
+        final seriesCatsRes = await http.get(Uri.parse('$host/server/load.php?type=series&action=get_categories&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
+        if (seriesCatsRes.statusCode == 200) {
+          final data = json.decode(seriesCatsRes.body);
+          List<Map<String, String>> tempSeriesCats = [];
+          if (data['js'] is List) {
+            for (final item in data['js']) {
+              tempSeriesCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
+            }
+          }
+          _seriesCategories = FilterService.interceptAndFilterCategories(tempSeriesCats, blockAdult: _blockAdultContent);
+        }
+
+        // Fetch All Streams (Live, VOD, Series)
+        List<PlaylistItem> allStalkerItems = [];
+        
+        // Initial Live Page
+        try {
+          final firstPageRes = await http.get(Uri.parse('$host/server/load.php?type=itv&action=get_ordered_list&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
+          if (firstPageRes.statusCode == 200) {
+            allStalkerItems.addAll(_parseStalkerChannels(json.decode(firstPageRes.body), _liveCategories));
+          }
+        } catch (_) {}
+
+        _allStreams = FilterService.interceptAndFilterStreams(allStalkerItems, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _applyFilters();
         _isFetchingData = false;
         notifyListeners();
 
-        // لا ننتظر القائمة الكاملة: تستكمل في الخلفية وتنعش الواجهة عند جهوزها.
-        _loadFullStalkerCatalogueInBackground(
-          playlistId: id,
-          host: host,
-          headers: headers,
-          categories: List<Map<String, String>>.from(tempLiveCats),
-        );
+        // Background full load
+        _loadFullStalkerCatalogueInBackground(playlistId: id, host: host, headers: headers, categories: List<Map<String, String>>.from(_liveCategories));
         return;
       } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
         final liveCatsRes = await http

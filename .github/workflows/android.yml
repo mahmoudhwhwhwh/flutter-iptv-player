@@ -30,17 +30,11 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.16.apk
+          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.17.apk
 
       - name: Create GitHub Release
         run: |
-          gh release delete v2.2.16-stable --yes || true
-          gh release create v2.2.16-stable LIVE_STREAM_PREMIUM_V2.2.16.apk --title "LIVE STREAM PREMIUM v2.2.16" --notes "النسخة النهائية والمستقرة v2.2.16. تم حل كافة مشاكل البناء والرفع."
+          gh release delete v2.2.17-stable --yes || true
+          gh release create v2.2.17-stable LIVE_STREAM_PREMIUM_V2.2.17.apk --title "LIVE STREAM PREMIUM v2.2.17" --notes "النسخة النهائية v2.2.17. تم السماح بتصوير الشاشة وإلغاء القيود الأمنية."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifact (Backup)
-        uses: actions/upload-artifact@v4
-        with:
-          name: LIVE_STREAM_PREMIUM_V2.2.16-APK
-          path: LIVE_STREAM_PREMIUM_V2.2.16.apk

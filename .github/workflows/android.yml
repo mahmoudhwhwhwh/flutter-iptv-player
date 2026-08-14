@@ -1,6 +1,6 @@
 name: Build Android APK
 on:
-  workflow_dispatch: # Manual only as requested
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,18 +30,17 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.16.apk
+          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.16.apk
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v2.2.16-stable
-          name: LIVE STREAM PREMIUM v2.2.16 (Final)
-          body: |
-            🚀 النسخة النهائية v2.2.16.
-            ✅ بناء يدوي مستقر.
-            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
-            ✅ نظام تسجيل دخول آمن ومشفر.
-          files: LIVE_STREAM_PREMIUM_V2.2.16.apk
+      - name: Create GitHub Release
+        run: |
+          gh release delete v2.2.16-stable --yes || true
+          gh release create v2.2.16-stable LIVE_STREAM_PREMIUM_V2.2.16.apk --title "LIVE STREAM PREMIUM v2.2.16" --notes "النسخة النهائية والمستقرة v2.2.16. تم حل كافة مشاكل البناء والرفع."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact (Backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LIVE_STREAM_PREMIUM_V2.2.16-APK
+          path: LIVE_STREAM_PREMIUM_V2.2.16.apk

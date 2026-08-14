@@ -14,23 +14,36 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.19.6'
           channel: stable
+
       - name: Install dependencies
         run: flutter pub get
+
       - name: Build Android APK
         run: |
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
+
       - name: Create Release
-        run: |
-          gh release create "v2.2.15-final" LIVE_STREAM_PREMIUM_V2.2.15.apk --title "LIVE STREAM PREMIUM v2.2.15" --notes "نسخة مستقرة وآمنة" --target main || echo "Release already exists"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.2.15-stable-final
+          name: LIVE STREAM PREMIUM - v2.2.15 (Final Stable)
+          body: |
+            ✅ النسخة v2.2.15 المستقرة والنهائية.
+            ✅ تم حل مشاكل التوافق مع Flutter.
+            ✅ تحديث تلقائي للسلايدر والمنيو من GitHub.
+          files: LIVE_STREAM_PREMIUM_V2.2.15.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 name: Build Android APK
 on:
-  workflow_dispatch: # Manual trigger only
+  workflow_dispatch: # Manual only as requested
 
 permissions:
   contents: write
@@ -29,18 +29,20 @@ jobs:
 
       - name: Build Android APK
         run: |
-          flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
+          # Build a release APK (now patched to use debug signing if needed)
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM_V2.2.15.apk
 
-      - name: Create Release
+      - name: Create or Update Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.15-final-manual
-          name: LIVE STREAM PREMIUM - v2.2.15 (Manual Build)
+          tag_name: v2.2.15-final
+          name: LIVE STREAM PREMIUM v2.2.15 (Stable)
           body: |
-            ✅ النسخة v2.2.15 النهائية.
-            ✅ بناء يدوي فقط.
-            ✅ تحديث تلقائي من GitHub للملفات.
+            🚀 النسخة النهائية v2.2.15.
+            ✅ تم حل مشكلة فشل البناء نهائياً.
+            ✅ تحديث تلقائي من GitHub للسلايدر والمنيو.
+            ✅ نظام تسجيل دخول آمن ومشفر.
           files: LIVE_STREAM_PREMIUM_V2.2.15.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,4 +1,5 @@
 name: Build Android APK
+
 on:
   workflow_dispatch:
 
@@ -30,11 +31,23 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          mv build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM_V2.2.18.apk
+          # Find any apk generated and rename it
+          find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} LIVE_STREAM_PREMIUM_V2.2.18.apk \;
 
-      - name: Create GitHub Release
-        run: |
-          gh release delete v2.2.18-stable --yes || true
-          gh release create v2.2.18-stable LIVE_STREAM_PREMIUM_V2.2.18.apk --title "LIVE STREAM PREMIUM v2.2.18" --notes "النسخة النهائية والمستقرة v2.2.18. تم تفعيل الحماية والسماح بتصوير الشاشة."
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LIVE_STREAM_PREMIUM_V2.2.18
+          path: LIVE_STREAM_PREMIUM_V2.2.18.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.2.18-stable
+          name: LIVE STREAM PREMIUM v2.2.18
+          body: "النسخة النهائية والمستقرة v2.2.18. تم تفعيل الحماية والسماح بتصوير الشاشة."
+          files: LIVE_STREAM_PREMIUM_V2.2.18.apk
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

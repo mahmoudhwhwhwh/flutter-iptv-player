@@ -556,7 +556,7 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-    Future<void> runActiveSecurityChecks() async {
+  Future<void> runActiveSecurityChecks() async {
     try {
       await checkSecurity();
       if (_snifferDetected) {
@@ -578,10 +578,6 @@ class IPTVProvider with ChangeNotifier {
             notifyListeners();
             return;
           }
-        }
-      }
-    } catch (_) {}
-  }
         }
       }
     } catch (_) {}
@@ -895,7 +891,7 @@ class IPTVProvider with ChangeNotifier {
   String _updateMessage = "";
   String get updateMessage => _updateMessage;
 
-    Future<bool> loginWithCode(String code) async {
+  Future<bool> loginWithCode(String code) async {
     lastError = null;
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) {

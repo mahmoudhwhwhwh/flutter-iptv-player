@@ -556,37 +556,35 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> runActiveSecurityChecks() async {
+    Future<void> runActiveSecurityChecks() async {
     try {
-      // 1. فحص اتصال مصحح الأخطاء (Debugger attachment) - حماية قوية ضد الهندسة العكسية وتحليل القيم أثناء التشغيل
-
-      // 2. فحص كسر الحماية (Root detection) - أجهزة الروت تستخدم بشكل رئيسي لتخطي بروتوكولات الأمان وكسر الشهادات
+      // فحص أمني فائق القوة
+      await checkSecurity();
+      
+      if (_snifferDetected) {
+        _isSecured = false;
+        _securityMessage = "تم كشف برنامج التقاط حزم أو بيئة تشغيل غير آمنة! (Sniffer Detected)";
+        notifyListeners();
+        return;
+      }
+      
       if (Platform.isAndroid) {
         final List<String> rootPaths = [
-          "/system/app/Superuser.apk",
-          "/sbin/su",
-          "/system/bin/su",
-          "/system/xbin/su",
-          "/data/local/xbin/su",
-          "/data/local/bin/su",
-          "/system/sd/xbin/su",
-          "/system/bin/failsafe/su",
-          "/data/local/su",
-          "/su/bin/su",
-          "/system/xbin/daemonsu"
+          "/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su",
+          "/data/local/xbin/su", "/data/local/bin/su", "/system/sd/xbin/su",
+          "/system/bin/failsafe/su", "/data/local/su", "/su/bin/su", "/system/xbin/daemonsu"
         ];
-
         for (final path in rootPaths) {
           if (File(path).existsSync()) {
             _isSecured = false;
-            _securityMessage =
-                "تم كشف صلاحيات الروت أو كسر حماية نظام الهاتف (Root Access Detected). كإجراء أمان، تم إيقاف عمل التطبيق.";
-            _allStreams.clear();
-            _filteredStreams.clear();
+            _securityMessage = "تم كشف صلاحيات الروت (Root Access Detected). كإجراء أمان، تم إيقاف عمل التطبيق.";
             notifyListeners();
             return;
           }
         }
+      }
+    } catch (_) {}
+  }
       }
     } catch (_) {}
   }

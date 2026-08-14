@@ -556,7 +556,7 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> runActiveSecurityChecks() async {
+    Future<void> runActiveSecurityChecks() async {
     try {
       await checkSecurity();
       if (_snifferDetected) {
@@ -891,7 +891,7 @@ class IPTVProvider with ChangeNotifier {
   String _updateMessage = "";
   String get updateMessage => _updateMessage;
 
-  Future<bool> loginWithCode(String code) async {
+    Future<bool> loginWithCode(String code) async {
     lastError = null;
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) {
@@ -966,193 +966,7 @@ class IPTVProvider with ChangeNotifier {
     return false;
   }
 
-
-    if (cleanCode == '69743190') {
-      _isVersionBlocked = true;
-      notifyListeners();
-      return false;
-    }
-
-    await _checkVpnAndProxyStatus();
-    if (_vpnDetected) {
-      lastError = 'يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة';
-      return false;
-    }
-
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final deviceId = await _getDeviceId();
-      final response = await http
-          .post(
-            Uri.parse(
-                'https://iptv-subscription-api.tvkora56.workers.dev/v1/login'),
-            headers: const {'Content-Type': 'application/json'},
-            body: json.encode({
-              'code': cleanCode,
-              'device_id': deviceId,
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      Map<String, dynamic> data = <String, dynamic>{};
-      try {
-        final decoded = json.decode(response.body);
-        if (decoded is Map) {
-          data = Map<String, dynamic>.from(decoded);
-        }
-      } catch (_) {}
-
-      if (response.statusCode != 200 || data['ok'] != true) {
-        if (response.statusCode == 429) {
-          lastError =
-              'محاولات كثيرة. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى';
-        } else if (response.statusCode == 403) {
-          lastError = 'تم تجاوز الحد الأقصى للأجهزة المسموح بها';
-        } else if (data['message'] == 'Subscription expired') {
-          lastError = 'انتهت صلاحية الاشتراك';
-        } else {
-          lastError = 'رمز الدخول غير صالح أو غير مصرح به';
-        }
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      final serverData = data['server'];
-      if (serverData is! Map) {
-        throw const FormatException('Missing subscription server');
-      }
-      final server = Map<String, dynamic>.from(serverData);
-      final pType = (server['type']?.toString() ?? 'xtream').toLowerCase();
-      final contentMode =
-          (server['content_mode']?.toString() ?? 'iptv').toLowerCase();
-      final host = server['host']?.toString() ?? '';
-      final username = server['username']?.toString() ?? '';
-      final password = server['password']?.toString() ?? '';
-
-      int durationHours = -1;
-      final subscriptionData = data['subscription'];
-      if (subscriptionData is Map) {
-        final expiry = subscriptionData['expires_at']?.toString();
-        final expiryDate = expiry == null ? null : DateTime.tryParse(expiry);
-        if (expiryDate != null) {
-          final remainingHours = expiryDate.difference(DateTime.now()).inHours;
-          if (remainingHours < 0) {
-            lastError = 'انتهت صلاحية الاشتراك';
-            _isLoading = false;
-            notifyListeners();
-            return false;
-          }
-          durationHours = remainingHours;
-        }
-      }
-
-      bool isAuthenticated = false;
-      if (contentMode == 'custom_menu') {
-        isAuthenticated = true;
-      } else if (pType == 'stalker') {
-        if (host.isEmpty || username.isEmpty) {
-          throw const FormatException('Missing Stalker connection');
-        }
-        final authUrl = Uri.parse(
-          '$host/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml',
-        );
-        final authResponse = await http.get(authUrl, headers: {
-          'Cookie': 'mac=$username',
-          'User-Agent':
-              'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
-        }).timeout(const Duration(seconds: 15));
-        if (authResponse.statusCode == 200 || authResponse.statusCode == 201) {
-          final authData = json.decode(authResponse.body);
-          if (authData is Map && authData['js'] is Map) {
-            final token = authData['js']['token']?.toString() ?? '';
-            if (token.isNotEmpty) {
-              _stalkerToken = token;
-              isAuthenticated = true;
-            }
-          }
-        }
-        if (!isAuthenticated) {
-          lastError = 'فشل التحقق من حساب الماك';
-        }
-      } else {
-        if (host.isEmpty || username.isEmpty || password.isEmpty) {
-          throw const FormatException('Missing Xtream connection');
-        }
-        final authUrl = Uri.parse(
-          '$host/player_api.php?username=${Uri.encodeQueryComponent(username)}&password=${Uri.encodeQueryComponent(password)}',
-        );
-        final authResponse =
-            await http.get(authUrl).timeout(const Duration(seconds: 15));
-        if (authResponse.statusCode == 200) {
-          final authData = json.decode(authResponse.body);
-          if (authData is Map && authData['user_info'] is Map) {
-            isAuthenticated = authData['user_info']['auth'] != 0;
-          }
-        }
-        if (!isAuthenticated) {
-          lastError = 'فشل التحقق من الحساب';
-        }
-      }
-
-      if (!isAuthenticated) {
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final subscriptionName =
-          contentMode == 'custom_menu' ? 'اشتراك مجاني' : 'اشتراك $cleanCode';
-      final playlistType = contentMode == 'custom_menu' ? 'custom' : pType;
-
-      await prefs.setString('active_code', cleanCode);
-      await prefs.setInt('active_code_activated_at', nowMs);
-      await prefs.setInt('active_code_duration_hours', durationHours);
-      await prefs.setString('active_code_sub_name', subscriptionName);
-      await prefs.setString('app_name_cached', _appName);
-
-      _activationCode = cleanCode;
-      _activationTime = nowMs;
-      _activationDurationHours = durationHours;
-      _subscriptionType = subscriptionName;
-
-      final list = UserPlaylist(
-        id: '${playlistType}_$cleanCode',
-        name: _appName,
-        type: playlistType,
-        host: host,
-        username: username,
-        password: playlistType == 'stalker' ? '' : password,
-      );
-
-      _savedPlaylists = [list];
-      _activePlaylistId = list.id;
-      await prefs.setString('saved_playlists',
-          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-      await prefs.setBool('show_welcome_after_login', true);
-      await prefs.setBool('is_logged_in', true);
-
-      _isLoggedIn = true;
-      _isLoading = false;
-      notifyListeners();
-      await loadPlaylistStreams(list.id);
-      return true;
-    } on TimeoutException {
-      lastError = 'انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة';
-    } catch (_) {
-      lastError = 'تعذر الاتصال. تأكد من الإنترنت وصحة الاشتراك';
-    }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  }
-
-  List<PlaylistItem> _parseStalkerChannels(
+List<PlaylistItem> _parseStalkerChannels(
     dynamic payload,
     List<Map<String, String>> categories,
   ) {

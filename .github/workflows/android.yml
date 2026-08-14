@@ -1,5 +1,4 @@
 name: Build Android APK
-
 on:
   push:
     branches: [ main ]
@@ -10,10 +9,7 @@ permissions:
 
 jobs:
   build:
-    runs-on:
-  push:
-    branches: [ main ] ubuntu-latest
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,77 +17,34 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
-          distribution:
-  push:
-    branches: [ main ] zulu
-          java-version:
-  push:
-    branches: [ main ] '17'
+          distribution: zulu
+          java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version:
-  push:
-    branches: [ main ] '3.19.x'
+          flutter-version: '3.19.x'
           channel: stable
-
-      - name: Configure protected release signing
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
-          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS secret"; exit 1; }
-          test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
-          mkdir -p android/app/keystore
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/keystore/release.jks
-          cat > android/key.properties <<EOF
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyPassword=$ANDROID_KEY_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=app/keystore/release.jks
-          EOF
-
-      - name: Bind the APK to its signing certificate
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: |
-          CERT_SHA256=$(keytool -list -v -keystore android/app/keystore/release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk '/SHA256:/ {print $2; exit}' | tr -d ':')
-          test -n "$CERT_SHA256" || { echo "Unable to derive signing certificate SHA-256"; exit 1; }
-          echo "EXPECTED_CERT_SHA256=$CERT_SHA256" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build protected Android Release APK
-        env:
-          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=768m -XX:+UseG1GC
-          EXPECTED_CERT_SHA256: ${{ env.EXPECTED_CERT_SHA256 }}
+      - name: Build Android Debug APK
         run: |
-          flutter build apk --release --obfuscate --split-debug-info=build/symbols
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/LIVE_STREAM_PREMIUM.apk
+          flutter build apk --debug
+          mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/LIVE_STREAM_PREMIUM_V2.2.15.apk
 
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LIVE_STREAM_PREMIUM-APK
-          path: build/app/outputs/flutter-apk/LIVE_STREAM_PREMIUM.apk
-          if-no-files-found: error
-
-      - name: Create or update manual release
+      - name: Create or update Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: LIVE STREAM PREMIUM - Latest Release
-          body: Manual protected release with a signed APK, code obfuscation, and integrity checks.
+          name: LIVE STREAM PREMIUM - v2.2.15
+          body: |
+            نسخة آمنة v2.2.15 مرتبطة بنظام Cloudflare المشفر.
+            ملاحظة: هذه النسخة تجريبية (Debug) لضمان العمل الفوري.
           draft: false
           prerelease: false
           make_latest: true
-          files: build/app/outputs/flutter-apk/LIVE_STREAM_PREMIUM.apk
+          files: build/app/outputs/flutter-apk/LIVE_STREAM_PREMIUM_V2.2.15.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

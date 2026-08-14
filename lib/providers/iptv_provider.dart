@@ -556,18 +556,15 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> runActiveSecurityChecks() async {
+    Future<void> runActiveSecurityChecks() async {
     try {
-      // فحص أمني فائق القوة
       await checkSecurity();
-      
       if (_snifferDetected) {
         _isSecured = false;
         _securityMessage = "تم كشف برنامج التقاط حزم أو بيئة تشغيل غير آمنة! (Sniffer Detected)";
         notifyListeners();
         return;
       }
-      
       if (Platform.isAndroid) {
         final List<String> rootPaths = [
           "/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su",
@@ -581,6 +578,10 @@ class IPTVProvider with ChangeNotifier {
             notifyListeners();
             return;
           }
+        }
+      }
+    } catch (_) {}
+  }
         }
       }
     } catch (_) {}
@@ -894,18 +895,11 @@ class IPTVProvider with ChangeNotifier {
   String _updateMessage = "";
   String get updateMessage => _updateMessage;
 
-  Future<bool> loginWithCode(String code) async {
+    Future<bool> loginWithCode(String code) async {
     lastError = null;
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) {
       lastError = 'رمز الدخول فارغ';
-      return false;
-    }
-    
-    // Bypass version block for the new stable version
-    if (cleanCode == '69743190') {
-      _isVersionBlocked = true;
-      notifyListeners();
       return false;
     }
 
@@ -950,6 +944,94 @@ class IPTVProvider with ChangeNotifier {
       _activationCode = userData['code'] ?? cleanCode;
       _subscriptionType = userData['server_type'] ?? 'premium';
       
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_code', _activationCode);
+      await prefs.setString('subscription_type', _subscriptionType);
+      await prefs.setBool('is_logged_in', true);
+      
+      _isLoggedIn = true;
+      _isLoading = false;
+      notifyListeners();
+      
+      await fetchConfig();
+      
+      final list = UserPlaylist(
+        id: 'main_subscription',
+        name: _appName,
+        type: userData['server_type'] == 'stalker' ? 'stalker' : 'custom',
+        host: userData['host'],
+        username: userData['username'],
+        password: userData['password'],
+      );
+      
+      if (userData['server_type'] == 'stalker') {
+        _globalUserAgent = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3";
+      }
+      
+      _savedPlaylists = [list];
+      _activePlaylistId = list.id;
+      
+      await loadPlaylistStreams(list.id);
+      return true;
+    } on TimeoutException {
+      lastError = 'انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة';
+    } catch (e) {
+      lastError = 'خطأ في الاتصال: ${e.toString()}';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+    
+    // Bypass version block for the new stable version
+    if (cleanCode == '69743190') {
+      _isVersionBlocked = true;
+      notifyListeners();
+      return false;
+    }
+
+    await _checkVpnAndProxyStatus();
+    if (_vpnDetected) {
+      lastError = 'يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة';
+      return false;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final deviceId = await _getDeviceId();
+      final response = await http
+          .post(
+            Uri.parse('https://iptv-subscription-api.tvkora56.workers.dev/v1/login'),
+            headers: const {'Content-Type': 'application/json'},
+            body: json.encode({
+              'code': cleanCode,
+              'device_id': deviceId,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode != 200) {
+        lastError = 'رمز الدخول غير صالح أو غير مصرح به';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final data = json.decode(response.body);
+      if (data['ok'] != true && data['success'] != true) {
+        lastError = data['message'] ?? 'تعذر الاتصال. تأكد من الإنترنت وصحة الاشتراك';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final userData = data['user'];
+      _activationCode = userData['code'] ?? cleanCode;
+      _subscriptionType = userData['server_type'] ?? 'premium';
+      
       // Save session
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('activation_code', _activationCode);
@@ -972,10 +1054,6 @@ class IPTVProvider with ChangeNotifier {
         username: userData['username'],
         password: userData['password'],
       );
-      
-      if (userData['server_type'] == 'stalker') {
-        _globalUserAgent = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3";
-      }
       
       _savedPlaylists = [list];
       _activePlaylistId = list.id;

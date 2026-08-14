@@ -940,7 +940,7 @@ class IPTVProvider with ChangeNotifier {
       _isLoggedIn = true;
       _isLoading = false;
       notifyListeners();
-      await fetchConfig();
+      await checkRemoteBlocking();
       final list = UserPlaylist(
         id: 'main_subscription',
         name: _appName,

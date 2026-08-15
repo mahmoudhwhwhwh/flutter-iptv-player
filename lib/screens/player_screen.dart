@@ -377,15 +377,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
            final res = await http.get(linkUrl, headers: reqHeaders);
            if (res.statusCode == 200) {
               final data = json.decode(res.body);
-              if (data['js'] != null && data['js']['cmd'] != null) {
-                  String cmd = data['js']['cmd'].toString().trim();
+              String cmd = "";
+              if (data['js'] is String) {
+                  cmd = data['js'].toString().trim();
+              } else if (data['js'] != null && data['js'] is Map && data['js']['cmd'] != null) {
+                  cmd = data['js']['cmd'].toString().trim();
+              }
+              
+              if (cmd.isNotEmpty) {
                   for (final prefix in ["ffmpeg ", "ffrt ", "auto ", "ts ", "sh ", "m3u8 "]) {
                     if (cmd.toLowerCase().startsWith(prefix)) {
                       cmd = cmd.substring(prefix.length).trim();
                     }
                   }
+                  if (cmd.startsWith("http://localhost") || cmd.startsWith("https://localhost")) {
+                      cmd = cmd.replaceFirst("localhost", Uri.parse(host).host);
+                  } else if (cmd.startsWith("localhost")) {
+                      cmd = "http://" + cmd.replaceFirst("localhost", Uri.parse(host).host);
+                  }
                   urlStr = cmd;
-
               }
            }
        } catch (e) {
@@ -412,15 +422,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (_stream.type.startsWith("stalker") || urlStr.contains("mac=") || urlStr.contains("play/live.php")) {
       headers['User-Agent'] = 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
       try {
+        final activePlaylist = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId);
+        final mac = activePlaylist.username;
         if (urlStr.contains("mac=")) {
           final uri = Uri.parse(urlStr);
           final macParam = uri.queryParameters['mac'];
           if (macParam != null && macParam.isNotEmpty) {
             headers["Cookie"] = "mac=$macParam";
+          } else {
+            headers["Cookie"] = "mac=$mac";
           }
         } else {
-          final mac = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).username;
           headers["Cookie"] = "mac=$mac";
+        }
+        
+        if (provider.stalkerToken.isNotEmpty) {
+          headers["Authorization"] = "Bearer ${provider.stalkerToken}";
         }
       } catch (e) {}
     }

@@ -21,22 +21,33 @@ jobs:
           channel: stable
       - name: Install dependencies
         run: flutter pub get
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "Building version $VERSION (Tag: $TAG_VERSION)"
       - name: Build Android APK
         run: |
           flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/bundle/release/debug-info
-          find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} LIVE_STREAM_PREMIUM_V2.2.27.apk \;
+          APK_NAME="LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk"
+          find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} "$APK_NAME" \;
+          echo "Generated APK: $APK_NAME"
+          ls -lh "$APK_NAME"
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LIVE_STREAM_PREMIUM_V2.2.27
-          path: LIVE_STREAM_PREMIUM_V2.2.27.apk
+          name: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}
+          path: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.2.27-stable
-          name: LIVE STREAM PREMIUM v2.2.27
-          body: "النسخة العالمية النهائية والمحدثة (v2.2.27). تم حل مشكلة اختفاء القنوات والأفلام والمسلسلات، وتفعيل حماية ProGuard والتشفير الكامل، ودعم وضع PiP، وإعلانات AdMob المدارة عن بُعد."
-          files: LIVE_STREAM_PREMIUM_V2.2.27.apk
+          tag_name: ${{ env.TAG_VERSION }}-stable
+          name: LIVE STREAM PREMIUM ${{ env.TAG_VERSION }}
+          body: "النسخة الرسمية النهائية والمحدثة (${{ env.TAG_VERSION }}). حل جذري لمشكلة تشغيل قنوات وأفلام ومسلسلات سيرفرات Stalker/MAC ومطابقة هيدرز المشغل مع المشغل الخارجي، وتفعيل حظر الإصدارات السابقة تماماً."
+          files: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk
           draft: false
           prerelease: false
         env:

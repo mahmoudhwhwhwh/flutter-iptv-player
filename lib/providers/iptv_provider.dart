@@ -982,22 +982,27 @@ List<PlaylistItem> _parseStalkerChannels(
             : <dynamic>[]);
 
     return items.whereType<Map>().map<PlaylistItem>((item) {
-      final catId = item['tv_genre_id']?.toString() ?? '';
+      final catId = item['tv_genre_id']?.toString() ?? item['category_id']?.toString() ?? '';
       final category = categories.firstWhere(
         (entry) => entry['category_id'] == catId,
         orElse: () => const <String, String>{},
       );
+      
+      String fallbackCategory = 'بث مباشر';
+      if (itemType == 'stalker_movie') fallbackCategory = 'أفلام';
+      if (itemType == 'stalker_series') fallbackCategory = 'مسلسلات';
+
       return PlaylistItem(
         num: int.tryParse(item['number']?.toString() ?? '0'),
-        streamId: 'live_${item['id']?.toString() ?? ''}',
+        streamId: '${itemType}_${item['id']?.toString() ?? ''}',
         name: item['name']?.toString() ?? '',
-        streamIcon: item['logo']?.toString() ?? '',
+        streamIcon: item['logo']?.toString() ?? item['screenshot_uri']?.toString() ?? '',
         categoryId: catId,
         categoryName: category.isNotEmpty
-            ? (category['category_name'] ?? 'بث مباشر')
-            : 'بث مباشر',
+            ? (category['category_name'] ?? fallbackCategory)
+            : fallbackCategory,
         url: item['cmd']?.toString() ?? '',
-        type: 'stalker',
+        type: itemType,
       );
     }).toList();
   }
@@ -1027,14 +1032,17 @@ List<PlaylistItem> _parseStalkerChannels(
       final fullCatalogue = _parseStalkerChannels(
         json.decode(response.body),
         categories,
+        itemType: 'stalker',
       );
       if (fullCatalogue.isEmpty) return;
 
-      _allStreams = FilterService.interceptAndFilterStreams(
+      final filteredLive = FilterService.interceptAndFilterStreams(
         fullCatalogue,
         blockAdult: _blockAdultContent,
         channelFilter: _channelFilter,
       );
+      _allStreams.removeWhere((s) => s.type == 'stalker');
+      _allStreams.addAll(filteredLive);
       _applyFilters();
       notifyListeners();
     } catch (_) {

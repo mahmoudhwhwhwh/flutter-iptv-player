@@ -874,6 +874,35 @@ class IPTVProvider with ChangeNotifier {
     return localId;
   }
 
+  Future<bool> _initializeStalkerSession(UserPlaylist playlist) async {
+    final host = (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+    final mac = (playlist.username ?? '').trim();
+    _stalkerToken = '';
+    if (host.isEmpty || mac.isEmpty) return false;
+
+    try {
+      const userAgent =
+          'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
+      final response = await http
+          .get(
+            Uri.parse(
+                '$host/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml'),
+            headers: {'Cookie': 'mac=$mac', 'User-Agent': userAgent},
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return false;
+
+      final payload = json.decode(response.body);
+      final js = payload is Map ? payload['js'] : null;
+      final token = js is Map ? (js['token']?.toString().trim() ?? '') : '';
+      if (token.isEmpty) return false;
+      _stalkerToken = token;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ==========================================
 
   String _appName = "Live Football";
@@ -955,6 +984,15 @@ class IPTVProvider with ChangeNotifier {
       );
       if (userData['server_type'] == 'stalker') {
         _globalUserAgent = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3";
+        final sessionReady = await _initializeStalkerSession(list);
+        if (!sessionReady) {
+          lastError = 'تعذر فتح جلسة MAC. تحقق من اتصال السيرفر ثم أعد المحاولة.';
+          _isLoggedIn = false;
+          await prefs.setBool('is_logged_in', false);
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
       }
       _savedPlaylists = [list];
       _activePlaylistId = list.id;

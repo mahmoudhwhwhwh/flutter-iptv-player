@@ -367,7 +367,13 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
             if (res.statusCode == 200) {
                final data = json.decode(res.body);
                if (data['js'] != null && data['js']['cmd'] != null) {
-                   finalUrl = data['js']['cmd'].toString().replaceAll("ffmpeg ", "");
+                   String cmd = data['js']['cmd'].toString().trim();
+                   for (final prefix in ["ffmpeg ", "ffrt ", "auto ", "ts ", "sh ", "m3u8 "]) {
+                     if (cmd.toLowerCase().startsWith(prefix)) {
+                       cmd = cmd.substring(prefix.length).trim();
+                     }
+                   }
+                   finalUrl = cmd;
                }
             }
         } catch (e) {

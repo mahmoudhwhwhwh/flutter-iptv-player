@@ -378,7 +378,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
            if (res.statusCode == 200) {
               final data = json.decode(res.body);
               if (data['js'] != null && data['js']['cmd'] != null) {
-                  urlStr = data['js']['cmd'].toString().replaceAll("ffmpeg ", "");
+                  String cmd = data['js']['cmd'].toString().trim();
+                  for (final prefix in ["ffmpeg ", "ffrt ", "auto ", "ts ", "sh ", "m3u8 "]) {
+                    if (cmd.toLowerCase().startsWith(prefix)) {
+                      cmd = cmd.substring(prefix.length).trim();
+                    }
+                  }
+                  urlStr = cmd;
 
               }
            }

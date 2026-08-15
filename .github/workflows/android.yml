@@ -1,6 +1,9 @@
 name: Build Android APK
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 permissions:
   contents: write
 jobs:
@@ -32,7 +35,7 @@ jobs:
       - name: Build Android APK
         run: |
           flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/bundle/release/debug-info
-          APK_NAME="LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk"
+          APK_NAME="LIVE_STREAM_PREMIUM.apk"
           find build/app/outputs/flutter-apk/ -name "*.apk" -exec cp {} "$APK_NAME" \;
           echo "Generated APK: $APK_NAME"
           ls -lh "$APK_NAME"
@@ -40,14 +43,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}
-          path: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk
+          path: LIVE_STREAM_PREMIUM.apk
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG_VERSION }}-stable
+          tag_name: latest
           name: LIVE STREAM PREMIUM ${{ env.TAG_VERSION }}
-          body: "النسخة الرسمية النهائية والمحدثة (${{ env.TAG_VERSION }}). حل جذري لمشكلة تشغيل قنوات وأفلام ومسلسلات سيرفرات Stalker/MAC ومطابقة هيدرز المشغل مع المشغل الخارجي، وتفعيل حظر الإصدارات السابقة تماماً."
-          files: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}.apk
+          body: "النسخة الرسمية النهائية والمحدثة (${{ env.TAG_VERSION }}). حل جذري لمشكلة تشغيل قنوات وأفلام ومسلسلات سيرفرات Stalker/MAC، وإصلاح واجهة تسجيل الدخول، وحماية التطبيق في الخلفية، وتفعيل حظر الإصدارات السابقة تماماً."
+          files: LIVE_STREAM_PREMIUM.apk
           draft: false
           prerelease: false
         env:

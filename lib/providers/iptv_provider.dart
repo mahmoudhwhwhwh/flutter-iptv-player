@@ -611,20 +611,20 @@ class IPTVProvider with ChangeNotifier {
 
   bool isOutdatedVersion(String versionStr, int versionCode) {
     if (versionCode > 0) {
-      if (versionCode < 211) {
+      if (versionCode < 231) {
         return true;
-      } else if (versionCode >= 211) {
+      } else if (versionCode >= 231) {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.11");
+    return isVersionLowerThan(versionStr, "2.2.31");
   }
 
   Future<void> checkRemoteBlocking() async {
     try {
       final configRes = await http
           .get(Uri.parse(
-              "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"))
+              "https://iptv-subscription-api.tvkora56.workers.dev/v1/config?t=${DateTime.now().millisecondsSinceEpoch}"))
           .timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
@@ -914,6 +914,8 @@ class IPTVProvider with ChangeNotifier {
             body: json.encode({
               'code': cleanCode,
               'device_id': deviceId,
+              'version_code': APP_VERSION_CODE,
+              'version_name': _currentVersionStr,
             }),
           )
           .timeout(const Duration(seconds: 20));

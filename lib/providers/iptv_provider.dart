@@ -954,6 +954,7 @@ class IPTVProvider with ChangeNotifier {
       }
       _savedPlaylists = [list];
       _activePlaylistId = list.id;
+      await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((p) => p.toJson()).toList()));
       await loadPlaylistStreams(list.id);
       return true;
     } on TimeoutException {

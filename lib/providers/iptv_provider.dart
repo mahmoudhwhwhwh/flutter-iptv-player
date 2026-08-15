@@ -342,9 +342,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 212;
-  String _currentVersionStr = "2.2.12";
-  int _currentVersionCode = 212;
+  static const int APP_VERSION_CODE = 231;
+  String _currentVersionStr = "2.2.31";
+  int _currentVersionCode = 231;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -496,7 +496,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       _currentVersionStr = packageInfo.version;
-      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 212;
+      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 231;
       final nameClean = packageInfo.appName.toLowerCase().replaceAll(' ', '');
       if (!nameClean.contains("livefootball") &&
           !nameClean.contains("livestrempro")) {

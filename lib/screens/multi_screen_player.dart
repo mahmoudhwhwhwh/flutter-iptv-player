@@ -348,7 +348,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
 
     String finalUrl = widget.stream.url;
     
-    if (widget.stream.type == "stalker" || widget.stream.type == "stalker_movie" || widget.stream.type == "stalker_series") {
+    if (widget.stream.type.startsWith("stalker") || widget.stream.type == "stalker_movie" || widget.stream.type == "stalker_series") {
         try {
             final provider = Provider.of<IPTVProvider>(context, listen: false);
             final host = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).host;
@@ -395,7 +395,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
       headers['Referer'] = customRef;
     }
 
-    if (widget.stream.type == "stalker" || finalUrl.contains("mac=") || finalUrl.contains("play/live.php")) {
+    if (widget.stream.type.startsWith("stalker") || finalUrl.contains("mac=") || finalUrl.contains("play/live.php")) {
       headers['User-Agent'] = 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
       try {
         if (finalUrl.contains("mac=")) {

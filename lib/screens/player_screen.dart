@@ -409,7 +409,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       'Connection': 'keep-alive',
     };
     
-    if (_stream.type == "stalker" || urlStr.contains("mac=") || urlStr.contains("play/live.php")) {
+    if (_stream.type.startsWith("stalker") || urlStr.contains("mac=") || urlStr.contains("play/live.php")) {
       headers['User-Agent'] = 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
       try {
         if (urlStr.contains("mac=")) {

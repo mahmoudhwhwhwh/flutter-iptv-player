@@ -969,8 +969,9 @@ class IPTVProvider with ChangeNotifier {
 
 List<PlaylistItem> _parseStalkerChannels(
     dynamic payload,
-    List<Map<String, String>> categories,
-  ) {
+    List<Map<String, String>> categories, {
+    String itemType = "stalker",
+  }) {
     final dynamic js = payload is Map ? payload['js'] : null;
     final List<dynamic> items = js is List
         ? List<dynamic>.from(js)
@@ -1199,11 +1200,27 @@ List<PlaylistItem> _parseStalkerChannels(
         // Fetch All Streams (Live, VOD, Series)
         List<PlaylistItem> allStalkerItems = [];
         
-        // Initial Live Page
+        // 1. Initial Live Page
         try {
           final firstPageRes = await http.get(Uri.parse('$host/server/load.php?type=itv&action=get_ordered_list&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
           if (firstPageRes.statusCode == 200) {
-            allStalkerItems.addAll(_parseStalkerChannels(json.decode(firstPageRes.body), _liveCategories));
+            allStalkerItems.addAll(_parseStalkerChannels(json.decode(firstPageRes.body), _liveCategories, itemType: 'stalker'));
+          }
+        } catch (_) {}
+
+        // 2. Initial VOD (Movies) Page
+        try {
+          final vodRes = await http.get(Uri.parse('$host/server/load.php?type=vod&action=get_vod_list&p=1&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
+          if (vodRes.statusCode == 200) {
+            allStalkerItems.addAll(_parseStalkerChannels(json.decode(vodRes.body), _movieCategories, itemType: 'stalker_movie'));
+          }
+        } catch (_) {}
+
+        // 3. Initial Series Page
+        try {
+          final seriesRes = await http.get(Uri.parse('$host/server/load.php?type=series&action=get_series_list&p=1&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 15));
+          if (seriesRes.statusCode == 200) {
+            allStalkerItems.addAll(_parseStalkerChannels(json.decode(seriesRes.body), _seriesCategories, itemType: 'stalker_series'));
           }
         } catch (_) {}
 

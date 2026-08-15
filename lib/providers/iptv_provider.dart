@@ -528,7 +528,9 @@ class IPTVProvider with ChangeNotifier {
     _activationCode = prefs.getString('active_code') ?? "";
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
-    _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
+    _subscriptionType = prefs.getString('subscription_type') ??
+        prefs.getString('active_code_sub_name') ??
+        "";
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
@@ -995,6 +997,8 @@ class IPTVProvider with ChangeNotifier {
         }
       }
       _savedPlaylists = [list];
+      await prefs.setString(
+          'saved_playlists', json.encode([list.toJson()]));
       _activePlaylistId = list.id;
       await loadPlaylistStreams(list.id);
       return true;

@@ -753,7 +753,9 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> checkSecurity() async {
-    if (_disableSnifferCheck && _disableVpnCheck) {
+    _disableSnifferCheck = true;
+    _disableVpnCheck = true;
+    if (true) {
       if (_snifferDetected || _vpnDetected) {
         _snifferDetected = false;
         _vpnDetected = false;

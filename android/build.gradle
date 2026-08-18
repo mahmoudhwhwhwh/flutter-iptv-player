@@ -25,6 +25,20 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
+    afterEvaluate { p ->
+        try {
+            if (p.hasProperty('android')) {
+                p.android {
+                    if (namespace == null) {
+                        namespace p.group
+                    }
+                    compileSdkVersion 34
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

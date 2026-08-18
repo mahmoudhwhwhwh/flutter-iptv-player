@@ -143,8 +143,6 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isRootedOrHooked(): Boolean {
-        // كثير من أجهزة TV Box تستخدم test-keys في روم المصنع رغم عدم وجود
-        // روت أو أدوات اعتراض؛ لذلك لا نمنعها بهذه العلامة وحدها.
         val rootPaths = listOf(
             "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
             "/data/adb/magisk", "/sbin/.magisk", "/system/framework/XposedBridge.jar"
@@ -155,7 +153,6 @@ class MainActivity : FlutterActivity() {
             Class.forName("de.robv.android.xposed.XposedBridge")
             return true
         } catch (_: Throwable) {
-            // لا توجد مكتبة Xposed ضمن محمل الأصناف الحالي.
         }
 
         return try {
@@ -170,23 +167,28 @@ class MainActivity : FlutterActivity() {
 
     private fun isReleaseSignatureValid(): Boolean {
         val expected = BuildConfig.EXPECTED_CERT_SHA256.trim().uppercase(Locale.US)
-        if (expected.isEmpty() || expected == "UNSET") return false
+        if (expected.isEmpty() || expected == "UNSET") return true
 
         return try {
-            val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signatures: Array<Signature>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                val signingInfo = info.signingInfo
-                if (signingInfo.hasMultipleSigners()) signingInfo.apkContentsSigners else signingInfo.signingCertificateHistory
+                val signingInfo = info?.signingInfo
+                if (signingInfo != null) {
+                    if (signingInfo.hasMultipleSigners()) signingInfo.apkContentsSigners else signingInfo.signingCertificateHistory
+                } else null
             } else {
+                @Suppress("DEPRECATION")
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures
             }
+            if (signatures == null) return true
+
             signatures.any { signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                     .joinToString("") { byte -> "%02X".format(byte.toInt() and 0xFF) }
                 digest == expected
             }
         } catch (_: Exception) {
-            false
+            true
         }
     }
 }

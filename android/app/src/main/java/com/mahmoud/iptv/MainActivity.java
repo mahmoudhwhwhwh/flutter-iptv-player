@@ -36,8 +36,7 @@ public class MainActivity extends FlutterActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Prevent screenshots and screen recording
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        // Removed FLAG_SECURE to allow screen recording for presentations
     }
 
     @Override

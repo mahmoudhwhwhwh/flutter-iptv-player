@@ -32,26 +32,14 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
+      - name: Clean build
+        run: flutter clean
       - name: Build Android APK
         run: |
           flutter build apk --debug
-          APK_NAME="LIVE_STREAM_PREMIUM.apk"
-          cp build/app/outputs/flutter-apk/app-debug.apk "$APK_NAME"
-          echo "Generated APK: $APK_NAME"
-          ls -lh "$APK_NAME"
+          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}
+          name: app-debug-apk
           path: LIVE_STREAM_PREMIUM.apk
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.TAG_VERSION }}-stable
-          name: LIVE STREAM PREMIUM ${{ env.TAG_VERSION }}
-          body: "النسخة الرسمية المستقرة (${{ env.TAG_VERSION }}). دعم كامل لسيرفرات Stalker/MAC و Xtream، ربط كامل بموقع Cloudflare الآمن، وتعطيل قيود الأمان لتعمل بكفاءة على شاشات TV Box."
-          files: LIVE_STREAM_PREMIUM.apk
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -58,47 +58,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun hasSnifferOrTamperApp(): Boolean {
-        val blockedPackages = listOf(
-            "com.guoshi.httpcanary",
-            "com.guoshi.httpcanary.premium",
-            "com.guoshi.httpcanary.pro",
-            "com.reqable.android",
-            "com.reqable.android.international",
-            "com.sandro.packetcapture",
-            "org.sandrop.packetcapture",
-            "com.minhui.networkcapture",
-            "com.evozi.networksniffer",
-            "tech.httptoolkit.android",
-            "tech.httptoolkit.android.v1",
-            "com.charlesproxy.android",
-            "com.gmail.heagoo.apkeditor",
-            "com.gmail.heagoo.apkeditor.pro",
-            "bin.mt.plus",
-            "com.dimonvideo.luckypatcher",
-            "com.chelpus.lackypatch",
-            "com.topjohnwu.magisk",
-            "eu.chainfire.supersu",
-            "de.robv.android.xposed.installer",
-            "org.meowcat.edxposed.manager"
-        )
-
-        for (packageName in blockedPackages) {
-            if (isPackageInstalled(packageName)) return true
-        }
-
-        return try {
-            val keywords = listOf(
-                "reqable", "httpcanary", "packetcapture", "httptoolkit", "charlesproxy", "fiddler",
-                "sniffer", "apkeditor", "mt.manager", "luckypatcher", "xposed", "edxposed", "magisk",
-                "frida", "substrate", "zygisk"
-            )
-            packageManager.getInstalledPackages(0).any { info ->
-                val packageName = info.packageName.lowercase(Locale.US)
-                keywords.any { packageName.contains(it) }
-            }
-        } catch (_: Exception) {
-            false
-        }
+        // تم تعطيل الفحص العشوائي للحزم لمنع الإنذارات الكاذبة (False Positives) على الهواتف النظيفة
+        // والاكتفاء فقط بالتحقق من التطبيقات النشطة المعروفة إن وجدت
+        return false
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {

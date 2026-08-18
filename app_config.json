@@ -1,6 +1,6 @@
 {
   "app_name": "LIVE STREAM PREMIUM",
-  "app_version": "v2.2.33",
+  "app_version": "v2.2.34",
   "users": {},
   "servers": [
     {
@@ -271,10 +271,10 @@
       211,
       212
     ],
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.33 للاستمرار."
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.34 للاستمرار."
   },
   "update": {
-    "latest_version": "v2.2.33",
+    "latest_version": "v2.2.34",
     "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
     "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
   }

@@ -23,7 +23,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // يمنع لقطات الشاشة وتسجيل الشاشة من واجهات التطبيق.
+        // Prevent screenshots and screen recording
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
@@ -38,7 +38,8 @@ class MainActivity : FlutterActivity() {
                     val debuggerDetected = isDebuggerOrDebugBuild()
                     val compromisedDevice = isRootedOrHooked()
                     val signatureValid = isReleaseSignatureValid()
-                    // السماح بالتشغيل إذا كانت البصمة غير محددة (لأغراض البناء التجريبي) أو إذا كانت صحيحة
+                    
+                    // Allow running if signature is UNSET (for debug builds)
                     val isSignatureIgnored = BuildConfig.EXPECTED_CERT_SHA256 == "UNSET" || BuildConfig.EXPECTED_CERT_SHA256.isEmpty()
                     val shouldBlock = (snifferInstalled || vpnActive || proxyActive || debuggerDetected || compromisedDevice) && !isSignatureIgnored && !signatureValid
 
@@ -94,9 +95,10 @@ class MainActivity : FlutterActivity() {
                 "sniffer", "apkeditor", "mt.manager", "luckypatcher", "xposed", "edxposed", "magisk",
                 "frida", "substrate", "zygisk"
             )
-            packageManager.getInstalledPackages(0).any { info ->
-                val packageName = info.packageName.lowercase(Locale.US)
-                keywords.any { packageName.contains(it) }
+            val pm = this.applicationContext.packageManager
+            pm.getInstalledPackages(0).any { info ->
+                val pkgName = info.packageName.lowercase(Locale.US)
+                keywords.any { pkgName.contains(it) }
             }
         } catch (_: Exception) {
             false
@@ -105,7 +107,7 @@ class MainActivity : FlutterActivity() {
 
     private fun isPackageInstalled(packageName: String): Boolean {
         return try {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+            this.applicationContext.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
             true
         } catch (_: PackageManager.NameNotFoundException) {
             false
@@ -114,7 +116,7 @@ class MainActivity : FlutterActivity() {
 
     private fun isVpnActive(): Boolean {
         return try {
-            val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+            val manager = this.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = manager.activeNetwork ?: return false
                 val capabilities = manager.getNetworkCapabilities(network) ?: return false
@@ -140,13 +142,11 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val debugBuild = (this.applicationContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
     }
 
     private fun isRootedOrHooked(): Boolean {
-        // كثير من أجهزة TV Box تستخدم test-keys في روم المصنع رغم عدم وجود
-        // روت أو أدوات اعتراض؛ لذلك لا نمنعها بهذه العلامة وحدها.
         val rootPaths = listOf(
             "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
             "/data/adb/magisk", "/sbin/.magisk", "/system/framework/XposedBridge.jar"
@@ -157,7 +157,7 @@ class MainActivity : FlutterActivity() {
             Class.forName("de.robv.android.xposed.XposedBridge")
             return true
         } catch (_: Throwable) {
-            // لا توجد مكتبة Xposed ضمن محمل الأصناف الحالي.
+            // Not hooked
         }
 
         return try {
@@ -172,15 +172,17 @@ class MainActivity : FlutterActivity() {
 
     private fun isReleaseSignatureValid(): Boolean {
         val expected = BuildConfig.EXPECTED_CERT_SHA256.trim().uppercase(Locale.US)
-        if (expected.isEmpty() || expected == "UNSET") return false
+        if (expected.isEmpty() || expected == "UNSET") return true // Default to true if not set
 
         return try {
+            val pm = this.applicationContext.packageManager
+            val pkgName = this.applicationContext.packageName
             val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                val info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val signingInfo = info.signingInfo
                 if (signingInfo.hasMultipleSigners()) signingInfo.apkContentsSigners else signingInfo.signingCertificateHistory
             } else {
-                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures
+                pm.getPackageInfo(pkgName, PackageManager.GET_SIGNATURES).signatures
             }
             signatures.any { signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())

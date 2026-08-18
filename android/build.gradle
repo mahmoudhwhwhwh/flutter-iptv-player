@@ -25,18 +25,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
-    
-    project.plugins.whenPluginAdded { plugin ->
-        if ("com.android.build.gradle.AppPlugin".equals(plugin.class.name) ||
-            "com.android.build.gradle.LibraryPlugin".equals(plugin.class.name)) {
-            project.android {
-                compileSdkVersion 35
-                defaultConfig {
-                    targetSdkVersion 35
-                }
-            }
-        }
-    }
 }
 
 tasks.register("clean", Delete) {

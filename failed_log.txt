@@ -1,0 +1,312 @@
+build	Build Android APK	﻿2026-08-18T18:38:50.8559300Z ##[group]Run flutter build apk --debug
+build	Build Android APK	2026-08-18T18:38:50.8559670Z ^[[36;1mflutter build apk --debug^[[0m
+build	Build Android APK	2026-08-18T18:38:50.8560090Z ^[[36;1mcp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk^[[0m
+build	Build Android APK	2026-08-18T18:38:50.8597584Z shell: /usr/bin/bash -e {0}
+build	Build Android APK	2026-08-18T18:38:50.8598237Z env:
+build	Build Android APK	2026-08-18T18:38:50.8598572Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T18:38:50.8599082Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T18:38:50.8599592Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter
+build	Build Android APK	2026-08-18T18:38:50.8599985Z   PUB_CACHE: /home/runner/.pub-cache
+build	Build Android APK	2026-08-18T18:38:50.8600248Z   VERSION: 2.2.34+234
+build	Build Android APK	2026-08-18T18:38:50.8600463Z   TAG_VERSION: v2.2.34
+build	Build Android APK	2026-08-18T18:38:50.8600674Z ##[endgroup]
+build	Build Android APK	2026-08-18T18:38:51.3221384Z Resolving dependencies...
+build	Build Android APK	2026-08-18T18:38:51.9154993Z Downloading packages...
+build	Build Android APK	2026-08-18T18:38:52.1602658Z   _flutterfire_internals 1.3.35 (1.3.76 available)
+build	Build Android APK	2026-08-18T18:38:52.1603591Z   async 2.11.0 (2.13.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1604198Z   better_player_plus 1.0.8 (1.3.5 available)
+build	Build Android APK	2026-08-18T18:38:52.1605377Z   boolean_selector 2.1.1 (2.1.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1605986Z   characters 1.3.0 (1.4.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1606551Z   chewie 1.10.0 (1.15.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1607089Z   clock 1.1.1 (1.1.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1607625Z   collection 1.18.0 (1.19.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1608723Z   cross_file 0.3.4+2 (0.3.5+4 available)
+build	Build Android APK	2026-08-18T18:38:52.1639136Z   cupertino_icons 1.0.8 (1.0.9 available)
+build	Build Android APK	2026-08-18T18:38:52.1641617Z   dbus 0.7.12 (0.7.14 available)
+build	Build Android APK	2026-08-18T18:38:52.1642110Z   device_info_plus 10.1.2 (13.2.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1642708Z   device_info_plus_platform_interface 7.0.2 (8.1.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1643277Z   fake_async 1.3.1 (1.3.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1643715Z   ffi 2.1.3 (2.2.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1644143Z   file_selector_linux 0.9.3+2 (0.9.4 available)
+build	Build Android APK	2026-08-18T18:38:52.1644709Z   file_selector_macos 0.9.4+2 (0.9.5 available)
+build	Build Android APK	2026-08-18T18:38:52.1645336Z   file_selector_platform_interface 2.6.2 (2.7.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1646010Z   file_selector_windows 0.9.3+4 (0.9.3+5 available)
+build	Build Android APK	2026-08-18T18:38:52.1646586Z   firebase_analytics 10.10.7 (12.4.6 available)
+build	Build Android APK	2026-08-18T18:38:52.1647242Z   firebase_analytics_platform_interface 3.10.8 (6.0.6 available)
+build	Build Android APK	2026-08-18T18:38:52.1648308Z   firebase_analytics_web 0.5.7+7 (0.6.1+12 available)
+build	Build Android APK	2026-08-18T18:38:52.1649201Z   firebase_core 2.32.0 (4.13.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1649904Z   firebase_core_platform_interface 5.4.2 (8.1.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1657916Z   firebase_core_web 2.24.0 (3.10.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1670045Z   flutter_cache_manager 3.4.1 (3.4.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1670784Z   flutter_lints 3.0.2 (6.0.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1671426Z   flutter_plugin_android_lifecycle 2.0.26 (2.0.35 available)
+build	Build Android APK	2026-08-18T18:38:52.1672283Z   flutter_widget_from_html_core 0.15.2 (0.17.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1672931Z   google_fonts 6.3.0 (8.2.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1673392Z   http_parser 4.0.2 (4.1.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1673898Z   image_picker 1.1.2 (1.2.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1674409Z   image_picker_android 0.8.12+21 (0.8.13+19 available)
+build	Build Android APK	2026-08-18T18:38:52.1674964Z   image_picker_for_web 3.0.6 (3.1.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1675517Z   image_picker_ios 0.8.12+2 (0.8.13+6 available)
+build	Build Android APK	2026-08-18T18:38:52.1676079Z   image_picker_linux 0.2.1+2 (0.2.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1676610Z   image_picker_macos 0.2.1+2 (0.2.2+1 available)
+build	Build Android APK	2026-08-18T18:38:52.1677231Z   image_picker_platform_interface 2.10.1 (2.11.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1678304Z   image_picker_windows 0.2.1+1 (0.2.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1678910Z   intl 0.19.0 (0.20.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1679340Z   leak_tracker 10.0.5 (11.0.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1679985Z   leak_tracker_flutter_testing 3.0.5 (3.0.10 available)
+build	Build Android APK	2026-08-18T18:38:52.1681430Z   leak_tracker_testing 3.0.1 (3.0.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1681979Z   lints 3.0.0 (6.1.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1682462Z   matcher 0.12.16+1 (0.12.20 available)
+build	Build Android APK	2026-08-18T18:38:52.1682969Z   material_color_utilities 0.11.1 (0.13.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1683488Z   meta 1.15.0 (1.19.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1683988Z   package_info_plus 8.3.1 (10.2.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1684688Z   package_info_plus_platform_interface 3.2.1 (4.1.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1685318Z   path 1.9.0 (1.9.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1685757Z   path_provider 2.1.5 (2.1.6 available)
+build	Build Android APK	2026-08-18T18:38:52.1686284Z   path_provider_android 2.2.15 (2.3.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1686902Z   path_provider_foundation 2.4.1 (2.6.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1687547Z   path_provider_linux 2.2.1 (2.2.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1688454Z   path_provider_platform_interface 2.1.2 (2.1.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1689047Z   petitparser 6.0.2 (7.0.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1689521Z   sensors_plus 5.0.1 (7.1.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1690064Z   sensors_plus_platform_interface 1.2.0 (2.0.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1690940Z   shared_preferences 2.5.3 (2.5.5 available)
+build	Build Android APK	2026-08-18T18:38:52.1691498Z   shared_preferences_android 2.4.7 (2.4.27 available)
+build	Build Android APK	2026-08-18T18:38:52.1692091Z   shared_preferences_foundation 2.5.4 (2.5.6 available)
+build	Build Android APK	2026-08-18T18:38:52.1692749Z   shared_preferences_platform_interface 2.4.1 (2.4.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1693340Z   source_span 1.10.0 (1.10.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1693781Z   sqflite 2.4.1 (2.4.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1694219Z   sqflite_android 2.4.0 (2.4.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1694699Z   sqflite_common 2.5.4+6 (2.5.11 available)
+build	Build Android APK	2026-08-18T18:38:52.1695185Z   sqflite_darwin 2.4.1+1 (2.4.3+1 available)
+build	Build Android APK	2026-08-18T18:38:52.1695712Z   sqflite_platform_interface 2.4.0 (2.4.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1696226Z   stack_trace 1.11.1 (1.12.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1696672Z   stream_channel 2.1.2 (2.1.4 available)
+build	Build Android APK	2026-08-18T18:38:52.1697133Z   string_scanner 1.2.0 (1.4.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1697613Z   synchronized 3.3.0+3 (3.4.1+2 available)
+build	Build Android APK	2026-08-18T18:38:52.1698324Z   term_glyph 1.2.1 (1.2.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1698774Z   test_api 0.7.2 (0.7.13 available)
+build	Build Android APK	2026-08-18T18:38:52.1699215Z   url_launcher 6.3.1 (6.3.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1699699Z   url_launcher_android 6.3.14 (6.3.32 available)
+build	Build Android APK	2026-08-18T18:38:52.1700205Z   url_launcher_ios 6.3.3 (6.4.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1700683Z   url_launcher_linux 3.2.1 (3.2.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1701171Z   url_launcher_macos 3.2.2 (3.2.5 available)
+build	Build Android APK	2026-08-18T18:38:52.1701657Z   url_launcher_web 2.3.3 (2.4.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1702145Z   url_launcher_windows 3.1.4 (3.1.5 available)
+build	Build Android APK	2026-08-18T18:38:52.1702672Z   vector_math 2.1.4 (2.4.2 available)
+build	Build Android APK	2026-08-18T18:38:52.1703151Z   video_player 2.9.5 (2.14.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1703664Z   video_player_android 2.7.16 (2.12.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1704258Z   video_player_avfoundation 2.7.1 (2.11.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1704931Z   video_player_platform_interface 6.3.0 (6.9.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1705541Z   video_player_web 2.3.5 (2.4.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1706029Z   vm_service 14.2.4 (15.3.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1706500Z   wakelock_plus 1.3.3 (1.7.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1707028Z   wakelock_plus_platform_interface 1.3.0 (1.6.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1707641Z   win32 5.10.1 (6.4.0 available)
+build	Build Android APK	2026-08-18T18:38:52.1708295Z   win32_registry 1.1.5 (3.0.3 available)
+build	Build Android APK	2026-08-18T18:38:52.1708766Z   xml 6.5.0 (7.0.1 available)
+build	Build Android APK	2026-08-18T18:38:52.1709173Z Got dependencies!
+build	Build Android APK	2026-08-18T18:38:52.1709735Z 93 packages have newer versions incompatible with dependency constraints.
+build	Build Android APK	2026-08-18T18:38:52.1710485Z Try `flutter pub outdated` for more information.
+build	Build Android APK	2026-08-18T18:38:52.6762501Z 
+build	Build Android APK	2026-08-18T18:40:36.8885617Z Running Gradle task 'assembleDebug'...                          
+build	Build Android APK	2026-08-18T18:40:36.8903658Z Warning: unable to detect project KGP version. Skipping version checking. 
+build	Build Android APK	2026-08-18T18:40:36.8909493Z This may be because you have applied KGP after the Flutter Gradle Plugin.
+build	Build Android APK	2026-08-18T18:40:41.2721448Z Checking the license for package Android SDK Build-Tools 33.0.1 in /usr/local/lib/android/sdk/licenses
+build	Build Android APK	2026-08-18T18:40:41.2725069Z License for package Android SDK Build-Tools 33.0.1 accepted.
+build	Build Android APK	2026-08-18T18:40:41.2735290Z Preparing "Install Android SDK Build-Tools 33.0.1 v.33.0.1".
+build	Build Android APK	2026-08-18T18:40:42.3729314Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" ready.
+build	Build Android APK	2026-08-18T18:40:42.3749318Z Installing Android SDK Build-Tools 33.0.1 in /usr/local/lib/android/sdk/build-tools/33.0.1
+build	Build Android APK	2026-08-18T18:40:42.3750641Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" complete.
+build	Build Android APK	2026-08-18T18:40:42.5708948Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" finished.
+build	Build Android APK	2026-08-18T18:41:09.0701002Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/com/mahmoud/iptv/MainActivity.java:5: error: package io.flutter.embedding.android does not exist
+build	Build Android APK	2026-08-18T18:41:09.0753556Z import io.flutter.embedding.android.FlutterActivity;
+build	Build Android APK	2026-08-18T18:41:09.0765887Z                                    ^
+build	Build Android APK	2026-08-18T18:41:09.0819570Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/com/mahmoud/iptv/MainActivity.java:7: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.0849040Z public class MainActivity extends FlutterActivity {
+build	Build Android APK	2026-08-18T18:41:09.0901000Z                                   ^
+build	Build Android APK	2026-08-18T18:41:09.0932882Z   symbol: class FlutterActivity
+build	Build Android APK	2026-08-18T18:41:09.0934676Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:3: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.0936325Z import androidx.annotation.Keep;
+build	Build Android APK	2026-08-18T18:41:09.0936992Z                           ^
+build	Build Android APK	2026-08-18T18:41:09.0963182Z   symbol:   class Keep
+build	Build Android APK	2026-08-18T18:41:09.0990777Z   location: package androidx.annotation
+build	Build Android APK	2026-08-18T18:41:09.1014465Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:4: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1046495Z import androidx.annotation.NonNull;
+build	Build Android APK	2026-08-18T18:41:09.1078920Z                           ^
+build	Build Android APK	2026-08-18T18:41:09.1079759Z   symbol:   class NonNull
+build	Build Android APK	2026-08-18T18:41:09.1109211Z   location: package androidx.annotation
+build	Build Android APK	2026-08-18T18:41:09.1136926Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:5: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1150001Z import io.flutter.Log;
+build	Build Android APK	2026-08-18T18:41:09.1150823Z                  ^
+build	Build Android APK	2026-08-18T18:41:09.1151369Z   symbol:   class Log
+build	Build Android APK	2026-08-18T18:41:09.1151946Z   location: package io.flutter
+build	Build Android APK	2026-08-18T18:41:09.1153742Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:7: error: package io.flutter.embedding.engine does not exist
+build	Build Android APK	2026-08-18T18:41:09.1155671Z import io.flutter.embedding.engine.FlutterEngine;
+build	Build Android APK	2026-08-18T18:41:09.1156414Z                                   ^
+build	Build Android APK	2026-08-18T18:41:09.1158171Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:14: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1159760Z @Keep
+build	Build Android APK	2026-08-18T18:41:09.1160227Z  ^
+build	Build Android APK	2026-08-18T18:41:09.1160701Z   symbol: class Keep
+build	Build Android APK	2026-08-18T18:41:09.1162153Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:17: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1163940Z   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
+build	Build Android APK	2026-08-18T18:41:09.1164808Z                                            ^
+build	Build Android APK	2026-08-18T18:41:09.1165447Z   symbol:   class FlutterEngine
+build	Build Android APK	2026-08-18T18:41:09.1166123Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1168595Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:17: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1170447Z   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
+build	Build Android APK	2026-08-18T18:41:09.1171301Z                                    ^
+build	Build Android APK	2026-08-18T18:41:09.1171893Z   symbol:   class NonNull
+build	Build Android APK	2026-08-18T18:41:09.1172519Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1174129Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/com/mahmoud/iptv/MainActivity.java:8: error: method does not override or implement a method from a supertype
+build	Build Android APK	2026-08-18T18:41:09.1175779Z     @Override
+build	Build Android APK	2026-08-18T18:41:09.1176254Z     ^
+build	Build Android APK	2026-08-18T18:41:09.1177437Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/com/mahmoud/iptv/MainActivity.java:10: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1179196Z         super.onCreate(savedInstanceState);
+build	Build Android APK	2026-08-18T18:41:09.1179858Z         ^
+build	Build Android APK	2026-08-18T18:41:09.1180338Z   symbol:   variable super
+build	Build Android APK	2026-08-18T18:41:09.1181725Z   location: class MainActivity
+build	Build Android APK	2026-08-18T18:41:09.1183055Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/com/mahmoud/iptv/MainActivity.java:12: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1184667Z         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+build	Build Android APK	2026-08-18T18:41:09.1185529Z         ^
+build	Build Android APK	2026-08-18T18:41:09.1186103Z   symbol:   method getWindow()
+build	Build Android APK	2026-08-18T18:41:09.1186744Z   location: class MainActivity
+build	Build Android APK	2026-08-18T18:41:09.1188779Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:19: error: package uz.shs.better_player_plus does not exist
+build	Build Android APK	2026-08-18T18:41:09.1190946Z       flutterEngine.getPlugins().add(new uz.shs.better_player_plus.BetterPlayerPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1192044Z                                                                   ^
+build	Build Android APK	2026-08-18T18:41:09.1193678Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:21: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1195759Z       Log.e(TAG, "Error registering plugin better_player_plus, uz.shs.better_player_plus.BetterPlayerPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1196859Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1197356Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1198229Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1200118Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:24: error: package dev.fluttercommunity.plus.device_info does not exist
+build	Build Android APK	2026-08-18T18:41:09.1202495Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1203765Z                                                                               ^
+build	Build Android APK	2026-08-18T18:41:09.1205462Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:26: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1207664Z       Log.e(TAG, "Error registering plugin device_info_plus, dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1209488Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1210105Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1210868Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1213293Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:29: error: package io.flutter.plugins.firebase.analytics does not exist
+build	Build Android APK	2026-08-18T18:41:09.1215997Z       flutterEngine.getPlugins().add(new io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1217375Z                                                                               ^
+build	Build Android APK	2026-08-18T18:41:09.1219295Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:31: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1222496Z       Log.e(TAG, "Error registering plugin firebase_analytics, io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1230017Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1230618Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1231262Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1233160Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:34: error: package io.flutter.plugins.firebase.core does not exist
+build	Build Android APK	2026-08-18T18:41:09.1235468Z       flutterEngine.getPlugins().add(new io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin());
+build	Build Android APK	2026-08-18T18:41:09.1236651Z                                                                          ^
+build	Build Android APK	2026-08-18T18:41:09.1238418Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:36: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1241012Z       Log.e(TAG, "Error registering plugin firebase_core, io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1242223Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1242712Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1243333Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1251358Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:39: error: package io.flutter.plugins.flutter_plugin_android_lifecycle does not exist
+build	Build Android APK	2026-08-18T18:41:09.1257133Z       flutterEngine.getPlugins().add(new io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin());
+build	Build Android APK	2026-08-18T18:41:09.1258816Z                                                                                           ^
+build	Build Android APK	2026-08-18T18:41:09.1260430Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:41: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1262800Z       Log.e(TAG, "Error registering plugin flutter_plugin_android_lifecycle, io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1264261Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1264809Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1265452Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1267281Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:44: error: package io.flutter.plugins.imagepicker does not exist
+build	Build Android APK	2026-08-18T18:41:09.1269588Z       flutterEngine.getPlugins().add(new io.flutter.plugins.imagepicker.ImagePickerPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1270724Z                                                                        ^
+build	Build Android APK	2026-08-18T18:41:09.1272264Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:46: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1277325Z       Log.e(TAG, "Error registering plugin image_picker_android, io.flutter.plugins.imagepicker.ImagePickerPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1278934Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1279524Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1280207Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1282273Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:49: error: package com.crazecoder.openfile does not exist
+build	Build Android APK	2026-08-18T18:41:09.1284716Z       flutterEngine.getPlugins().add(new com.crazecoder.openfile.OpenFilePlugin());
+build	Build Android APK	2026-08-18T18:41:09.1285776Z                                                                 ^
+build	Build Android APK	2026-08-18T18:41:09.1287360Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:51: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1290059Z       Log.e(TAG, "Error registering plugin open_filex, com.crazecoder.openfile.OpenFilePlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1291107Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1291593Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1292221Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1294135Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:54: error: package dev.fluttercommunity.plus.packageinfo does not exist
+build	Build Android APK	2026-08-18T18:41:09.1296462Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1297644Z                                                                               ^
+build	Build Android APK	2026-08-18T18:41:09.1299626Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:56: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1311927Z       Log.e(TAG, "Error registering plugin package_info_plus, dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1313213Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1314062Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1314884Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1317159Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:59: error: package io.flutter.plugins.pathprovider does not exist
+build	Build Android APK	2026-08-18T18:41:09.1319697Z       flutterEngine.getPlugins().add(new io.flutter.plugins.pathprovider.PathProviderPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1320802Z                                                                         ^
+build	Build Android APK	2026-08-18T18:41:09.1322442Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:61: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1324547Z       Log.e(TAG, "Error registering plugin path_provider_android, io.flutter.plugins.pathprovider.PathProviderPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1325730Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1326207Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1326829Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1329181Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:64: error: package dev.fluttercommunity.plus.sensors does not exist
+build	Build Android APK	2026-08-18T18:41:09.1331472Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.sensors.SensorsPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1332566Z                                                                           ^
+build	Build Android APK	2026-08-18T18:41:09.1334147Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:66: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1336113Z       Log.e(TAG, "Error registering plugin sensors_plus, dev.fluttercommunity.plus.sensors.SensorsPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1337309Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1346855Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1347568Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1349732Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:69: error: package io.flutter.plugins.sharedpreferences does not exist
+build	Build Android APK	2026-08-18T18:41:09.1352006Z       flutterEngine.getPlugins().add(new io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1353182Z                                                                              ^
+build	Build Android APK	2026-08-18T18:41:09.1354781Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:71: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1357017Z       Log.e(TAG, "Error registering plugin shared_preferences_android, io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1358599Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1359508Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1360125Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1361904Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:74: error: package com.tekartik.sqflite does not exist
+build	Build Android APK	2026-08-18T18:41:09.1363873Z       flutterEngine.getPlugins().add(new com.tekartik.sqflite.SqflitePlugin());
+build	Build Android APK	2026-08-18T18:41:09.1364842Z                                                              ^
+build	Build Android APK	2026-08-18T18:41:09.1366383Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:76: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1368484Z       Log.e(TAG, "Error registering plugin sqflite_android, com.tekartik.sqflite.SqflitePlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1369483Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1369945Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1370560Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1372384Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:79: error: package io.flutter.plugins.urllauncher does not exist
+build	Build Android APK	2026-08-18T18:41:09.1374828Z       flutterEngine.getPlugins().add(new io.flutter.plugins.urllauncher.UrlLauncherPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1375891Z                                                                        ^
+build	Build Android APK	2026-08-18T18:41:09.1377513Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:81: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1379749Z       Log.e(TAG, "Error registering plugin url_launcher_android, io.flutter.plugins.urllauncher.UrlLauncherPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1380741Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1381061Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1381503Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1383161Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:84: error: package io.flutter.plugins.videoplayer does not exist
+build	Build Android APK	2026-08-18T18:41:09.1385190Z       flutterEngine.getPlugins().add(new io.flutter.plugins.videoplayer.VideoPlayerPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1388822Z                                                                        ^
+build	Build Android APK	2026-08-18T18:41:09.1391960Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:86: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1393888Z       Log.e(TAG, "Error registering plugin video_player_android, io.flutter.plugins.videoplayer.VideoPlayerPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1394901Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1395215Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1395650Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1397304Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:89: error: package dev.fluttercommunity.plus.wakelock does not exist
+build	Build Android APK	2026-08-18T18:41:09.1399670Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin());
+build	Build Android APK	2026-08-18T18:41:09.1400646Z                                                                            ^
+build	Build Android APK	2026-08-18T18:41:09.1402086Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java:91: error: cannot find symbol
+build	Build Android APK	2026-08-18T18:41:09.1403981Z       Log.e(TAG, "Error registering plugin wakelock_plus, dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin", e);
+build	Build Android APK	2026-08-18T18:41:09.1404973Z       ^
+build	Build Android APK	2026-08-18T18:41:09.1405294Z   symbol:   variable Log
+build	Build Android APK	2026-08-18T18:41:09.1405740Z   location: class GeneratedPluginRegistrant
+build	Build Android APK	2026-08-18T18:41:09.1406216Z 42 errors
+build	Build Android APK	2026-08-18T18:41:09.1725384Z 
+build	Build Android APK	2026-08-18T18:41:09.1733808Z FAILURE: Build failed with an exception.
+build	Build Android APK	2026-08-18T18:41:09.1748471Z 
+build	Build Android APK	2026-08-18T18:41:09.1778634Z * What went wrong:
+build	Build Android APK	2026-08-18T18:41:09.1779268Z Execution failed for task ':app:compileDebugJavaWithJavac'.
+build	Build Android APK	2026-08-18T18:41:09.1781978Z > Compilation failed; see the compiler error output for details.
+build	Build Android APK	2026-08-18T18:41:09.1782696Z 
+build	Build Android APK	2026-08-18T18:41:09.1783005Z * Try:
+build	Build Android APK	2026-08-18T18:41:09.1783648Z > Run with --stacktrace option to get the stack trace.
+build	Build Android APK	2026-08-18T18:41:09.1798835Z > Run with --info or --debug option to get more log output.
+build	Build Android APK	2026-08-18T18:41:09.1799811Z > Run with --scan to get full insights.
+build	Build Android APK	2026-08-18T18:41:09.1800393Z 
+build	Build Android APK	2026-08-18T18:41:09.1800769Z * Get more help at https://help.gradle.org
+build	Build Android APK	2026-08-18T18:41:09.1801311Z 
+build	Build Android APK	2026-08-18T18:41:09.1801631Z BUILD FAILED in 2m 16s
+build	Build Android APK	2026-08-18T18:41:09.5872906Z Running Gradle task 'assembleDebug'...                            136.9s
+build	Build Android APK	2026-08-18T18:41:09.5920773Z Gradle task assembleDebug failed with exit code 1
+build	Build Android APK	2026-08-18T18:41:09.5980811Z ##[error]Process completed with exit code 1.

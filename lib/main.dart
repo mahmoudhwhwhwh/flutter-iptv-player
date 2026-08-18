@@ -119,14 +119,14 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
-    if (provider.isCheckingVersion) {
+    if (provider.isLoading) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(color: PremiumPalette.violet),
         ),
       );
     }
-    if (provider.isBlocked) {
+    if (provider.isVersionBlocked) {
       return Scaffold(
         body: Center(
           child: Padding(
@@ -137,7 +137,7 @@ class AuthWrapper extends StatelessWidget {
                 const Icon(Icons.block, color: Colors.red, size: 80),
                 const SizedBox(height: 24),
                 Text(
-                  provider.blockMessage,
+                  provider.remoteBlockMessage,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -229,11 +229,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _login() async {
     if (_codeController.text.isEmpty) return;
     setState(() => _isLoading = true);
-    final success = await Provider.of<IPTVProvider>(context, listen: false).login(_codeController.text);
+    final success = await Provider.of<IPTVProvider>(context, listen: false).loginWithCode(_codeController.text);
     setState(() => _isLoading = false);
     if (!success) {
+      final error = Provider.of<IPTVProvider>(context, listen: false).lastError;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('كود غير صحيح')),
+        SnackBar(content: Text(error ?? 'كود غير صحيح')),
       );
     }
   }

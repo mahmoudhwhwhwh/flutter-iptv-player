@@ -122,7 +122,7 @@
       "username": "PCJ7KCNU0AX6",
       "password": "36508313",
       "users": {
-        "joker03": {
+        "609155765757": {
           "expiry_date": "بلا حدود",
           "devices": [
             "UKQ1.240624.001"
@@ -136,7 +136,7 @@
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "609155765757": {
+        "joker04": {
           "expiry_date": "بلا حدود",
           "devices": [
             "UKQ1.240624.001"
@@ -261,7 +261,7 @@
   "default_xtream_user": "mejdoubnew_958581",
   "default_xtream_pass": "CHmNLjSr",
   "blocking": {
-    "min_version_code": 233,
+    "min_version_code": 232,
     "blocked_version_codes": [
       125,
       130,
@@ -269,13 +269,14 @@
       144,
       205,
       211,
-      212
+      212,
+      233
     ],
     "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.34 للاستمرار."
   },
   "update": {
     "latest_version": "v2.2.34",
     "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
-    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
+    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.34. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
   }
 }

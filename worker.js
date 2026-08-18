@@ -137,7 +137,7 @@ export default {
               "username": "PCJ7KCNU0AX6",
               "password": "36508313",
               "users": {
-                "joker03": {
+                "609155765757": {
                   "expiry_date": "بلا حدود",
                   "devices": ["UKQ1.240624.001"]
                 }
@@ -253,7 +253,7 @@ export default {
             }
           ],
           blocking: {
-            min_version_code: 234,
+            min_version_code: 232,
             blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
             block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.34 للاستمرار."
           },

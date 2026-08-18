@@ -1,4 +1,4 @@
-package com.mahmoud.iptv.flutter_iptv_player
+package com.mahmoud.iptv
 
 import android.os.Bundle
 import android.view.WindowManager

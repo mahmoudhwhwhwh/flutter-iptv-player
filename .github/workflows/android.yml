@@ -39,5 +39,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LIVE_STREAM_PREMIUM_v2.2.34
+          name: LIVE_STREAM_PREMIUM_v2.2.35
           path: LIVE_STREAM_PREMIUM.apk

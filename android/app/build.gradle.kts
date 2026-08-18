@@ -18,8 +18,8 @@ android {
         applicationId = "com.mahmoud.iptv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 234
-        versionName = "2.2.34"
+        versionCode = 235
+        versionName = "2.2.35"
         multiDexEnabled = true
     }
 

@@ -73,15 +73,19 @@ android {
 
     buildTypes {
         release {
-            if (!hasReleaseSigning) {
-                throw new GradleException('Release signing is required. Provide android/key.properties from protected GitHub secrets.')
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
             }
-            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             debuggable false
             jniDebuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 }

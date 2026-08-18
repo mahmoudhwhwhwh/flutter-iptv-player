@@ -18,7 +18,8 @@ dependencies:
   # Video Playback (Utilizes ExoPlayer internally on Android systems)
   video_player: ^2.8.2
   chewie: ^1.7.5
-  # better_player_plus and wakelock_plus removed to ensure 100% stable build
+  better_player_plus: ^1.0.7
+  wakelock_plus: ^1.1.4
   
   # Client side database persistence for favorites/playlists
   shared_preferences: ^2.2.3

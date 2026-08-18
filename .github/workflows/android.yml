@@ -36,8 +36,8 @@ jobs:
         run: flutter clean
       - name: Build Android APK
         run: |
-          flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM.apk
+          flutter build apk --debug
+          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:

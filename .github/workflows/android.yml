@@ -23,10 +23,7 @@ jobs:
           flutter-version: '3.24.0'
           channel: stable
       - name: Install dependencies
-        run: |
-          flutter pub get
-          # Backup our manual registrant
-          cp android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java GeneratedPluginRegistrant.java.bak
+        run: flutter pub get
       - name: Extract Version
         id: version
         run: |
@@ -35,42 +32,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Fresh Start Android
-        run: |
-          # Backup essential files
-          mkdir -p backup
-          cp android/app/google-services.json backup/ || true
-          cp -r android/app/src/main/res/drawable* backup/ || true
-          
-          # Delete and recreate android folder
-          rm -rf android
-          flutter create . --project-name flutter_iptv_player --platforms android --org com.mahmoud.iptv
-          
-          # Restore essential files
-          cp backup/google-services.json android/app/ || true
-          cp -r backup/drawable* android/app/src/main/res/ || true
-          
-          # Patch Kotlin version in settings.gradle
-          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
-          
-          # Overwrite MainActivity with correct v2 embedding code and screen recording fix
-          MAIN_ACTIVITY=$(find android/app/src/main -name MainActivity.*)
-          echo "Overwriting $MAIN_ACTIVITY"
-          PACKAGE_NAME=$(grep "package " "$MAIN_ACTIVITY" | head -n 1)
-          cat <<EOF > "$MAIN_ACTIVITY"
-$PACKAGE_NAME
-
-import android.os.Bundle
-import android.view.WindowManager
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity: FlutterActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-    }
-}
-EOF
       - name: Build Android APK
         run: |
           flutter build apk --debug
@@ -80,4 +41,3 @@ EOF
         with:
           name: LIVE_STREAM_PREMIUM_v2.2.34
           path: LIVE_STREAM_PREMIUM.apk
- 

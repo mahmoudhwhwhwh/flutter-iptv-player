@@ -25,15 +25,15 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
-    pluginManager.withPlugin('com.android.library') {
-        project.android {
-            compileSdk 35
-            defaultConfig {
-                targetSdk 35
-            }
-        }
+    if (project.state.executed) {
+        configureAndroid(project)
+    } else {
+        project.afterEvaluate { configureAndroid(project) }
     }
-    pluginManager.withPlugin('com.android.application') {
+}
+
+def configureAndroid(project) {
+    if (project.hasProperty('android')) {
         project.android {
             compileSdk 35
             defaultConfig {

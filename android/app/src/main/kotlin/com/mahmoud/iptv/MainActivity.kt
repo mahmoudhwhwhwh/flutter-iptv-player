@@ -85,7 +85,7 @@ class MainActivity : FlutterActivity() {
             "org.meowcat.edxposed.manager"
         )
 
-        val pm = packageManager
+        val pm = getPackageManager()
         for (packageName in blockedPackages) {
             try {
                 pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
@@ -138,7 +138,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val debugBuild = (getApplicationInfo().flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
     }
 
@@ -171,8 +171,8 @@ class MainActivity : FlutterActivity() {
         if (expected.isEmpty() || expected == "UNSET") return true
 
         return try {
-            val pm = packageManager
-            val pkgName = packageName
+            val pm = getPackageManager()
+            val pkgName = getPackageName()
             val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val signingInfo = info.signingInfo

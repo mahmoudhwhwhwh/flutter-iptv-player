@@ -35,28 +35,34 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Clean build
+      - name: Fresh Start Android
         run: |
-          flutter clean
-          # Restore our manual registrant after clean
-          mkdir -p android/app/src/main/java/io/flutter/plugins/
-          cp GeneratedPluginRegistrant.java.bak android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+          # Backup essential files
+          mkdir -p backup
+          cp android/app/google-services.json backup/ || true
+          cp -r android/app/src/main/res/drawable* backup/ || true
+          
+          # Delete and recreate android folder
+          rm -rf android
+          flutter create . --platforms android --org com.mahmoud.iptv
+          
+          # Restore essential files
+          cp backup/google-services.json android/app/ || true
+          cp -r backup/drawable* android/app/src/main/res/ || true
+          
+          # Patch MainActivity to allow screen recording
+          # Find the MainActivity (could be .kt or .java)
+          MAIN_ACTIVITY=$(find android/app/src/main -name MainActivity.*)
+          echo "Patching $MAIN_ACTIVITY"
+          if [[ "$MAIN_ACTIVITY" == *.kt ]]; then
+            sed -i '/import io.flutter.embedding.android.FlutterActivity/a import android.os.Bundle\nimport android.view.WindowManager' "$MAIN_ACTIVITY"
+            sed -i '/class MainActivity/a \    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)\n    }' "$MAIN_ACTIVITY"
+          else
+            sed -i '/import io.flutter.embedding.android.FlutterActivity/a import android.os.Bundle;\nimport android.view.WindowManager;' "$MAIN_ACTIVITY"
+            sed -i '/public class MainActivity/a \    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);\n    }' "$MAIN_ACTIVITY"
+          fi
       - name: Build Android APK
         run: |
-          # 1. Run pub get to ensure all plugins are downloaded
-          flutter pub get
-          # 2. Try a clean build to generate the registrant
-          flutter build apk --debug || true
-          # 3. Patch the registrant to fix missing imports and classes
-          # We use a robust way to find and patch it
-          REGISTRANT_PATH=$(find . -name GeneratedPluginRegistrant.java | head -n 1)
-          if [ -n "$REGISTRANT_PATH" ]; then
-            echo "Patching $REGISTRANT_PATH"
-            sed -i 's/import io.flutter.Log;/import android.util.Log;/g' "$REGISTRANT_PATH"
-            # Ensure android.util.Log is imported if not present
-            grep -q "import android.util.Log;" "$REGISTRANT_PATH" || sed -i '2i import android.util.Log;' "$REGISTRANT_PATH"
-          fi
-          # 4. Final build attempt
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact

@@ -53,16 +53,24 @@ jobs:
           # Patch Kotlin version in settings.gradle
           sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
           
-          # Patch MainActivity to allow screen recording
+          # Overwrite MainActivity with correct v2 embedding code and screen recording fix
           MAIN_ACTIVITY=$(find android/app/src/main -name MainActivity.*)
-          echo "Patching $MAIN_ACTIVITY"
-          if [[ "$MAIN_ACTIVITY" == *.kt ]]; then
-            sed -i '/import io.flutter.embedding.android.FlutterActivity/a import android.os.Bundle\nimport android.view.WindowManager' "$MAIN_ACTIVITY"
-            sed -i '/class MainActivity/a \    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)\n    }' "$MAIN_ACTIVITY"
-          else
-            sed -i '/import io.flutter.embedding.android.FlutterActivity/a import android.os.Bundle;\nimport android.view.WindowManager;' "$MAIN_ACTIVITY"
-            sed -i '/public class MainActivity/a \    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);\n    }' "$MAIN_ACTIVITY"
-          fi
+          echo "Overwriting $MAIN_ACTIVITY"
+          PACKAGE_NAME=$(grep "package " "$MAIN_ACTIVITY" | head -n 1)
+          cat <<EOF > "$MAIN_ACTIVITY"
+$PACKAGE_NAME
+
+import android.os.Bundle
+import android.view.WindowManager
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+}
+EOF
       - name: Build Android APK
         run: |
           flutter build apk --debug

@@ -47,14 +47,25 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+
+    sourceSets {
+        main {
+            java {
+                exclude '**/GeneratedPluginRegistrant.java'
+            }
+        }
+    }
+}
+
+dependencies {
+    // Force inclusion of Flutter embedding if it's missing from classpath
+    implementation "io.flutter:flutter_embedding_debug:1.0.0-+"
 }
 
 flutter {
     source '../..'
 }
 
-// Generate stubs for missing plugin classes to satisfy the compiler
-// These are only used if the actual plugin classes are not found in the classpath
 tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile') }.all { task ->
     task.doFirst {
         def pluginClasses = [
@@ -86,7 +97,6 @@ tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile'
             pf.text = "package $packageName;\npublic class $className {\n  public Object onAttachedToEngine(Object b) { return null; }\n  public Object onDetachedFromEngine(Object b) { return null; }\n}"
         }
         
-        // Ensure GeneratedPluginRegistrant exists and is valid
         def registrantFile = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
         registrantFile.parentFile.mkdirs()
         registrantFile.text = 'package io.flutter.plugins;\nimport androidx.annotation.Keep;\n@Keep\npublic final class GeneratedPluginRegistrant {\n  public static void registerWith(Object engine) {}\n}\n'

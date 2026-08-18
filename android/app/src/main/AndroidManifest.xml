@@ -56,8 +56,8 @@
     <application
         android:label="live strem pro"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher"
-        android:banner="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@mipmap/ic_launcher"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true">
         

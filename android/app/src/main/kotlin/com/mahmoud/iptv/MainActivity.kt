@@ -85,7 +85,7 @@ class MainActivity : FlutterActivity() {
             "org.meowcat.edxposed.manager"
         )
 
-        val pm = getPackageManager()
+        val pm = this.packageManager
         for (packageName in blockedPackages) {
             try {
                 pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
@@ -112,7 +112,7 @@ class MainActivity : FlutterActivity() {
 
     private fun isVpnActive(): Boolean {
         return try {
-            val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+            val manager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = manager.activeNetwork ?: return false
                 val capabilities = manager.getNetworkCapabilities(network) ?: return false
@@ -138,7 +138,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (getApplicationInfo().flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val debugBuild = (this.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
     }
 
@@ -171,8 +171,8 @@ class MainActivity : FlutterActivity() {
         if (expected.isEmpty() || expected == "UNSET") return true
 
         return try {
-            val pm = getPackageManager()
-            val pkgName = getPackageName()
+            val pm = this.packageManager
+            val pkgName = this.packageName
             val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val signingInfo = info.signingInfo

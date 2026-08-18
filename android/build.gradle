@@ -25,6 +25,16 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileSdk 35
+                defaultConfig {
+                    targetSdk 35
+                }
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

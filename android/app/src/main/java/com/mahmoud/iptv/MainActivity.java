@@ -89,7 +89,7 @@ public class MainActivity extends FlutterActivity {
                 "de.robv.android.xposed.installer", "org.meowcat.edxposed.manager"
         };
 
-        PackageManager pm = getPackageManager();
+        PackageManager pm = getContext().getPackageManager();
         for (String pkg : blockedPackages) {
             try {
                 pm.getPackageInfo(pkg, PackageManager.GET_ACTIVITIES);
@@ -117,7 +117,7 @@ public class MainActivity extends FlutterActivity {
 
     private boolean isVpnActive() {
         try {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager cm = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
             if (cm == null) return false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 Network activeNetwork = cm.getActiveNetwork();
@@ -144,7 +144,7 @@ public class MainActivity extends FlutterActivity {
     }
 
     private boolean isDebuggerOrDebugBuild() {
-        boolean debugBuild = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        boolean debugBuild = (getContext().getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger();
     }
 
@@ -180,8 +180,8 @@ public class MainActivity extends FlutterActivity {
         expected = expected.trim().toUpperCase(Locale.US);
 
         try {
-            PackageManager pm = getPackageManager();
-            String pkgName = getPackageName();
+            PackageManager pm = getContext().getPackageManager();
+            String pkgName = getContext().getPackageName();
             Signature[] signatures;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 PackageInfo info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES);

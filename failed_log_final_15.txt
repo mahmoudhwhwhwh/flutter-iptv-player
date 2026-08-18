@@ -1,0 +1,36 @@
+build	Build Android APK	﻿2026-08-18T19:42:07.0208630Z ##[group]Run flutter build apk --debug
+build	Build Android APK	2026-08-18T19:42:07.0208912Z ^[[36;1mflutter build apk --debug^[[0m
+build	Build Android APK	2026-08-18T19:42:07.0209244Z ^[[36;1mcp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk^[[0m
+build	Build Android APK	2026-08-18T19:42:07.0227029Z shell: /usr/bin/bash -e {0}
+build	Build Android APK	2026-08-18T19:42:07.0227278Z env:
+build	Build Android APK	2026-08-18T19:42:07.0228101Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T19:42:07.0228546Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T19:42:07.0228959Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter
+build	Build Android APK	2026-08-18T19:42:07.0229288Z   PUB_CACHE: /home/runner/.pub-cache
+build	Build Android APK	2026-08-18T19:42:07.0229524Z   VERSION: 2.2.34+234
+build	Build Android APK	2026-08-18T19:42:07.0229725Z   TAG_VERSION: v2.2.34
+build	Build Android APK	2026-08-18T19:42:07.0229934Z ##[endgroup]
+build	Build Android APK	2026-08-18T19:42:07.5698062Z 
+build	Build Android APK	2026-08-18T19:42:46.8787889Z Running Gradle task 'assembleDebug'...                          
+build	Build Android APK	2026-08-18T19:42:46.8802024Z startup failed:
+build	Build Android APK	2026-08-18T19:42:46.8803252Z /opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter/packages/flutter_tools/gradle/src/main/groovy/flutter.groovy: 8: unable to resolve class groovy.xml.QName
+build	Build Android APK	2026-08-18T19:42:46.8804322Z  @ line 8, column 1.
+build	Build Android APK	2026-08-18T19:42:46.8804738Z    import groovy.xml.QName
+build	Build Android APK	2026-08-18T19:42:46.8805127Z    ^
+build	Build Android APK	2026-08-18T19:42:46.8805355Z 
+build	Build Android APK	2026-08-18T19:42:46.8805555Z 1 error
+build	Build Android APK	2026-08-18T19:42:46.8805793Z 
+build	Build Android APK	2026-08-18T19:42:46.9658024Z 
+build	Build Android APK	2026-08-18T19:42:46.9728478Z FAILURE: Build failed with an exception.
+build	Build Android APK	2026-08-18T19:42:46.9757922Z 
+build	Build Android APK	2026-08-18T19:42:46.9773037Z * What went wrong:
+build	Build Android APK	2026-08-18T19:42:46.9809047Z Execution failed for task ':gradle:compileGroovy'.
+build	Build Android APK	2026-08-18T19:42:46.9827698Z > Compilation failed; see the compiler error output for details.
+build	Build Android APK	2026-08-18T19:42:46.9877877Z 
+build	Build Android APK	2026-08-18T19:42:46.9938170Z * Try:
+build	Build Android APK	2026-08-18T19:42:46.9938903Z > Run with --scan to get full insights from a Build Scan (powered by Develocity).
+build	Build Android APK	2026-08-18T19:42:46.9967793Z 
+build	Build Android APK	2026-08-18T19:42:46.9968031Z BUILD FAILED in 38s
+build	Build Android APK	2026-08-18T19:42:47.5139391Z Running Gradle task 'assembleDebug'...                             39.9s
+build	Build Android APK	2026-08-18T19:42:47.5177967Z Gradle task assembleDebug failed with exit code 1
+build	Build Android APK	2026-08-18T19:42:47.5229707Z ##[error]Process completed with exit code 1.

@@ -1,5 +1,9 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+}
 
 def localProperties = new Properties()
 def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
@@ -8,9 +12,6 @@ if (localPropertiesFile.exists()) {
         localProperties.load(reader)
     }
 }
-
-def flutterRoot = localProperties.getProperty('flutter.sdk') ?: System.getenv('FLUTTER_ROOT')
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
@@ -93,5 +94,3 @@ android {
 flutter {
     source '../..'
 }
-
-apply plugin: 'com.google.gms.google-services'

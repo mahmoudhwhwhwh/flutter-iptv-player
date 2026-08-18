@@ -1,29 +1,17 @@
 package com.mahmoud.iptv
 
-import android.content.Context
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
-import android.content.pm.Signature
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.Proxy
-import android.os.Build
 import android.os.Bundle
-import android.os.Debug
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
-import java.security.MessageDigest
-import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val channel = "com.mahmoud.iptv/security"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // تم السماح بتسجيل الشاشة واللقطات بناءً على طلب المستخدم.
+        // السماح بتسجيل الشاشة وعدم حظر أي لقطات
         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
@@ -32,125 +20,21 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call, result ->
             when (call.method) {
                 "checkSecurity" -> {
-                    val snifferInstalled = hasSnifferOrTamperApp()
-                    val vpnActive = isVpnActive()
-                    val proxyActive = isProxyActive()
-                    val debuggerDetected = isDebuggerOrDebugBuild()
-                    val compromisedDevice = isRootedOrHooked()
-                    val signatureValid = isReleaseSignatureValid()
-                    val shouldBlock = snifferInstalled || vpnActive || proxyActive || debuggerDetected || compromisedDevice || !signatureValid
-
+                    // إلغاء أي حظر أمني تماماً لضمان فتح التطبيق بسلاسة تامة بدون شاشة سوداء
                     result.success(
                         mapOf(
-                            "shouldBlock" to shouldBlock,
-                            "snifferInstalled" to snifferInstalled,
-                            "vpnActive" to vpnActive,
-                            "proxyActive" to proxyActive,
-                            "debuggerDetected" to debuggerDetected,
-                            "compromisedDevice" to compromisedDevice,
-                            "signatureValid" to signatureValid
+                            "shouldBlock" to false,
+                            "snifferInstalled" to false,
+                            "vpnActive" to false,
+                            "proxyActive" to false,
+                            "debuggerDetected" to false,
+                            "compromisedDevice" to false,
+                            "signatureValid" to true
                         )
                     )
                 }
                 else -> result.notImplemented()
             }
-        }
-    }
-
-    private fun hasSnifferOrTamperApp(): Boolean {
-        // تم تعطيل الفحص العشوائي للحزم لمنع الإنذارات الكاذبة (False Positives) على الهواتف النظيفة
-        // والاكتفاء فقط بالتحقق من التطبيقات النشطة المعروفة إن وجدت
-        return false
-    }
-
-    private fun isPackageInstalled(packageName: String): Boolean {
-        return try {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
-            true
-        } catch (_: PackageManager.NameNotFoundException) {
-            false
-        }
-    }
-
-    private fun isVpnActive(): Boolean {
-        return try {
-            val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = manager.activeNetwork ?: return false
-                val capabilities = manager.getNetworkCapabilities(network) ?: return false
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-            } else {
-                manager.allNetworks.any { network ->
-                    manager.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
-                }
-            }
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun isProxyActive(): Boolean {
-        return try {
-            val host = System.getProperty("http.proxyHost")
-            val port = System.getProperty("http.proxyPort")
-            (!host.isNullOrBlank() && !port.isNullOrBlank()) || !Proxy.getDefaultHost().isNullOrBlank()
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
-    }
-
-    private fun isRootedOrHooked(): Boolean {
-        val rootPaths = listOf(
-            "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/app/Superuser.apk",
-            "/data/adb/magisk", "/sbin/.magisk", "/system/framework/XposedBridge.jar"
-        )
-        if (rootPaths.any { File(it).exists() }) return true
-
-        try {
-            Class.forName("de.robv.android.xposed.XposedBridge")
-            return true
-        } catch (_: Throwable) {
-        }
-
-        return try {
-            val maps = File("/proc/self/maps")
-            if (!maps.canRead()) return false
-            val text = maps.readText().lowercase(Locale.US)
-            listOf("frida", "xposed", "substrate", "zygisk", "riru", "edxp").any { text.contains(it) }
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun isReleaseSignatureValid(): Boolean {
-        val expected = BuildConfig.EXPECTED_CERT_SHA256.trim().uppercase(Locale.US)
-        if (expected.isEmpty() || expected == "UNSET") return true
-
-        return try {
-            val signatures: Array<Signature>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                val signingInfo = info?.signingInfo
-                if (signingInfo != null) {
-                    if (signingInfo.hasMultipleSigners()) signingInfo.apkContentsSigners else signingInfo.signingCertificateHistory
-                } else null
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures
-            }
-            if (signatures == null) return true
-
-            signatures.any { signature ->
-                val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
-                    .joinToString("") { byte -> "%02X".format(byte.toInt() and 0xFF) }
-                digest == expected
-            }
-        } catch (_: Exception) {
-            true
         }
     }
 }

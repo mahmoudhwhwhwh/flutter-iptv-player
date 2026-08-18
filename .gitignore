@@ -1,0 +1,13 @@
+# Android release signing material
+android/key.properties
+android/app/keystore/
+.release_signing/
+*.jks
+*.keystore
+
+# Flutter/Dart build output and obfuscation symbols
+build/
+.dart_tool/
+
+# Local analysis notes
+reference_ui_analysis.txt

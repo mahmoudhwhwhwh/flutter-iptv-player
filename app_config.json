@@ -1,0 +1,37 @@
+{
+  "app_name": "LIVE STREAM PREMIUM",
+  "app_version": "2.2.24",
+  "announcement": "🔒 تم تفعيل النظام الأمني v2.2.15. يرجى التحديث الآن لضمان عمل كافة الاشتراكات تلقائياً.",
+  "api_url": "https://iptv-subscription-api.tvkora56.workers.dev",
+  "disable_vpn_check": false,
+  "disable_sniffer_check": false,
+  "blocking": {
+    "min_version_code": 215,
+    "blocked_version_codes": [
+      1,
+      100,
+      110,
+      120,
+      125,
+      130,
+      140,
+      144,
+      200,
+      205,
+      211,
+      212,
+      213,
+      214
+    ],
+    "block_message": "⚠️ النسخة التي تستخدمها قديمة وغير آمنة. يرجى تحميل v2.2.15 للاستمرار في المشاهدة."
+  },
+  "update": {
+    "latest_version": "v2.2.15",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
+    "update_message": "يتوفر الآن التحديث النهائي v2.2.15. تم نقل كافة البيانات إلى السيرفر المشفر بنجاح."
+  },
+  "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
+  "update_message": "يتوفر إصدار LIVE STREAM PREMIUM 2.2.20. يمكنك التحديث من رابط التنزيل الرسمي.",
+  "min_version_code": 214,
+  "block_message": "يتوفر إصدار LIVE STREAM PREMIUM 2.2.20. يمكنك التحديث من رابط التنزيل الرسمي."
+}

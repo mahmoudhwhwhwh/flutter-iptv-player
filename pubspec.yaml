@@ -1,0 +1,49 @@
+name: flutter_iptv_player
+description: "A modern IPTV Stream Player supporting M3U, Xtream Codes, and ExoPlayer playback on Android systems."
+version: 2.2.33+233
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+    
+  provider: ^6.1.2
+  cached_network_image: ^3.3.1
+  
+  # Network & API Connections
+  http: ^1.2.1
+  
+  # Video Playback (Utilizes ExoPlayer internally on Android systems)
+  video_player: ^2.8.2
+  chewie: ^1.7.5
+  better_player_plus: ^1.0.7
+  
+  # Client side database persistence for favorites/playlists
+  shared_preferences: ^2.2.3
+  device_info_plus: ^10.1.0
+  sensors_plus: ^5.0.1
+  
+  # URL Launching for Telegram Connection
+  url_launcher: ^6.2.5
+  dio: ^5.4.3+1
+  path_provider: ^2.1.3
+  open_filex: ^4.4.0
+  image_picker: ^1.1.2
+
+  
+  # UI Accents & Icons
+  google_fonts: ^6.2.1
+  
+  # Firebase Analytics & Monitoring
+  firebase_core: ^2.31.0
+  firebase_analytics: ^10.10.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

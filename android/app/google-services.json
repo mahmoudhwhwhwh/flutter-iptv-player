@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "825583297394",
+    "project_id": "iptv-player-fa64f",
+    "storage_bucket": "iptv-player-fa64f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:825583297394:android:67ce4248a90955952833eb",
+        "android_client_info": {
+          "package_name": "com.mahmoud.iptv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfMaOT9ZjFHC4E2dpyu4LDJvVxqe6wZ3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

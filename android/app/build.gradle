@@ -22,10 +22,6 @@ if (signingPropertiesFile.exists()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
 }
 
-def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: 'UNSET'
-
-def hasReleaseSigning = signingProperties['storeFile'] && signingProperties['storePassword'] && signingProperties['keyAlias'] && signingProperties['keyPassword']
-
 android {
     namespace "com.mahmoud.iptv"
     compileSdk 34
@@ -39,51 +35,19 @@ android {
         jvmTarget = '17'
     }
 
-    sourceSets {
-        main.java.srcDirs += 'src/main/java'
-    }
-
     defaultConfig {
         applicationId "com.mahmoud.iptv"
-        minSdk 23
+        minSdk 21
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        multiDexEnabled true
-        buildConfigField "String", "EXPECTED_CERT_SHA256", "\"${expectedCertificateSha256}\""
-    }
-
-    buildFeatures {
-        buildConfig true
-    }
-
-    signingConfigs {
-        release {
-            if (hasReleaseSigning) {
-                storeFile rootProject.file(signingProperties['storeFile'])
-                storePassword signingProperties['storePassword']
-                keyAlias signingProperties['keyAlias']
-                keyPassword signingProperties['keyPassword']
-                enableV1Signing true
-                enableV2Signing true
-                enableV3Signing true
-                enableV4Signing true
-            }
-        }
     }
 
     buildTypes {
         release {
-            if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig signingConfigs.debug
-            }
-            minifyEnabled true
-            shrinkResources true
-            debuggable false
-            jniDebuggable false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
         }
         debug {
             signingConfig signingConfigs.debug
@@ -93,42 +57,4 @@ android {
 
 flutter {
     source '../..'
-}
-
-tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile') }.all { task ->
-    task.doFirst {
-        def registrantDir = file("src/main/java/io/flutter/plugins")
-        registrantDir.mkdirs()
-        def registrantFile = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
-        registrantFile.text = 'package io.flutter.plugins;\nimport androidx.annotation.Keep;\nimport io.flutter.embedding.engine.FlutterEngine;\n@Keep\npublic final class GeneratedPluginRegistrant {\n  public static void registerWith(FlutterEngine flutterEngine) {}\n}\n'
-        
-        // Comprehensive stubbing for all missing plugins to prevent javac errors
-        def pluginClasses = [
-            'com.crazecoder.openfile.OpenFilePlugin',
-            'dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin',
-            'io.flutter.plugins.pathprovider.PathProviderPlugin',
-            'dev.fluttercommunity.plus.sensors.SensorsPlugin',
-            'io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin',
-            'com.tekartik.sqflite.SqflitePlugin',
-            'dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin',
-            'io.flutter.plugins.urllauncher.UrlLauncherPlugin',
-            'io.flutter.plugins.videoplayer.VideoPlayerPlugin',
-            'com.mr.flutter.plugin.filepicker.FilePickerPlugin',
-            'io.flutter.plugins.connectivity.ConnectivityPlugin',
-            'dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin',
-            'io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin',
-            'io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingPlugin',
-            'com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin',
-            'io.flutter.plugins.imagepicker.ImagePickerPlugin'
-        ]
-        pluginClasses.each { fullClassName ->
-            def parts = fullClassName.split('\\.')
-            def className = parts[-1]
-            def packageName = parts[0..-2].join('.')
-            def path = parts.join('/') + ".java"
-            def pf = file("src/main/java/$path")
-            pf.parentFile.mkdirs()
-            pf.text = "package $packageName;\npublic class $className {\n  public Object onAttachedToEngine(Object b) { return null; }\n  public Object onDetachedFromEngine(Object b) { return null; }\n}"
-        }
-    }
 }

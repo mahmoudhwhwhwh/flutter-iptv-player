@@ -1,13 +1,6 @@
 package com.mahmoud.iptv;
 
-import android.os.Bundle;
-import androidx.annotation.Nullable;
 import io.flutter.embedding.android.FlutterActivity;
 
 public class MainActivity extends FlutterActivity {
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        // Removed FLAG_SECURE to allow screen recording for presentations
-    }
 }

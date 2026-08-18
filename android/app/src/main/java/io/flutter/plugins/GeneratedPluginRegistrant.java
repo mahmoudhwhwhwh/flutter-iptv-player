@@ -23,3 +23,7 @@ public final class GeneratedPluginRegistrant {
         } catch (Exception ignored) {}
     }
 }
+
+class WakelockPlusPlugin {
+    public static void registerWith(Object registrar) {}
+}

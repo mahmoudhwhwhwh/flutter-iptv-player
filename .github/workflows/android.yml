@@ -50,8 +50,10 @@ jobs:
           cp backup/google-services.json android/app/ || true
           cp -r backup/drawable* android/app/src/main/res/ || true
           
+          # Patch Kotlin version in settings.gradle
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' android/settings.gradle
+          
           # Patch MainActivity to allow screen recording
-          # Find the MainActivity (could be .kt or .java)
           MAIN_ACTIVITY=$(find android/app/src/main -name MainActivity.*)
           echo "Patching $MAIN_ACTIVITY"
           if [[ "$MAIN_ACTIVITY" == *.kt ]]; then

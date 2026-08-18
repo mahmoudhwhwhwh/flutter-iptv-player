@@ -99,16 +99,18 @@ tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile'
     task.doFirst {
         def f = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
         f.parentFile.mkdirs()
-        f.text = '''package io.flutter.plugins;
-
-import androidx.annotation.Keep;
-import io.flutter.embedding.engine.FlutterEngine;
-
-@Keep
-public final class GeneratedPluginRegistrant {
-    public static void registerWith(FlutterEngine flutterEngine) {
-    }
-}
-'''
+        f.text = 'package io.flutter.plugins;\nimport androidx.annotation.Keep;\nimport io.flutter.embedding.engine.FlutterEngine;\n@Keep\npublic final class GeneratedPluginRegistrant {\n  public static void registerWith(FlutterEngine flutterEngine) {}\n}\n'
+        
+        // Stub other problematic plugins
+        def plugins = [
+            'dev/fluttercommunity/plus/wakelock/WakelockPlusPlugin.java': 'package dev.fluttercommunity.plus.wakelock;\nimport io.flutter.embedding.engine.plugins.FlutterPlugin;\npublic class WakelockPlusPlugin implements FlutterPlugin {\n  @Override public void onAttachedToEngine(FlutterPluginBinding b) {}\n  @Override public void onDetachedFromEngine(FlutterPluginBinding b) {}\n}',
+            'io/flutter/plugins/urllauncher/UrlLauncherPlugin.java': 'package io.flutter.plugins.urllauncher;\nimport io.flutter.embedding.engine.plugins.FlutterPlugin;\npublic class UrlLauncherPlugin implements FlutterPlugin {\n  @Override public void onAttachedToEngine(FlutterPluginBinding b) {}\n  @Override public void onDetachedFromEngine(FlutterPluginBinding b) {}\n}',
+            'io/flutter/plugins/videoplayer/VideoPlayerPlugin.java': 'package io.flutter.plugins.videoplayer;\nimport io.flutter.embedding.engine.plugins.FlutterPlugin;\npublic class VideoPlayerPlugin implements FlutterPlugin {\n  @Override public void onAttachedToEngine(FlutterPluginBinding b) {}\n  @Override public void onDetachedFromEngine(FlutterPluginBinding b) {}\n}'
+        ]
+        plugins.each { path, content ->
+            def pf = file("src/main/java/$path")
+            pf.parentFile.mkdirs()
+            pf.text = content
+        }
     }
 }

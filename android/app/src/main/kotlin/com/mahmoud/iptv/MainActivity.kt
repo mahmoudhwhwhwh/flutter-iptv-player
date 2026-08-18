@@ -38,7 +38,9 @@ class MainActivity : FlutterActivity() {
                     val debuggerDetected = isDebuggerOrDebugBuild()
                     val compromisedDevice = isRootedOrHooked()
                     val signatureValid = isReleaseSignatureValid()
-                    val shouldBlock = snifferInstalled || vpnActive || proxyActive || debuggerDetected || compromisedDevice || !signatureValid
+                    // السماح بالتشغيل إذا كانت البصمة غير محددة (لأغراض البناء التجريبي) أو إذا كانت صحيحة
+                    val isSignatureIgnored = BuildConfig.EXPECTED_CERT_SHA256 == "UNSET" || BuildConfig.EXPECTED_CERT_SHA256.isEmpty()
+                    val shouldBlock = (snifferInstalled || vpnActive || proxyActive || debuggerDetected || compromisedDevice) && !isSignatureIgnored && !signatureValid
 
                     result.success(
                         mapOf(

@@ -94,3 +94,21 @@ android {
 flutter {
     source '../..'
 }
+
+tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile') }.all { task ->
+    task.doFirst {
+        def f = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
+        f.parentFile.mkdirs()
+        f.text = '''package io.flutter.plugins;
+
+import androidx.annotation.Keep;
+import io.flutter.embedding.engine.FlutterEngine;
+
+@Keep
+public final class GeneratedPluginRegistrant {
+    public static void registerWith(FlutterEngine flutterEngine) {
+    }
+}
+'''
+    }
+}

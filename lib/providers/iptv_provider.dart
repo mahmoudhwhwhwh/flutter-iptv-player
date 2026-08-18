@@ -441,10 +441,6 @@ class IPTVProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Disable security checks for TV Box and Screens compatibility
-    _disableVpnCheck = true;
-    _disableSnifferCheck = true;
-
     // تشغيل نظام الحماية بشكل دوري لضمان عدم تشغيل VPN في الخلفية لاحقاً
     _checkVpnAndProxyStatus();
     checkSecurity();
@@ -589,7 +585,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final configRes = await http.get(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
+      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
@@ -701,7 +697,7 @@ class IPTVProvider with ChangeNotifier {
     if (_isRegisteringDevice) return;
     _isRegisteringDevice = true;
     try {
-        final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
+        final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
         final res = await http.get(url);
         if (res.statusCode == 200) {
             final Map<String, dynamic> configData = json.decode(res.body);
@@ -900,7 +896,7 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final configUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
+      final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
       
       String host = "http://fh.u2i9o.top:80";
@@ -1130,7 +1126,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (_activationCode == "2027") {
        try {
-         final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/menu?t=${DateTime.now().millisecondsSinceEpoch}");
+         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
          final res = await http.get(url);
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);

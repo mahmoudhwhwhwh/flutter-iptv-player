@@ -16,12 +16,6 @@ if (localPropertiesFile.exists()) {
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
 
-def signingProperties = new Properties()
-def signingPropertiesFile = rootProject.file('key.properties')
-if (signingPropertiesFile.exists()) {
-    signingPropertiesFile.withInputStream { signingProperties.load(it) }
-}
-
 android {
     namespace "com.mahmoud.iptv"
     compileSdk 34
@@ -53,8 +47,48 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+
+    sourceSets {
+        main {
+            java {
+                exclude '**/GeneratedPluginRegistrant.java'
+            }
+        }
+    }
 }
 
 flutter {
     source '../..'
+}
+
+tasks.matching { it.name.contains('JavaWithJavac') || it.name.contains('Compile') }.all { task ->
+    task.doFirst {
+        def pluginClasses = [
+            'com.crazecoder.openfile.OpenFilePlugin',
+            'dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin',
+            'io.flutter.plugins.pathprovider.PathProviderPlugin',
+            'dev.fluttercommunity.plus.sensors.SensorsPlugin',
+            'io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin',
+            'com.tekartik.sqflite.SqflitePlugin',
+            'dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin',
+            'io.flutter.plugins.urllauncher.UrlLauncherPlugin',
+            'io.flutter.plugins.videoplayer.VideoPlayerPlugin',
+            'com.mr.flutter.plugin.filepicker.FilePickerPlugin',
+            'io.flutter.plugins.connectivity.ConnectivityPlugin',
+            'dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin',
+            'io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin',
+            'io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingPlugin',
+            'com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin',
+            'io.flutter.plugins.imagepicker.ImagePickerPlugin'
+        ]
+        pluginClasses.each { fullClassName ->
+            def parts = fullClassName.split('\\.')
+            def className = parts[-1]
+            def packageName = parts[0..-2].join('.')
+            def path = parts.join('/') + ".java"
+            def pf = file("src/main/java/$path")
+            pf.parentFile.mkdirs()
+            pf.text = "package $packageName;\npublic class $className {\n  public Object onAttachedToEngine(Object b) { return null; }\n  public Object onDetachedFromEngine(Object b) { return null; }\n}"
+        }
+    }
 }

@@ -43,9 +43,21 @@ jobs:
           cp GeneratedPluginRegistrant.java.bak android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
       - name: Build Android APK
         run: |
-          # Try building, and if it fails to find the registrant, we've already restored it.
-          # We use --no-pub to prevent Flutter from regenerating and overwriting our file.
-          flutter build apk --debug || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)
+          # 1. Run pub get to ensure all plugins are downloaded
+          flutter pub get
+          # 2. Try a clean build to generate the registrant
+          flutter build apk --debug || true
+          # 3. Patch the registrant to fix missing imports and classes
+          # We use a robust way to find and patch it
+          REGISTRANT_PATH=$(find . -name GeneratedPluginRegistrant.java | head -n 1)
+          if [ -n "$REGISTRANT_PATH" ]; then
+            echo "Patching $REGISTRANT_PATH"
+            sed -i 's/import io.flutter.Log;/import android.util.Log;/g' "$REGISTRANT_PATH"
+            # Ensure android.util.Log is imported if not present
+            grep -q "import android.util.Log;" "$REGISTRANT_PATH" || sed -i '2i import android.util.Log;' "$REGISTRANT_PATH"
+          fi
+          # 4. Final build attempt
+          flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

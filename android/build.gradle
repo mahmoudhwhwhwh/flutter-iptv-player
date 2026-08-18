@@ -25,22 +25,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
-    pluginManager.withPlugin('com.android.application') {
-        android {
-            compileSdkVersion 34
-            defaultConfig {
-                targetSdkVersion 34
-            }
-        }
-    }
-    pluginManager.withPlugin('com.android.library') {
-        android {
-            compileSdkVersion 34
-            defaultConfig {
-                targetSdkVersion 34
-            }
-        }
-    }
 }
 
 tasks.register("clean", Delete) {

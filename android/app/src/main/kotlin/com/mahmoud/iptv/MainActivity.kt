@@ -85,8 +85,14 @@ class MainActivity : FlutterActivity() {
             "org.meowcat.edxposed.manager"
         )
 
+        val pm = packageManager
         for (packageName in blockedPackages) {
-            if (isPackageInstalled(packageName)) return true
+            try {
+                pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+                return true
+            } catch (_: PackageManager.NameNotFoundException) {
+                // Not found
+            }
         }
 
         return try {
@@ -95,7 +101,6 @@ class MainActivity : FlutterActivity() {
                 "sniffer", "apkeditor", "mt.manager", "luckypatcher", "xposed", "edxposed", "magisk",
                 "frida", "substrate", "zygisk"
             )
-            val pm = this.applicationContext.packageManager
             pm.getInstalledPackages(0).any { info ->
                 val pkgName = info.packageName.lowercase(Locale.US)
                 keywords.any { pkgName.contains(it) }
@@ -105,18 +110,9 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun isPackageInstalled(packageName: String): Boolean {
-        return try {
-            this.applicationContext.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
-            true
-        } catch (_: PackageManager.NameNotFoundException) {
-            false
-        }
-    }
-
     private fun isVpnActive(): Boolean {
         return try {
-            val manager = this.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+            val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = manager.activeNetwork ?: return false
                 val capabilities = manager.getNetworkCapabilities(network) ?: return false
@@ -142,7 +138,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isDebuggerOrDebugBuild(): Boolean {
-        val debugBuild = (this.applicationContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger()
     }
 
@@ -172,11 +168,11 @@ class MainActivity : FlutterActivity() {
 
     private fun isReleaseSignatureValid(): Boolean {
         val expected = BuildConfig.EXPECTED_CERT_SHA256.trim().uppercase(Locale.US)
-        if (expected.isEmpty() || expected == "UNSET") return true // Default to true if not set
+        if (expected.isEmpty() || expected == "UNSET") return true
 
         return try {
-            val pm = this.applicationContext.packageManager
-            val pkgName = this.applicationContext.packageName
+            val pm = packageManager
+            val pkgName = packageName
             val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val signingInfo = info.signingInfo

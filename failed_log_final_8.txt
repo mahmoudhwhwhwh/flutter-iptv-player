@@ -1,0 +1,139 @@
+build	Build Android APK	﻿2026-08-18T19:15:43.8681983Z ##[group]Run # Try building, and if it fails to find the registrant, we've already restored it.
+build	Build Android APK	2026-08-18T19:15:43.8682668Z ^[[36;1m# Try building, and if it fails to find the registrant, we've already restored it.^[[0m
+build	Build Android APK	2026-08-18T19:15:43.8683937Z ^[[36;1m# We use --no-pub to prevent Flutter from regenerating and overwriting our file.^[[0m
+build	Build Android APK	2026-08-18T19:15:43.8684635Z ^[[36;1mflutter build apk --debug --no-pub || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)^[[0m
+build	Build Android APK	2026-08-18T19:15:43.8685504Z ^[[36;1mcp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk^[[0m
+build	Build Android APK	2026-08-18T19:15:43.8722003Z shell: /usr/bin/bash -e {0}
+build	Build Android APK	2026-08-18T19:15:43.8722248Z env:
+build	Build Android APK	2026-08-18T19:15:43.8722546Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T19:15:43.8723197Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-8/x64
+build	Build Android APK	2026-08-18T19:15:43.8723693Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter
+build	Build Android APK	2026-08-18T19:15:43.8724107Z   PUB_CACHE: /home/runner/.pub-cache
+build	Build Android APK	2026-08-18T19:15:43.8724359Z   VERSION: 2.2.34+234
+build	Build Android APK	2026-08-18T19:15:43.8724564Z   TAG_VERSION: v2.2.34
+build	Build Android APK	2026-08-18T19:15:43.8724772Z ##[endgroup]
+build	Build Android APK	2026-08-18T19:15:44.1419789Z 
+build	Build Android APK	2026-08-18T19:17:23.7836307Z Running Gradle task 'assembleDebug'...                          
+build	Build Android APK	2026-08-18T19:17:23.7841881Z Checking the license for package Android SDK Build-Tools 33.0.1 in /usr/local/lib/android/sdk/licenses
+build	Build Android APK	2026-08-18T19:17:23.7843531Z License for package Android SDK Build-Tools 33.0.1 accepted.
+build	Build Android APK	2026-08-18T19:17:23.7844730Z Preparing "Install Android SDK Build-Tools 33.0.1 v.33.0.1".
+build	Build Android APK	2026-08-18T19:17:24.7574079Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" ready.
+build	Build Android APK	2026-08-18T19:17:24.7577219Z Installing Android SDK Build-Tools 33.0.1 in /usr/local/lib/android/sdk/build-tools/33.0.1
+build	Build Android APK	2026-08-18T19:17:24.7579096Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" complete.
+build	Build Android APK	2026-08-18T19:17:25.1575844Z "Install Android SDK Build-Tools 33.0.1 v.33.0.1" finished.
+build	Build Android APK	2026-08-18T19:17:25.8667261Z /home/runner/work/flutter-iptv-player/flutter-iptv-player/.dart_tool/package_config.json does not exist.
+build	Build Android APK	2026-08-18T19:17:25.8704002Z Did you run this command from the same directory as your pubspec.yaml file?
+build	Build Android APK	2026-08-18T19:17:25.8733566Z Target gen_dart_plugin_registrant failed: Error: 
+build	Build Android APK	2026-08-18T19:17:25.8756048Z 
+build	Build Android APK	2026-08-18T19:17:25.8796859Z 
+build	Build Android APK	2026-08-18T19:17:25.8829661Z FAILURE: Build failed with an exception.
+build	Build Android APK	2026-08-18T19:17:25.8830472Z 
+build	Build Android APK	2026-08-18T19:17:25.8830928Z * What went wrong:
+build	Build Android APK	2026-08-18T19:17:25.8831728Z Execution failed for task ':app:compileFlutterBuildDebug'.
+build	Build Android APK	2026-08-18T19:17:25.8833382Z > Process 'command '/opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter/bin/flutter'' finished with non-zero exit value 1
+build	Build Android APK	2026-08-18T19:17:25.8839165Z 
+build	Build Android APK	2026-08-18T19:17:25.8839523Z * Try:
+build	Build Android APK	2026-08-18T19:17:25.8840170Z > Run with --stacktrace option to get the stack trace.
+build	Build Android APK	2026-08-18T19:17:25.8841033Z > Run with --info or --debug option to get more log output.
+build	Build Android APK	2026-08-18T19:17:25.8842043Z > Run with --scan to get full insights.
+build	Build Android APK	2026-08-18T19:17:25.8842723Z 
+build	Build Android APK	2026-08-18T19:17:25.8843441Z * Get more help at https://help.gradle.org
+build	Build Android APK	2026-08-18T19:17:25.8844132Z 
+build	Build Android APK	2026-08-18T19:17:25.8844530Z BUILD FAILED in 1m 41s
+build	Build Android APK	2026-08-18T19:17:26.3661387Z Running Gradle task 'assembleDebug'...                            102.2s
+build	Build Android APK	2026-08-18T19:17:26.3706165Z Gradle task assembleDebug failed with exit code 1
+build	Build Android APK	2026-08-18T19:17:26.3804197Z package io.flutter.plugins;
+build	Build Android APK	2026-08-18T19:17:26.3804633Z 
+build	Build Android APK	2026-08-18T19:17:26.3804901Z import androidx.annotation.Keep;
+build	Build Android APK	2026-08-18T19:17:26.3805439Z import androidx.annotation.NonNull;
+build	Build Android APK	2026-08-18T19:17:26.3805951Z import io.flutter.Log;
+build	Build Android APK	2026-08-18T19:17:26.3806236Z 
+build	Build Android APK	2026-08-18T19:17:26.3806515Z import io.flutter.embedding.engine.FlutterEngine;
+build	Build Android APK	2026-08-18T19:17:26.3806995Z 
+build	Build Android APK	2026-08-18T19:17:26.3807143Z /**
+build	Build Android APK	2026-08-18T19:17:26.3807518Z  * Generated file. Do not edit.
+build	Build Android APK	2026-08-18T19:17:26.3808096Z  * This file is generated by the Flutter tool based on the
+build	Build Android APK	2026-08-18T19:17:26.3808794Z  * plugins that support the Android platform.
+build	Build Android APK	2026-08-18T19:17:26.3809838Z  */
+build	Build Android APK	2026-08-18T19:17:26.3810171Z @Keep
+build	Build Android APK	2026-08-18T19:17:26.3810618Z public final class GeneratedPluginRegistrant {
+build	Build Android APK	2026-08-18T19:17:26.3811386Z   private static final String TAG = "GeneratedPluginRegistrant";
+build	Build Android APK	2026-08-18T19:17:26.3812233Z   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
+build	Build Android APK	2026-08-18T19:17:26.3812724Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3813641Z       flutterEngine.getPlugins().add(new uz.shs.better_player_plus.BetterPlayerPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3814899Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3815744Z       Log.e(TAG, "Error registering plugin better_player_plus, uz.shs.better_player_plus.BetterPlayerPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3816327Z     }
+build	Build Android APK	2026-08-18T19:17:26.3816500Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3816922Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3817414Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3818162Z       Log.e(TAG, "Error registering plugin device_info_plus, dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3819085Z     }
+build	Build Android APK	2026-08-18T19:17:26.3819304Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3819777Z       flutterEngine.getPlugins().add(new io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3820321Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3820909Z       Log.e(TAG, "Error registering plugin firebase_analytics, io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3821510Z     }
+build	Build Android APK	2026-08-18T19:17:26.3821675Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3822098Z       flutterEngine.getPlugins().add(new io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin());
+build	Build Android APK	2026-08-18T19:17:26.3822599Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3823423Z       Log.e(TAG, "Error registering plugin firebase_core, io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3823966Z     }
+build	Build Android APK	2026-08-18T19:17:26.3824133Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3824618Z       flutterEngine.getPlugins().add(new io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin());
+build	Build Android APK	2026-08-18T19:17:26.3825203Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3825848Z       Log.e(TAG, "Error registering plugin flutter_plugin_android_lifecycle, io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3826512Z     }
+build	Build Android APK	2026-08-18T19:17:26.3826679Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3827047Z       flutterEngine.getPlugins().add(new io.flutter.plugins.imagepicker.ImagePickerPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3827493Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3827970Z       Log.e(TAG, "Error registering plugin image_picker_android, io.flutter.plugins.imagepicker.ImagePickerPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3828473Z     }
+build	Build Android APK	2026-08-18T19:17:26.3828634Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3828961Z       flutterEngine.getPlugins().add(new com.crazecoder.openfile.OpenFilePlugin());
+build	Build Android APK	2026-08-18T19:17:26.3829375Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3829779Z       Log.e(TAG, "Error registering plugin open_filex, com.crazecoder.openfile.OpenFilePlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3830214Z     }
+build	Build Android APK	2026-08-18T19:17:26.3830373Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3830768Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3831250Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3831753Z       Log.e(TAG, "Error registering plugin package_info_plus, dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3832285Z     }
+build	Build Android APK	2026-08-18T19:17:26.3832443Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3833336Z       flutterEngine.getPlugins().add(new io.flutter.plugins.pathprovider.PathProviderPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3834210Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3834856Z       Log.e(TAG, "Error registering plugin path_provider_android, io.flutter.plugins.pathprovider.PathProviderPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3835784Z     }
+build	Build Android APK	2026-08-18T19:17:26.3835956Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3836335Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.sensors.SensorsPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3836801Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3837268Z       Log.e(TAG, "Error registering plugin sensors_plus, dev.fluttercommunity.plus.sensors.SensorsPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3837750Z     }
+build	Build Android APK	2026-08-18T19:17:26.3837915Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3838359Z       flutterEngine.getPlugins().add(new io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3838988Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3839556Z       Log.e(TAG, "Error registering plugin shared_preferences_android, io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3840151Z     }
+build	Build Android APK	2026-08-18T19:17:26.3840319Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3840764Z       flutterEngine.getPlugins().add(new com.tekartik.sqflite.SqflitePlugin());
+build	Build Android APK	2026-08-18T19:17:26.3841434Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3842130Z       Log.e(TAG, "Error registering plugin sqflite_android, com.tekartik.sqflite.SqflitePlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3843107Z     }
+build	Build Android APK	2026-08-18T19:17:26.3843389Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3844080Z       flutterEngine.getPlugins().add(new io.flutter.plugins.urllauncher.UrlLauncherPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3844927Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3845797Z       Log.e(TAG, "Error registering plugin url_launcher_android, io.flutter.plugins.urllauncher.UrlLauncherPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3846526Z     }
+build	Build Android APK	2026-08-18T19:17:26.3846701Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3847077Z       flutterEngine.getPlugins().add(new io.flutter.plugins.videoplayer.VideoPlayerPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3847532Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3848022Z       Log.e(TAG, "Error registering plugin video_player_android, io.flutter.plugins.videoplayer.VideoPlayerPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3848531Z     }
+build	Build Android APK	2026-08-18T19:17:26.3848703Z     try {
+build	Build Android APK	2026-08-18T19:17:26.3849109Z       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin());
+build	Build Android APK	2026-08-18T19:17:26.3849581Z     } catch (Exception e) {
+build	Build Android APK	2026-08-18T19:17:26.3850064Z       Log.e(TAG, "Error registering plugin wakelock_plus, dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin", e);
+build	Build Android APK	2026-08-18T19:17:26.3850571Z     }
+build	Build Android APK	2026-08-18T19:17:26.3850734Z   }
+build	Build Android APK	2026-08-18T19:17:26.3850901Z }
+build	Build Android APK	2026-08-18T19:17:26.3854222Z ##[error]Process completed with exit code 1.

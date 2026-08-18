@@ -45,7 +45,7 @@ jobs:
         run: |
           # Try building, and if it fails to find the registrant, we've already restored it.
           # We use --no-pub to prevent Flutter from regenerating and overwriting our file.
-          flutter build apk --debug --no-pub || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)
+          flutter build apk --debug || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

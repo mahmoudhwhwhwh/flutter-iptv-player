@@ -1,0 +1,57 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "Building version $VERSION (Tag: $TAG_VERSION)"
+      - name: Build Android APK
+        run: |
+          flutter build apk --debug
+          APK_NAME="LIVE_STREAM_PREMIUM.apk"
+          cp build/app/outputs/flutter-apk/app-debug.apk "$APK_NAME"
+          echo "Generated APK: $APK_NAME"
+          ls -lh "$APK_NAME"
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LIVE_STREAM_PREMIUM_${{ env.TAG_VERSION }}
+          path: LIVE_STREAM_PREMIUM.apk
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_VERSION }}-stable
+          name: LIVE STREAM PREMIUM ${{ env.TAG_VERSION }}
+          body: "النسخة الرسمية المستقرة (${{ env.TAG_VERSION }}). دعم كامل لسيرفرات Stalker/MAC و Xtream، ربط كامل بموقع Cloudflare الآمن، وتعطيل قيود الأمان لتعمل بكفاءة على شاشات TV Box."
+          files: LIVE_STREAM_PREMIUM.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

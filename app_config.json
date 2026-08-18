@@ -1,0 +1,117 @@
+{
+  "app_name": "LIVE STREAM PREMIUM",
+  "app_version": "v2.2.13",
+  "users": {},
+  "servers": [
+    {
+      "name": "Server 1",
+      "host": "http://megatv.shop:2052",
+      "username": "20299538378191",
+      "password": "36172842922822",
+      "users": {
+        "mahmoud2027": {
+          "expiry_date": "2027-01-01T00:00:00Z",
+          "devices": [
+            "UKQ1.240624.001"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Server 2",
+      "host": "http://2@cliccck52258.club:2082",
+      "username": "khaledsliman",
+      "password": "755246419856",
+      "users": {
+        "02389": {
+          "expiry_date": "بلا بلا حدود",
+          "devices": [
+            "UKQ1.240624.001"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Server 3",
+      "host": "http://1@cliccck52258.club:2082",
+      "username": "251878975765",
+      "password": "924893245689",
+      "users": {
+        "s3_code1": {
+          "expiry_date": "2027-01-01T00:00:00Z",
+          "devices": [
+            "UKQ1.240624.001"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Server 4",
+      "host": "http://marveliptv.life",
+      "username": "01112727740kh",
+      "password": "khiary7740",
+      "users": {
+        "96827": {
+          "expiry_date": "بلا حدود ",
+          "devices": [
+            "UKQ1.240624.001"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Server 5",
+      "host": "http://4kpro2.com",
+      "type": "stalker",
+      "users": {
+        "999499": {
+          "username": "00:1A:79:70:9D:14",
+          "expiry_date": "2026-08-03T00:00:00Z",
+          "devices": [
+            "UKQ1.240624.001",
+            "RKQ1.211119.001"
+          ],
+          "blocked": true
+        }
+      }
+    },
+    {
+      "name": "Server 6",
+      "host": "http://4kpro2.com",
+      "type": "stalker",
+      "users": {
+        "s6_code1": {
+          "username": "00:1A:79:70:9D:14",
+          "expiry_date": "2027-01-01T00:00:00Z",
+          "devices": [
+            "UKQ1.240624.001"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Server 7",
+      "host": "http://line.tvdsz.cc",
+      "type": "stalker",
+      "users": {
+        "mahmoud20": {
+          "username": "00:1A:79:B6:28:FE",
+          "expiry_date": "2027-01-01T00:00:00Z"
+        }
+      }
+    }
+  ],
+  "xtream_host": "http://digi.dtv3.lol:2082",
+  "default_xtream_user": "mejdoubnew_958581",
+  "default_xtream_pass": "CHmNLjSr",
+  "blocking": {
+    "min_version_code": 213,
+    "blocked_version_codes": [125, 130, 140, 144, 205, 211, 212],
+    "block_message": "🚨 تم إيقاف جميع الإصدارات الأقدم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
+  },
+  "update": {
+    "latest_version": "v2.2.13",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
+    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
+  }
+}

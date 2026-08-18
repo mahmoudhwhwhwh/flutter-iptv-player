@@ -44,7 +44,7 @@ jobs:
           
           # Delete and recreate android folder
           rm -rf android
-          flutter create . --platforms android --org com.mahmoud.iptv
+          flutter create . --project-name flutter_iptv_player --platforms android --org com.mahmoud.iptv
           
           # Restore essential files
           cp backup/google-services.json android/app/ || true

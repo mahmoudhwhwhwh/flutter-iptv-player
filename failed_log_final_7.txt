@@ -1,0 +1,43 @@
+build	Install dependencies	﻿2026-08-18T19:13:31.0290098Z ##[group]Run flutter pub get
+build	Install dependencies	2026-08-18T19:13:31.0290415Z ^[[36;1mflutter pub get^[[0m
+build	Install dependencies	2026-08-18T19:13:31.0329882Z shell: /usr/bin/bash -e {0}
+build	Install dependencies	2026-08-18T19:13:31.0330144Z env:
+build	Install dependencies	2026-08-18T19:13:31.0330467Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.32-9/x64
+build	Install dependencies	2026-08-18T19:13:31.0331005Z   JAVA_HOME_11_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.32-9/x64
+build	Install dependencies	2026-08-18T19:13:31.0331514Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.16.9-x64/flutter
+build	Install dependencies	2026-08-18T19:13:31.0331915Z   PUB_CACHE: /home/runner/.pub-cache
+build	Install dependencies	2026-08-18T19:13:31.0332193Z ##[endgroup]
+build	Install dependencies	2026-08-18T19:13:31.2261218Z 
+build	Install dependencies	2026-08-18T19:13:31.2266575Z   ╔════════════════════════════════════════════════════════════════════════════╗
+build	Install dependencies	2026-08-18T19:13:31.2267560Z   ║                 Welcome to Flutter! - https://flutter.dev                  ║
+build	Install dependencies	2026-08-18T19:13:31.2268384Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2269213Z   ║ The Flutter tool uses Google Analytics to anonymously report feature usage ║
+build	Install dependencies	2026-08-18T19:13:31.2270523Z   ║ statistics and basic crash reports. This data is used to help improve      ║
+build	Install dependencies	2026-08-18T19:13:31.2271826Z   ║ Flutter tools over time.                                                   ║
+build	Install dependencies	2026-08-18T19:13:31.2275272Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2276636Z   ║ Flutter tool analytics are not sent on the very first run. To disable      ║
+build	Install dependencies	2026-08-18T19:13:31.2278072Z   ║ reporting, type 'flutter config --no-analytics'. To display the current    ║
+build	Install dependencies	2026-08-18T19:13:31.2279286Z   ║ setting, type 'flutter config'. If you opt out of analytics, an opt-out    ║
+build	Install dependencies	2026-08-18T19:13:31.2280414Z   ║ event will be sent, and then no further information will be sent by the    ║
+build	Install dependencies	2026-08-18T19:13:31.2281135Z   ║ Flutter tool.                                                              ║
+build	Install dependencies	2026-08-18T19:13:31.2281574Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2282053Z   ║ By downloading the Flutter SDK, you agree to the Google Terms of Service.  ║
+build	Install dependencies	2026-08-18T19:13:31.2282599Z   ║ The Google Privacy Policy describes how data is handled in this service.   ║
+build	Install dependencies	2026-08-18T19:13:31.2283107Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2283634Z   ║ Moreover, Flutter includes the Dart SDK, which may send usage metrics and  ║
+build	Install dependencies	2026-08-18T19:13:31.2284149Z   ║ crash reports to Google.                                                   ║
+build	Install dependencies	2026-08-18T19:13:31.2285144Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2285721Z   ║ Read about data we send with crash reports:                                ║
+build	Install dependencies	2026-08-18T19:13:31.2286312Z   ║ https://flutter.dev/docs/reference/crash-reporting                         ║
+build	Install dependencies	2026-08-18T19:13:31.2286860Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2287319Z   ║ See Google's privacy policy:                                               ║
+build	Install dependencies	2026-08-18T19:13:31.2287889Z   ║ https://policies.google.com/privacy                                        ║
+build	Install dependencies	2026-08-18T19:13:31.2288387Z   ║                                                                            ║
+build	Install dependencies	2026-08-18T19:13:31.2288882Z   ║ To disable animations in this tool, use 'flutter config --no-animations'.  ║
+build	Install dependencies	2026-08-18T19:13:31.2289473Z   ╚════════════════════════════════════════════════════════════════════════════╝
+build	Install dependencies	2026-08-18T19:13:31.2289742Z 
+build	Install dependencies	2026-08-18T19:13:36.8091841Z Resolving dependencies...
+build	Install dependencies	2026-08-18T19:13:38.7125955Z The current Dart SDK version is 3.2.6.
+build	Install dependencies	2026-08-18T19:13:38.7126893Z 
+build	Install dependencies	2026-08-18T19:13:38.7127800Z Because flutter_iptv_player depends on sensors_plus >=5.0.0 which requires SDK version >=3.3.0 <4.0.0, version solving failed.
+build	Install dependencies	2026-08-18T19:13:38.7854728Z ##[error]Process completed with exit code 1.

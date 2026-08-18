@@ -16,14 +16,17 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.9'
+          flutter-version: '3.24.0'
           channel: stable
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          # Backup our manual registrant
+          cp android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java GeneratedPluginRegistrant.java.bak
       - name: Extract Version
         id: version
         run: |
@@ -33,10 +36,16 @@ jobs:
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
       - name: Clean build
-        run: flutter clean
+        run: |
+          flutter clean
+          # Restore our manual registrant after clean
+          mkdir -p android/app/src/main/java/io/flutter/plugins/
+          cp GeneratedPluginRegistrant.java.bak android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
       - name: Build Android APK
         run: |
-          flutter build apk --debug || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)
+          # Try building, and if it fails to find the registrant, we've already restored it.
+          # We use --no-pub to prevent Flutter from regenerating and overwriting our file.
+          flutter build apk --debug --no-pub || (find . -name GeneratedPluginRegistrant.java -exec cat {} \; && exit 1)
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

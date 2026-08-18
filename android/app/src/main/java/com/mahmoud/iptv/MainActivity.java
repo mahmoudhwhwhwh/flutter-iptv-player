@@ -42,15 +42,18 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
+        
+        Context context = getApplicationContext();
+        
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("checkSecurity")) {
-                        boolean snifferInstalled = hasSnifferOrTamperApp();
-                        boolean vpnActive = isVpnActive();
+                        boolean snifferInstalled = hasSnifferOrTamperApp(context);
+                        boolean vpnActive = isVpnActive(context);
                         boolean proxyActive = isProxyActive();
-                        boolean debuggerDetected = isDebuggerOrDebugBuild();
+                        boolean debuggerDetected = isDebuggerOrDebugBuild(context);
                         boolean compromisedDevice = isRootedOrHooked();
-                        boolean signatureValid = isReleaseSignatureValid();
+                        boolean signatureValid = isReleaseSignatureValid(context);
 
                         // Allow running if signature is UNSET (for debug builds on GitHub)
                         String expected = BuildConfig.EXPECTED_CERT_SHA256;
@@ -75,7 +78,7 @@ public class MainActivity extends FlutterActivity {
                 });
     }
 
-    private boolean hasSnifferOrTamperApp() {
+    private boolean hasSnifferOrTamperApp(Context context) {
         String[] blockedPackages = {
                 "com.guoshi.httpcanary", "com.guoshi.httpcanary.premium", "com.guoshi.httpcanary.pro",
                 "com.reqable.android", "com.reqable.android.international",
@@ -89,7 +92,7 @@ public class MainActivity extends FlutterActivity {
                 "de.robv.android.xposed.installer", "org.meowcat.edxposed.manager"
         };
 
-        PackageManager pm = this.getPackageManager();
+        PackageManager pm = context.getPackageManager();
         for (String pkg : blockedPackages) {
             try {
                 pm.getPackageInfo(pkg, PackageManager.GET_ACTIVITIES);
@@ -115,9 +118,9 @@ public class MainActivity extends FlutterActivity {
         return false;
     }
 
-    private boolean isVpnActive() {
+    private boolean isVpnActive(Context context) {
         try {
-            ConnectivityManager cm = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             if (cm == null) return false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 Network activeNetwork = cm.getActiveNetwork();
@@ -143,8 +146,8 @@ public class MainActivity extends FlutterActivity {
         return false;
     }
 
-    private boolean isDebuggerOrDebugBuild() {
-        boolean debugBuild = (this.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    private boolean isDebuggerOrDebugBuild(Context context) {
+        boolean debugBuild = (context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         return debugBuild || Debug.isDebuggerConnected() || Debug.waitingForDebugger();
     }
 
@@ -174,14 +177,14 @@ public class MainActivity extends FlutterActivity {
         return false;
     }
 
-    private boolean isReleaseSignatureValid() {
+    private boolean isReleaseSignatureValid(Context context) {
         String expected = BuildConfig.EXPECTED_CERT_SHA256;
         if (expected == null || expected.isEmpty() || expected.equals("UNSET")) return true;
         expected = expected.trim().toUpperCase(Locale.US);
 
         try {
-            PackageManager pm = this.getPackageManager();
-            String pkgName = this.getPackageName();
+            PackageManager pm = context.getPackageManager();
+            String pkgName = context.getPackageName();
             Signature[] signatures;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 PackageInfo info = pm.getPackageInfo(pkgName, PackageManager.GET_SIGNING_CERTIFICATES);

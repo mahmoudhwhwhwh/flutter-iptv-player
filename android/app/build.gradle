@@ -2,7 +2,6 @@ plugins {
     id "com.android.application"
     id "org.jetbrains.kotlin.android"
     id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
 }
 
 def localProperties = new Properties()
@@ -15,7 +14,7 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace "com.mahmoud.iptv"
-    compileSdk 35
+    compileSdk 34
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -52,3 +51,5 @@ flutter {
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
 }
+
+apply plugin: 'com.google.gms.google-services'

@@ -76,29 +76,20 @@
       }
     },
     {
-      "name": "Server 6",
-      "host": "http://4kpro2.com",
-      "type": "stalker",
+      "name": "Server 7",
+      "host": "http://line.tvdsz.cc",
       "users": {
-        "s6_code1": {
-          "username": "00:1A:79:70:9D:14",
+        "mahmoud20": {
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
           ]
         }
-      }
-    },
-    {
-      "name": "Server 7",
-      "host": "http://line.tvdsz.cc",
-      "type": "stalker",
-      "users": {
-        "mahmoud20": {
-          "username": "00:1A:79:B6:28:FE",
-          "expiry_date": "2027-01-01T00:00:00Z"
-        }
-      }
+      },
+      "stream_id": "985162",
+      "extension": "m3u8",
+      "username": "00:1A:79:B6:28:FE",
+      "password": "00:1A:79:B6:28:FE"
     },
     {
       "name": "JOKER 1",
@@ -163,20 +154,6 @@
       "password": "rS27a9QKeT",
       "users": {
         "joker5": {
-          "expiry_date": "2027-01-01T00:00:00Z",
-          "devices": [
-            "UKQ1.240624.001"
-          ]
-        }
-      }
-    },
-    {
-      "name": "JOKER 6",
-      "host": "http://cli2345.live:2082",
-      "username": "162228198272",
-      "password": "847259919147",
-      "users": {
-        "joker6": {
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"

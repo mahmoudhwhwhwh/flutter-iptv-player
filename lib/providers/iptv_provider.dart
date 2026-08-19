@@ -393,6 +393,13 @@ class IPTVProvider with ChangeNotifier {
   int get activationTime => _activationTime;
   int get activationDurationHours => _activationDurationHours;
   String get subscriptionType => _subscriptionType;
+  
+  String get expirationDateFormatted {
+    if (_activationDurationHours == -1) return "بلا حدود";
+    final expiryTime = _activationTime + (_activationDurationHours * 3600000);
+    final date = DateTime.fromMillisecondsSinceEpoch(expiryTime);
+    return "${date.year}/${date.month}/${date.day}";
+  }
 
   String? get activePlaylistId => _activePlaylistId;
 

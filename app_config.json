@@ -102,12 +102,13 @@
       }
     },
     {
-      "name": "JOKER 3",
+      "name": "mahmoud",
       "host": "http://185.191.126.127:8080",
+      "type": "stalker",
       "username": "b0:99:d7:15:88:50",
-      "password": "3090914536649669",
       "users": {
-        "joker03": {
+        "mahmoud209": {
+          "username": "b0:99:d7:15:88:50",
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"

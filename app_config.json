@@ -107,7 +107,7 @@
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "joker3": {
+        "joker03": {
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
@@ -246,21 +246,18 @@
   "default_xtream_user": "mejdoubnew_958581",
   "default_xtream_pass": "CHmNLjSr",
   "blocking": {
-    "min_version_code": 232,
+    "min_version_code": 200,
     "blocked_version_codes": [
       125,
       130,
       140,
-      144,
-      205,
-      211,
-      212
+      144
     ],
-    "block_message": "🚨 تم إيقاف جميع الإصدارات الأقدم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل الإصدار الأخير للاستمرار."
+    "block_message": "🚨 تم إيقاف الإصدارات القديمة. يرجى التحديث."
   },
   "update": {
     "latest_version": "v2.2.35",
     "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/latest/download/app-release.apk",
-    "update_message": "يتوفر الآن إصدار جديد. يرجى التحديث للحصول على أفضل تجربة."
+    "update_message": "يتوفر الآن إصدار جديد."
   }
 }

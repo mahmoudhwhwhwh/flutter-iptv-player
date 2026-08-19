@@ -1,116 +1,7 @@
 {
-  "app_name": "LIVE STREAM PREMIUM V1",
+  "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
-  "users": {
-    "joker1": {
-      "xtream_host": "http://31.220.41.178",
-      "username": "marv90746918",
-      "password": "khaled974635",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker2": {
-      "xtream_host": "http://app.upsdo.me:8080",
-      "username": "PCJ7KCNU0AX6",
-      "password": "36508313",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker3": {
-      "xtream_host": "http://185.191.126.127:8080",
-      "username": "b0:99:d7:15:88:50",
-      "password": "3090914536649669",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker4": {
-      "xtream_host": "http://dhoomtv.xyz",
-      "username": "8zpo3GsVY7",
-      "password": "beneficial2concern",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker5": {
-      "xtream_host": "http://filex.me:8080",
-      "username": "@boss1751",
-      "password": "rS27a9QKeT",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker6": {
-      "xtream_host": "http://cli2345.live:2082",
-      "username": "162228198272",
-      "password": "847259919147",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker7": {
-      "xtream_host": "http://alliptvapp.com:8080",
-      "username": "575612159628",
-      "password": "210763093616",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker8": {
-      "xtream_host": "http://atlaspro.live",
-      "username": "3525480303377768",
-      "password": "3525480303377768",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker9": {
-      "xtream_host": "http://megatv.shop:2052",
-      "username": "52705199363828",
-      "password": "24129350577560",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker10": {
-      "xtream_host": "http://luxipgold.xyz:8080",
-      "username": "15034094901029",
-      "password": "18800196589372",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker11": {
-      "xtream_host": "http://mypythonpremium.com:8789",
-      "username": "wilderd",
-      "password": "tFeWsYW",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    },
-    "joker12": {
-      "xtream_host": "http://falcon-sa.xyz",
-      "username": "wSGGTNJH",
-      "password": "32CC849A",
-      "expiry_date": "2027-01-01T00:00:00Z",
-      "devices": [
-        "UKQ1.240624.001"
-      ]
-    }
-  },
+  "users": {},
   "servers": [
     {
       "name": "Server 1",
@@ -187,6 +78,7 @@
     {
       "name": "Server 7",
       "host": "http://line.tvdsz.cc",
+      "type": "stalker",
       "users": {
         "mahmoud20": {
           "username": "00:1A:79:B6:28:FE",
@@ -195,8 +87,7 @@
             "UKQ1.240624.001"
           ]
         }
-      },
-      "type": "stalker"
+      }
     },
     {
       "name": "JOKER 1",
@@ -381,11 +272,11 @@
       211,
       212
     ],
-    "block_message": "🚨 تم إيقاف جميع الإصدارات الأقدم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
+    "block_message": "🚨 تم إيقاف جميع الإصدارات الأقدم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل الإصدار الأخير للاستمرار."
   },
   "update": {
     "latest_version": "v2.2.35",
     "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/latest/download/app-release.apk",
-    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
+    "update_message": "يتوفر الآن إصدار جديد. يرجى التحديث للحصول على أفضل تجربة."
   }
 }

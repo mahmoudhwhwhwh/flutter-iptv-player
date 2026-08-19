@@ -585,7 +585,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final configRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
+      final configRes = await http.get(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
@@ -697,7 +697,7 @@ class IPTVProvider with ChangeNotifier {
     if (_isRegisteringDevice) return;
     _isRegisteringDevice = true;
     try {
-        final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
+        final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
         final res = await http.get(url);
         if (res.statusCode == 200) {
             final Map<String, dynamic> configData = json.decode(res.body);
@@ -896,16 +896,65 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final configUrl = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      // 1. Fetch Meta Info (App Name, Updates, Blocking)
+      final configUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
       final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
-      
-      String host = "http://fh.u2i9o.top:80";
-      String user = cleanCode;
-      String pass = cleanCode;
+      if (configRes.statusCode == 200) {
+        final config = json.decode(configRes.body);
+        _appName = config['app_name'] ?? _appName;
+        _latestVersion = config['app_version'] ?? "";
+        _updateUrl = config['update']?['apk_url'] ?? "";
+        _updateMessage = config['update']?['update_message'] ?? "";
+        if (_latestVersion.isNotEmpty && isVersionLowerThan(_currentVersionStr, _latestVersion)) {
+          _updateAvailable = true;
+        }
+      }
+
+      // 2. Perform Secure API Login
+      final loginUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login");
+      final deviceId = await _getDeviceId();
+      final loginRes = await http.post(
+        loginUrl,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "code": cleanCode,
+          "device_id": deviceId,
+          "version_code": _currentVersionCode
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      String host = "";
+      String user = "";
+      String pass = "";
       int durationHours = -1;
       String subName = 'اشتراك Live Football';
 
-      if (configRes.statusCode == 200) {
+      if (loginRes.statusCode == 200) {
+        final loginData = json.decode(loginRes.body);
+        if (loginData['ok'] == true) {
+          final userData = loginData['user'];
+          host = userData['host'] ?? "";
+          user = userData['username'] ?? "";
+          pass = userData['password'] ?? "";
+          subName = "اشتراك ${userData['code']}";
+          if (userData['server_type'] == 'stalker') {
+            pass = 'stalker';
+          }
+        } else {
+          lastError = loginData['message'] ?? "رمز الدخول غير صحيح";
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      } else {
+        lastError = "رمز الدخول غير صحيح أو غير مصرح به";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      
+      // Skip the old logic
+      if (false) {
          try {
             final config = json.decode(configRes.body);
             _appName = config['app_name'] ?? _appName;
@@ -1002,19 +1051,6 @@ class IPTVProvider with ChangeNotifier {
                 }
 
 
-               subName = "اشتراك $cleanCode";
-            } else {
-               subName = "اشتراك مجاني";
-               durationHours = -1;
-            }
-         } catch (e) {
-            debugPrint("Configuration parsing failed");
-         }
-      } else {
-         lastError = "فشل في الاتصال بخادم التحديثات";
-         _isLoading = false;
-         notifyListeners();
-         return false;
       }
 
       bool isAuthenticated = false;
@@ -1126,7 +1162,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (_activationCode == "2027") {
        try {
-         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
+         final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/menu?t=${DateTime.now().millisecondsSinceEpoch}");
          final res = await http.get(url);
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);

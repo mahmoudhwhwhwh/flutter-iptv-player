@@ -80,16 +80,14 @@
       "host": "http://line.tvdsz.cc",
       "users": {
         "mahmoud20": {
+          "username": "00:1A:79:B6:28:FE",
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"
           ]
         }
       },
-      "stream_id": "985162",
-      "extension": "m3u8",
-      "username": "00:1A:79:B6:28:FE",
-      "password": "00:1A:79:B6:28:FE"
+      "type": "stalker"
     },
     {
       "name": "JOKER 1",

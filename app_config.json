@@ -64,24 +64,8 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-        "999499": {
+        "s6_code1": {
           "username": "00:1A:79:70:9D:14",
-          "expiry_date": "2026-08-03T00:00:00Z",
-          "devices": [
-            "UKQ1.240624.001",
-            "RKQ1.211119.001"
-          ],
-          "blocked": true
-        }
-      }
-    },
-    {
-      "name": "Server 7",
-      "host": "http://line.tvdsz.cc",
-      "type": "stalker",
-      "users": {
-        "mahmoud20": {
-          "username": "00:1A:79:B6:28:FE",
           "expiry_date": "2027-01-01T00:00:00Z",
           "devices": [
             "UKQ1.240624.001"

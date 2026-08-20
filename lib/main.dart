@@ -1245,8 +1245,8 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                 children: [
                   CachedNetworkImage(
                     imageUrl: _banners[index],
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
+                    fit: BoxFit.fitWidth,
+                    alignment: Alignment.topCenter,
                     placeholder: (_, __) => const ColoredBox(color: Color(0xFF171324)),
                     errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF171324)),
                   ),

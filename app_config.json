@@ -7,35 +7,5 @@
     "min_version_code": 200,
     "block_message": "🚨 يرجى التحديث للاستمرار."
   },
-  "users": {
-    "mahmoud209": { "expiry_date": "بلا حدود", "server_index": 0 },
-    "joker03": { "expiry_date": "بلا حدود", "server_index": 1 },
-    "joker1": { "expiry_date": "بلا حدود", "server_index": 2 },
-    "joker2": { "expiry_date": "بلا حدود", "server_index": 3 },
-    "joker4": { "expiry_date": "بلا حدود", "server_index": 4 },
-    "joker5": { "expiry_date": "بلا حدود", "server_index": 5 },
-    "joker6": { "expiry_date": "بلا حدود", "server_index": 6 },
-    "joker7": { "expiry_date": "بلا حدود", "server_index": 7 },
-    "joker8": { "expiry_date": "بلا حدود", "server_index": 8 },
-    "joker9": { "expiry_date": "بلا حدود", "server_index": 9 },
-    "joker10": { "expiry_date": "بلا حدود", "server_index": 10 },
-    "joker11": { "expiry_date": "بلا حدود", "server_index": 11 },
-    "joker12": { "expiry_date": "بلا حدود", "server_index": 12 }
-  },
-  "servers": [
-    { "name": "Server Mahmoud", "type": "xtream", "host": "http://185.191.126.127:8080", "username": "b0:99:d7:15:88:50", "password": "3090914536649669" },
-    { "name": "Server Joker 3", "type": "xtream", "host": "http://line.tvdsz.cc", "username": "00:1A:79:B6:28:FE", "password": "" },
-    { "name": "JOKER 1", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker1", "password": "joker123" },
-    { "name": "JOKER 2", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker2", "password": "joker123" },
-    { "name": "JOKER 4", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker4", "password": "joker123" },
-    { "name": "JOKER 5", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker5", "password": "joker123" },
-    { "name": "JOKER 6", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker6", "password": "joker123" },
-    { "name": "JOKER 7", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker7", "password": "joker123" },
-    { "name": "JOKER 8", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker8", "password": "joker123" },
-    { "name": "JOKER 9", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker9", "password": "joker123" },
-    { "name": "JOKER 10", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker10", "password": "joker123" },
-    { "name": "JOKER 11", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker11", "password": "joker123" },
-    { "name": "JOKER 12", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker12", "password": "joker123" }
-  ],
-  "note": "Full legacy support with all Joker servers."
+  "note": "Robust API with Xtream simulation enabled."
 }

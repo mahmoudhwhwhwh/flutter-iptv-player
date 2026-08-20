@@ -326,9 +326,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 212;
-  String _currentVersionStr = "2.2.12";
-  int _currentVersionCode = 212;
+  static const int APP_VERSION_CODE = 235;
+  String _currentVersionStr = "2.2.35";
+  int _currentVersionCode = 235;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage = "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!";

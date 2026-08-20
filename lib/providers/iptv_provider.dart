@@ -748,7 +748,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (_activationCode == "2027") {
        try {
-         final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/menu?t=${DateTime.now().millisecondsSinceEpoch}");
+         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
          final res = await http.get(url);
          if (res.statusCode == 200) {
             final List<dynamic> data = json.decode(res.body);

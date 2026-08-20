@@ -1169,7 +1169,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
 
   Future<void> _fetchBanners() async {
     try {
-      final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/slider?t=${DateTime.now().millisecondsSinceEpoch}");
+      final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);

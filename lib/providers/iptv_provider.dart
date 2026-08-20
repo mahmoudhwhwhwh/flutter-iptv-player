@@ -725,12 +725,38 @@ class IPTVProvider with ChangeNotifier {
           notifyListeners();
           await loadPlaylistStreams(list.id);
           return true;
-        } else {
-          lastError = loginData['message'] ?? "رمز الدخول غير صحيح";
         }
-      } else {
-        lastError = "رمز الدخول غير صحيح أو غير مصرح به";
       }
+      
+      // Fallback to GitHub Config if Cloudflare fails or code not found
+      final fallbackRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json")).timeout(const Duration(seconds: 10));
+      if (fallbackRes.statusCode == 200) {
+          final config = json.decode(fallbackRes.body);
+          if (config['users'] != null && config['users'][cleanCode] != null) {
+              final userData = config['users'][cleanCode];
+              final sIndex = userData['server_index'] ?? 0;
+              final server = config['servers'][sIndex];
+              
+              final prefs = await SharedPreferences.getInstance();
+              final nowMs = DateTime.now().millisecondsSinceEpoch;
+              await prefs.setString('active_code', cleanCode);
+              await prefs.setBool('is_logged_in', true);
+              _isLoggedIn = true;
+              _activationCode = cleanCode;
+              
+              final list = UserPlaylist(id: "fallback_$cleanCode", name: _appName, type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
+              _savedPlaylists = [list];
+              _activePlaylistId = list.id;
+              await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+              
+              _isLoading = false;
+              notifyListeners();
+              await loadPlaylistStreams(list.id);
+              return true;
+          }
+      }
+      
+      lastError = "رمز الدخول غير صحيح أو غير مصرح به";
     } catch (e) {
       lastError = "تعذر الاتصال. تأكد من الانترنت.";
     }

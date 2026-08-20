@@ -5,7 +5,9 @@
   "api_endpoint": "https://iptv-subscription-api.tvkora56.workers.dev/",
   "blocking": {
     "min_version_code": 200,
-    "block_message": "🚨 يرجى التحديث للاستمرار."
+    "block_message": "🚨 يرجى التحديث."
   },
-  "note": "Robust API with Xtream simulation enabled."
+  "announcement": "مرحباً بكم في النسخة الجديدة المؤمنة!",
+  "disable_vpn_check": true,
+  "disable_sniffer_check": true
 }

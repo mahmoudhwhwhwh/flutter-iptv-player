@@ -781,33 +781,65 @@ class IPTVProvider with ChangeNotifier {
       final user = (playlist.username ?? '').trim();
       final pass = (playlist.password ?? '').trim();
       if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
-        final headers = {"Cookie": "mac=$user", "Authorization": "Bearer $_stalkerToken", "User-Agent": "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"};
+        // Perform Handshake for Stalker
+        try {
+          final authUrl = Uri.parse("$host/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml");
+          final authRes = await http.get(authUrl, headers: {
+            "Cookie": "mac=$user",
+            "User-Agent": "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3",
+          }).timeout(const Duration(seconds: 15));
+          if (authRes.statusCode == 200) {
+            final data = json.decode(authRes.body);
+            if (data['js'] != null && data['js'] is Map && data['js']['token'] != null) {
+              _stalkerToken = data['js']['token'];
+            }
+          }
+        } catch (e) {
+          developer.log("Stalker Handshake Failed: $e");
+        }
+
+        final headers = {
+          "Cookie": "mac=$user",
+          "Authorization": "Bearer $_stalkerToken",
+          "User-Agent": "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
+        };
+        
+        // Load Categories
         final liveCatsRes = await http.get(Uri.parse("$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml"), headers: headers).timeout(const Duration(seconds: 15));
-        final liveStreamsRes = await http.get(Uri.parse("$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"), headers: headers).timeout(const Duration(seconds: 25));
         List<Map<String, String>> tempLiveCats = [];
         if (liveCatsRes.statusCode == 200) {
           final data = json.decode(liveCatsRes.body);
-          if (data['js'] is List) {
-              for (var item in data['js']) tempLiveCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
+          final list = data['js'] is List ? data['js'] : [];
+          for (var item in list) {
+            tempLiveCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
           }
         }
-        tempLiveCats = FilterService.interceptAndFilterCategories(tempLiveCats, blockAdult: _blockAdultContent);
+        _liveCategories = FilterService.interceptAndFilterCategories(tempLiveCats, blockAdult: _blockAdultContent);
+        
+        // Load Channels
+        final liveStreamsRes = await http.get(Uri.parse("$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"), headers: headers).timeout(const Duration(seconds: 25));
         List<PlaylistItem> tempStreams = [];
         if (liveStreamsRes.statusCode == 200) {
           final data = json.decode(liveStreamsRes.body);
-          if (data['js'] != null) {
-              final items = data['js'] is List ? data['js'] : (data['js']['data'] is List ? data['js']['data'] : []);
-              for (var item in items) {
-                  final catId = item['tv_genre_id']?.toString() ?? '';
-                  final cat = tempLiveCats.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                  final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
-                  tempStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? '0'), streamId: "live_${item['id']}", name: item['name']?.toString() ?? '', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: catName, url: item['cmd']?.toString() ?? '', type: "stalker"));
-              }
+          final items = data['js'] != null ? (data['js'] is List ? data['js'] : (data['js']['data'] is List ? data['js']['data'] : [])) : [];
+          for (var item in items) {
+            final catId = item['tv_genre_id']?.toString() ?? '';
+            final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+            final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
+            tempStreams.add(PlaylistItem(
+              num: int.tryParse(item['number']?.toString() ?? '0'),
+              streamId: "live_${item['id']}",
+              name: item['name']?.toString() ?? '',
+              streamIcon: item['logo']?.toString() ?? '',
+              categoryId: catId,
+              categoryName: catName,
+              url: item['cmd']?.toString() ?? '',
+              type: "stalker"
+            ));
           }
         }
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-        _liveCategories = tempLiveCats;
-      } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
+      } else if (host.isNotEmpty && user.isNotEmpty && (pass.isNotEmpty || playlist.type == 'stalker')) {
         final liveCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories")).timeout(const Duration(seconds: 15));
         final liveStreamsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_streams")).timeout(const Duration(seconds: 25));
         List<Map<String, String>> tempLiveCats = [];

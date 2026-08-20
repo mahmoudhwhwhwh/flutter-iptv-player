@@ -1,6 +1,7 @@
 {
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
+  "min_version_code": 235,
   "api_endpoint": "https://iptv-subscription-api.tvkora56.workers.dev/",
   "blocking": {
     "min_version_code": 235,

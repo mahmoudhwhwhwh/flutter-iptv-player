@@ -47,7 +47,6 @@ class UserPlaylist {
       );
 }
 
-// تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
 class MyHttpOverrides extends HttpOverrides {
   final String proxyAddress;
   MyHttpOverrides(this.proxyAddress);
@@ -62,7 +61,6 @@ class MyHttpOverrides extends HttpOverrides {
         return "DIRECT";
       }
       ..badCertificateCallback = (X509Certificate cert, String host, int port) {
-        // نرفض كافة الشهادات غير الموثوقة لمنع هجمات التقاط الحزم والتجسس فورا
         return false; 
       };
   }
@@ -85,20 +83,13 @@ class IPTVProvider with ChangeNotifier {
   String get premiumTheme => _premiumTheme;
   Color get accentColor {
     switch (_premiumTheme) {
-      case 'الأزرق الليلي':
-        return const Color(0xFF38BDF8);
-      case 'الذهبي الفاخر':
-        return const Color(0xFFFFC857);
-      case 'الزمردي الداكن':
-        return const Color(0xFF34D399);
-      case 'الروبي السينمائي':
-        return const Color(0xFFFF5C77);
-      case 'السماوي الكهربائي':
-        return const Color(0xFF22D3EE);
-      case 'الغروب البرتقالي':
-        return const Color(0xFFFB923C);
-      default:
-        return const Color(0xFFA855F7);
+      case 'الأزرق الليلي': return const Color(0xFF38BDF8);
+      case 'الذهبي الفاخر': return const Color(0xFFFFC857);
+      case 'الزمردي الداكن': return const Color(0xFF34D399);
+      case 'الروبي السينمائي': return const Color(0xFFFF5C77);
+      case 'السماوي الكهربائي': return const Color(0xFF22D3EE);
+      case 'الغروب البرتقالي': return const Color(0xFFFB923C);
+      default: return const Color(0xFFA855F7);
     }
   }
 
@@ -234,7 +225,7 @@ class IPTVProvider with ChangeNotifier {
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
 
-  String _channelFilter = "الكل"; // "الكل", "القنوات العربية فقط", "القنوات الأجنبية فقط"
+  String _channelFilter = "الكل";
   String get channelFilter => _channelFilter;
 
   String _parentalPin = "";
@@ -265,9 +256,7 @@ class IPTVProvider with ChangeNotifier {
   }
 
   bool isCategoryLocked(String categoryName) {
-    if (_sessionUnlockedCategories.contains(categoryName)) {
-      return false;
-    }
+    if (_sessionUnlockedCategories.contains(categoryName)) return false;
     return isParentalEnabled && _lockedCategories.contains(categoryName);
   }
 
@@ -319,9 +308,6 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
   
-  // ==========================================
-  // أنظمة الحماية المتطورة (Security & Anti-Sniffing)
-  // ==========================================
   static const _securityChannel = MethodChannel('com.mahmoud.iptv/security');
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
@@ -331,7 +317,7 @@ class IPTVProvider with ChangeNotifier {
   int _currentVersionCode = 235;
 
   bool _isVersionBlocked = false;
-  String _remoteBlockMessage = "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!";
+  String _remoteBlockMessage = "🚨 تحديث إجباري مطلوب فوراً 🚨";
   String get remoteBlockMessage => _remoteBlockMessage;
   bool get isVersionBlocked => _isVersionBlocked;
 
@@ -341,22 +327,18 @@ class IPTVProvider with ChangeNotifier {
   String _globalProxy = "";
   String get globalProxy => _globalProxy;
 
-  // New additions: Announcement & Security remote override controls
   String _announcementText = "";
   String get announcementText => _announcementText;
   bool _disableVpnCheck = false;
   bool _disableSnifferCheck = false;
 
-  // New addition: Recently Played/Continue Watching
   List<PlaylistItem> _recentlyPlayed = [];
   List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
 
   void addToRecentlyPlayed(PlaylistItem stream) async {
     _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
     _recentlyPlayed.insert(0, stream);
-    if (_recentlyPlayed.length > 10) {
-      _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
-    }
+    if (_recentlyPlayed.length > 10) _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -376,8 +358,6 @@ class IPTVProvider with ChangeNotifier {
       }
     } catch (_) {}
   }
-
-  // ==========================================
 
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
@@ -417,9 +397,7 @@ class IPTVProvider with ChangeNotifier {
     }
 
     if (_blockAdultContent) {
-      final List<String> adultKeywords = [
-        "+18", "18+", "ADULT", "XXX", "PORN", "SEX", "REDLIGHT", "FORBIDDEN", "ع للكبار", "للكبار", "X-RATED", "BLUE", "PENTHOUSE", "PLAYBOY", "HUSTLER", "EGOIST", "VENUS", "CANDY", "NIGHT", "EROTIC"
-      ];
+      final List<String> adultKeywords = ["+18", "18+", "ADULT", "XXX", "PORN", "SEX", "REDLIGHT", "FORBIDDEN", "ع للكبار", "للكبار", "X-RATED", "BLUE", "PENTHOUSE", "PLAYBOY", "HUSTLER", "EGOIST", "VENUS", "CANDY", "NIGHT", "EROTIC"];
       cats = cats.where((c) {
         final String upper = c.toUpperCase();
         for (final kw in adultKeywords) {
@@ -473,64 +451,19 @@ class IPTVProvider with ChangeNotifier {
 
     final packageInfo = await PackageInfo.fromPlatform();
     _currentVersionStr = packageInfo.version;
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 212;
+    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 235;
 
     await checkRemoteBlocking();
     await _checkVpnAndProxyStatus();
-
-    if (_activationCode.trim() == "69743190") {
-      _isVersionBlocked = true;
-    }
 
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
       _activePlaylistId = _savedPlaylists.first.id;
       loadPlaylistStreams(_activePlaylistId!);
     }
 
-    // تفعيل إعدادات بروكسي الحماية الصارمة
     HttpOverrides.global = MyHttpOverrides("");
-
     _isLoading = false;
     notifyListeners();
-  }
-
-  Future<void> runActiveSecurityChecks() async {
-    try {
-      if (Platform.isAndroid) {
-        final List<String> rootPaths = [
-          "/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su",
-          "/data/local/xbin/su", "/data/local/bin/su", "/system/sd/xbin/su",
-          "/system/bin/failsafe/su", "/data/local/su", "/su/bin/su", "/system/xbin/daemonsu"
-        ];
-        for (final path in rootPaths) {
-          if (File(path).existsSync()) {
-            _isSecured = false;
-            _securityMessage = "تم كشف صلاحيات الروت أو كسر حماية نظام الهاتف (Root Access Detected). كإجراء أمان، تم إيقاف عمل التطبيق.";
-            _allStreams.clear();
-            _filteredStreams.clear();
-            notifyListeners();
-            return;
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  static bool isVersionLowerThan(String versionA, String versionB) {
-    try {
-      final cleanA = versionA.toLowerCase().replaceAll('v', '').trim();
-      final cleanB = versionB.toLowerCase().replaceAll('v', '').trim();
-      final partsA = cleanA.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final partsB = cleanB.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final maxLength = partsA.length > partsB.length ? partsA.length : partsB.length;
-      for (int i = 0; i < maxLength; i++) {
-        final valA = i < partsA.length ? partsA[i] : 0;
-        final valB = i < partsB.length ? partsB[i] : 0;
-        if (valA < valB) return true;
-        if (valA > valB) return false;
-      }
-    } catch (_) {}
-    return false;
   }
 
   Future<void> checkRemoteBlocking() async {
@@ -539,37 +472,12 @@ class IPTVProvider with ChangeNotifier {
       if (configRes.statusCode == 200) {
         final Map<String, dynamic> configData = json.decode(configRes.body);
         Map<String, dynamic>? blockData;
-        if (configData.containsKey('blocking')) {
-          blockData = Map<String, dynamic>.from(configData['blocking']);
-        }
-        if (configData.containsKey('announcement')) {
-          final String newAnn = configData['announcement'].toString();
-          if (_announcementText != newAnn) {
-            _announcementText = newAnn;
-            notifyListeners();
-          }
-        }
-        final newDisableVpn = configData['disable_vpn_check'] == true;
-        final newDisableSniffer = configData['disable_sniffer_check'] == true;
-        if (_disableVpnCheck != newDisableVpn || _disableSnifferCheck != newDisableSniffer) {
-          _disableVpnCheck = newDisableVpn;
-          _disableSnifferCheck = newDisableSniffer;
-          if (_disableVpnCheck) _vpnDetected = false;
-          if (_disableSnifferCheck) _snifferDetected = false;
-          notifyListeners();
-        }
+        if (configData.containsKey('blocking')) blockData = Map<String, dynamic>.from(configData['blocking']);
         if (blockData != null) {
           bool isBlocked = false;
-          if (blockData.containsKey('blocked_version_codes')) {
-            final List codes = blockData['blocked_version_codes'] as List;
-            if (codes.contains(_currentVersionCode)) isBlocked = true;
-          }
           if (blockData.containsKey('min_version_code')) {
             final int minVer = int.tryParse(blockData['min_version_code'].toString()) ?? 0;
             if (_currentVersionCode < minVer) isBlocked = true;
-          }
-          if (blockData.containsKey('block_message')) {
-            _remoteBlockMessage = blockData['block_message'].toString();
           }
           if (_isVersionBlocked != isBlocked) {
             _isVersionBlocked = isBlocked;
@@ -577,36 +485,18 @@ class IPTVProvider with ChangeNotifier {
           }
         }
       }
-    } catch (e) {
-      debugPrint("Remote block check failed");
-    }
+    } catch (e) {}
   }
 
   Future<void> _checkVpnAndProxyStatus() async {
     try {
       await checkSecurity();
-      if (_disableVpnCheck && _disableSnifferCheck) {
-        _vpnDetected = false;
-        _snifferDetected = false;
-        notifyListeners();
-        return;
-      }
-      bool detected = (_disableVpnCheck ? false : _vpnDetected) || (_disableSnifferCheck ? false : _snifferDetected);
-      if (!detected && !_disableVpnCheck) {
+      bool detected = _vpnDetected || _snifferDetected;
+      if (!detected) {
         try {
           final systemProxy = HttpClient.findProxyFromEnvironment(Uri.parse("https://google.com"));
           if (systemProxy != "DIRECT" && systemProxy.trim().isNotEmpty) detected = true;
         } catch (_) {}
-      }
-      if (!detected && !_disableVpnCheck) {
-        final interfaces = await NetworkInterface.list(includeLoopback: false, type: InternetAddressType.any);
-        for (var interface in interfaces) {
-          final name = interface.name.toLowerCase();
-          if (name.contains('tun') || name.contains('ppp') || name.contains('vpn') || name.contains('ipsec') || name.contains('wireguard') || name.contains('wg0') || name.contains('wg1') || name.contains('tap') || name.contains('pcap')) {
-            detected = true;
-            break;
-          }
-        }
       }
       if (_vpnDetected != detected) {
         _vpnDetected = detected;
@@ -621,17 +511,15 @@ class IPTVProvider with ChangeNotifier {
     try {
       final Map? result = await _securityChannel.invokeMapMethod('checkSecurity');
       if (result != null) {
-        final shouldBlock = _disableSnifferCheck ? false : (result['shouldBlock'] == true || result['snifferInstalled'] == true);
-        final vpnActive = _disableVpnCheck ? false : result['vpnActive'] == true;
-        final proxyActive = _disableVpnCheck ? false : result['proxyActive'] == true;
-        bool updated = false;
-        if (_snifferDetected != shouldBlock) { _snifferDetected = shouldBlock; updated = true; }
-        if (_vpnDetected != (vpnActive || proxyActive)) { _vpnDetected = vpnActive || proxyActive; updated = true; }
-        if (updated) notifyListeners();
+        final shouldBlock = result['shouldBlock'] == true || result['snifferInstalled'] == true;
+        final vpnActive = result['vpnActive'] == true || result['proxyActive'] == true;
+        if (_snifferDetected != shouldBlock || _vpnDetected != vpnActive) {
+          _snifferDetected = shouldBlock;
+          _vpnDetected = vpnActive;
+          notifyListeners();
+        }
       }
-    } catch (e) {
-      debugPrint("Security channel unavailable");
-    }
+    } catch (e) {}
   }
 
   Future<String> _getDeviceId() async {
@@ -640,53 +528,19 @@ class IPTVProvider with ChangeNotifier {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
         return androidInfo.id;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        return iosInfo.identifierForVendor ?? "ios_unknown";
       }
     } catch (_) {}
-    final prefs = await SharedPreferences.getInstance();
-    String? localId = prefs.getString('persistent_client_device_id');
-    if (localId == null) {
-      localId = "device_${DateTime.now().millisecondsSinceEpoch}_${(100000 + (DateTime.now().microsecond % 900000))}";
-      await prefs.setString('persistent_client_device_id', localId);
-    }
-    return localId;
+    return "unknown_device";
   }
-
-  String _appName = "LIVE STREAM PREMIUM";
-  String get appName => _appName;
-  bool _updateAvailable = false;
-  bool get updateAvailable => _updateAvailable;
-  String _latestVersion = "";
-  String get latestVersion => _latestVersion;
-  String _updateUrl = "";
-  String get updateUrl => _updateUrl;
-  String _updateMessage = "";
-  String get updateMessage => _updateMessage;
 
   Future<bool> loginWithCode(String code) async {
     lastError = null;
     String cleanCode = code.trim();
     if (cleanCode.isEmpty) { lastError = "رمز الدخول فارغ"; return false; }
-    if (cleanCode == "69743190") { _isVersionBlocked = true; notifyListeners(); return false; }
-    await _checkVpnAndProxyStatus();
-    if (_vpnDetected) { lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة"; return false; }
     _isLoading = true;
     notifyListeners();
 
     try {
-      final configUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
-      final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
-      if (configRes.statusCode == 200) {
-        final config = json.decode(configRes.body);
-        _appName = config['app_name'] ?? _appName;
-        _latestVersion = config['app_version'] ?? "";
-        _updateUrl = config['update']?['apk_url'] ?? "";
-        _updateMessage = config['update']?['update_message'] ?? "";
-        if (_latestVersion.isNotEmpty && isVersionLowerThan(_currentVersionStr, _latestVersion)) _updateAvailable = true;
-      }
-
       final loginUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login");
       final deviceId = await _getDeviceId();
       final loginRes = await http.post(loginUrl, headers: {"Content-Type": "application/json"}, body: json.encode({"code": cleanCode, "device_id": deviceId, "version_code": _currentVersionCode})).timeout(const Duration(seconds: 15));
@@ -699,28 +553,19 @@ class IPTVProvider with ChangeNotifier {
           final user = userData['username'] ?? "";
           final pass = userData['password'] ?? "";
           final pType = userData['server_type'] ?? "xtream";
-          final subName = "اشتراك ${userData['code']}";
           
           final prefs = await SharedPreferences.getInstance();
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
           await prefs.setString('active_code', cleanCode);
-          await prefs.setInt('active_code_activated_at', nowMs);
-          await prefs.setInt('active_code_duration_hours', -1);
-          await prefs.setString('active_code_sub_name', subName);
-          await prefs.setString('app_name_cached', _appName);
-
+          await prefs.setBool('is_logged_in', true);
+          
           _activationCode = cleanCode;
-          _activationTime = nowMs;
-          _activationDurationHours = -1;
-          _subscriptionType = subName;
+          _isLoggedIn = true;
 
-          final list = UserPlaylist(id: "${pType}_$cleanCode", name: _appName, type: pType, host: host, username: user, password: pass);
+          final list = UserPlaylist(id: "${pType}_$cleanCode", name: "Premium", type: pType, host: host, username: user, password: pass);
           _savedPlaylists = [list];
           _activePlaylistId = list.id;
           await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-          await prefs.setBool('show_welcome_after_login', true);
-          await prefs.setBool('is_logged_in', true);
-          _isLoggedIn = true;
+          
           _isLoading = false;
           notifyListeners();
           await loadPlaylistStreams(list.id);
@@ -728,7 +573,7 @@ class IPTVProvider with ChangeNotifier {
         }
       }
       
-      // Fallback to GitHub Config if Cloudflare fails or code not found
+      // Fallback
       final fallbackRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json")).timeout(const Duration(seconds: 10));
       if (fallbackRes.statusCode == 200) {
           final config = json.decode(fallbackRes.body);
@@ -738,13 +583,12 @@ class IPTVProvider with ChangeNotifier {
               final server = config['servers'][sIndex];
               
               final prefs = await SharedPreferences.getInstance();
-              final nowMs = DateTime.now().millisecondsSinceEpoch;
               await prefs.setString('active_code', cleanCode);
               await prefs.setBool('is_logged_in', true);
               _isLoggedIn = true;
               _activationCode = cleanCode;
               
-              final list = UserPlaylist(id: "fallback_$cleanCode", name: _appName, type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
+              final list = UserPlaylist(id: "fallback_$cleanCode", name: "Premium", type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
               _savedPlaylists = [list];
               _activePlaylistId = list.id;
               await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
@@ -755,10 +599,9 @@ class IPTVProvider with ChangeNotifier {
               return true;
           }
       }
-      
-      lastError = "رمز الدخول غير صحيح أو غير مصرح به";
+      lastError = "رمز الدخول غير صحيح";
     } catch (e) {
-      lastError = "تعذر الاتصال. تأكد من الانترنت.";
+      lastError = "تعذر الاتصال";
     }
     _isLoading = false;
     notifyListeners();
@@ -768,219 +611,121 @@ class IPTVProvider with ChangeNotifier {
   Future<void> loadPlaylistStreams(String id) async {
     _isFetchingData = true;
     notifyListeners();
+    
+    // 1. Reset Lists
+    _allStreams = [];
+    _liveCategories = [];
+    _movieCategories = [];
+    _seriesCategories = [];
+    
     final playlist = _savedPlaylists.firstWhere((p) => p.id == id, orElse: () => UserPlaylist(id: '', name: '', type: ''));
     if (playlist.id.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
     _activePlaylistId = id;
 
-    // ALWAYS load curated menu from GitHub for all users
+    // 2. ALWAYS Load GitHub Curated List First
     try {
       final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body);
+        final List data = json.decode(res.body);
         List<Map<String, String>> tempCats = [];
         List<PlaylistItem> tempStreams = [];
-        Set<String> catNames = {};
+        Set<String> catIds = {};
         for (int i = 0; i < data.length; i++) {
           final item = data[i];
-          final catName = item['category_name']?.toString() ?? 'Other';
+          final catName = item['category_name']?.toString() ?? 'بث مباشر';
           final catId = item['category_id']?.toString() ?? catName;
-          if (!catNames.contains(catId)) {
-            catNames.add(catId);
+          if (!catIds.contains(catId)) {
+            catIds.add(catId);
             tempCats.add({'category_id': catId, 'category_name': catName, 'parent_id': '0'});
           }
-          Map<String, String>? clearKeys;
-          if (item['keys'] != null && item['keys'] is Map)
-            clearKeys = (item['keys'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()));
           tempStreams.add(PlaylistItem(
               num: i,
-              streamId: "custom_$i",
+              streamId: "github_$i",
               name: item['name']?.toString() ?? '',
               streamIcon: item['icon']?.toString() ?? '',
               categoryId: catId,
               categoryName: catName,
               url: item['url']?.toString() ?? '',
-              type: item['type']?.toString() ?? 'live',
-              customUserAgent: item['user_agent']?.toString(),
-              customReferer: item['referer']?.toString(),
-              clearKeys: clearKeys));
+              type: item['type']?.toString() ?? 'live'));
         }
-        _liveCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('live') || !c['category_id'].toString().contains('movie') && !c['category_id'].toString().contains('series')).toList(), blockAdult: _blockAdultContent);
-        _movieCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('movie')).toList(), blockAdult: _blockAdultContent);
-        _seriesCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('series')).toList(), blockAdult: _blockAdultContent);
-        _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-        _applyFilters();
+        _liveCategories.addAll(FilterService.interceptAndFilterCategories(tempCats.where((c) => !c['category_id']!.contains('movie') && !c['category_id']!.contains('series')).toList(), blockAdult: _blockAdultContent));
+        _movieCategories.addAll(FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id']!.contains('movie')).toList(), blockAdult: _blockAdultContent));
+        _seriesCategories.addAll(FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id']!.contains('series')).toList(), blockAdult: _blockAdultContent));
+        _allStreams.addAll(FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter));
       }
     } catch (e) {
-      debugPrint("Failed to load GitHub menu: $e");
+      debugPrint("GitHub Load Error: $e");
     }
 
-    // If it's a standard Xtream/Stalker login, we can also load their specific content if needed
-    // But for now, we prioritize the GitHub curated list as requested.
-    if (_activationCode == "2027") {
-        _isFetchingData = false; notifyListeners(); return;
-    }
-
+    // 3. Load Server Specific Content and Append
     try {
       final host = (playlist.host ?? '').trim();
       final user = (playlist.username ?? '').trim();
       final pass = (playlist.password ?? '').trim();
-      if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
-        // Perform Handshake for Stalker
-        try {
-          final authUrl = Uri.parse("$host/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml");
-          final authRes = await http.get(authUrl, headers: {
-            "Cookie": "mac=$user",
-            "User-Agent": "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3",
-          }).timeout(const Duration(seconds: 15));
-          if (authRes.statusCode == 200) {
-            final data = json.decode(authRes.body);
-            if (data['js'] != null && data['js'] is Map && data['js']['token'] != null) {
-              _stalkerToken = data['js']['token'];
-            }
-          }
-        } catch (e) {
-          developer.log("Stalker Handshake Failed: $e");
-        }
-
-        final headers = {
-          "Cookie": "mac=$user",
-          "Authorization": "Bearer $_stalkerToken",
-          "User-Agent": "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
-        };
-        
-        // Load Categories
-        final liveCatsRes = await http.get(Uri.parse("$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml"), headers: headers).timeout(const Duration(seconds: 15));
-        List<Map<String, String>> tempLiveCats = [];
-        if (liveCatsRes.statusCode == 200) {
-          final data = json.decode(liveCatsRes.body);
-          final list = data['js'] is List ? data['js'] : [];
-          for (var item in list) {
-            tempLiveCats.add({'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? ''});
-          }
-        }
-        _liveCategories = FilterService.interceptAndFilterCategories(tempLiveCats, blockAdult: _blockAdultContent);
-        
-        // Load Channels
-        final liveStreamsRes = await http.get(Uri.parse("$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"), headers: headers).timeout(const Duration(seconds: 25));
-        List<PlaylistItem> tempStreams = [];
-        if (liveStreamsRes.statusCode == 200) {
-          final data = json.decode(liveStreamsRes.body);
-          final items = data['js'] != null ? (data['js'] is List ? data['js'] : (data['js']['data'] is List ? data['js']['data'] : [])) : [];
-          for (var item in items) {
-            final catId = item['tv_genre_id']?.toString() ?? '';
-            final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-            final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
-            tempStreams.add(PlaylistItem(
-              num: int.tryParse(item['number']?.toString() ?? '0'),
-              streamId: "live_${item['id']}",
-              name: item['name']?.toString() ?? '',
-              streamIcon: item['logo']?.toString() ?? '',
-              categoryId: catId,
-              categoryName: catName,
-              url: item['cmd']?.toString() ?? '',
-              type: "stalker"
-            ));
-          }
-        }
-        _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-      } else if (host.isNotEmpty && user.isNotEmpty && (pass.isNotEmpty || playlist.type == 'stalker')) {
+      
+      if (host.isNotEmpty && user.isNotEmpty) {
         final liveCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories")).timeout(const Duration(seconds: 15));
         final liveStreamsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_streams")).timeout(const Duration(seconds: 25));
-        List<Map<String, String>> tempLiveCats = [];
+        
         if (liveCatsRes.statusCode == 200) {
           final List decoded = json.decode(liveCatsRes.body);
-          tempLiveCats = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? ''}).toList();
+          final serverCats = decoded.map<Map<String, String>>((item) => {'category_id': "srv_${item['category_id']}", 'category_name': item['category_name']?.toString() ?? ''}).toList();
+          _liveCategories.addAll(FilterService.interceptAndFilterCategories(serverCats, blockAdult: _blockAdultContent));
         }
-        tempLiveCats = FilterService.interceptAndFilterCategories(tempLiveCats, blockAdult: _blockAdultContent);
-        List<PlaylistItem> tempStreams = [];
+        
         if (liveStreamsRes.statusCode == 200) {
           final List decoded = json.decode(liveStreamsRes.body);
+          List<PlaylistItem> serverStreams = [];
           for (final item in decoded) {
-            final catId = item['category_id']?.toString() ?? '';
-            final cat = tempLiveCats.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-            final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
+            final catId = "srv_${item['category_id']}";
             final sId = item['stream_id']?.toString() ?? '';
-            tempStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: "live_$sId", name: item['name']?.toString() ?? '', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: catName, url: "$host/live/$user/$pass/$sId.ts", type: "live"));
+            serverStreams.add(PlaylistItem(num: null, streamId: "srv_$sId", name: item['name']?.toString() ?? '', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: 'بث مباشر', url: "$host/live/$user/$pass/$sId.ts", type: "live"));
           }
+          _allStreams.addAll(FilterService.interceptAndFilterStreams(serverStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter));
         }
-        _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-        _liveCategories = tempLiveCats;
-        try {
-          final vodCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories"));
-          if (vodCatsRes.statusCode == 200) {
-            final List decoded = json.decode(vodCatsRes.body);
-            final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? ''}).toList();
-            _movieCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
-          }
-          final vodStreamsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams"));
-          if (vodStreamsRes.statusCode == 200) {
-            final List decoded = json.decode(vodStreamsRes.body);
-            List<PlaylistItem> tempMovies = [];
-            for (final item in decoded) {
-              final catId = item['category_id']?.toString() ?? '';
-              final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-              final catName = cat.isNotEmpty ? cat['category_name']! : 'أفلام';
-              final sId = item['stream_id']?.toString() ?? '';
-              final container = item['container_extension']?.toString() ?? 'mp4';
-              tempMovies.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: "movie_$sId", name: item['name']?.toString() ?? '', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: catName, url: "$host/movie/$user/$pass/$sId.$container", type: "movie"));
-            }
-            _allStreams.addAll(FilterService.interceptAndFilterStreams(tempMovies, blockAdult: _blockAdultContent, channelFilter: _channelFilter));
-          }
-          final seriesCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories"));
-          if (seriesCatsRes.statusCode == 200) {
-            final List decoded = json.decode(seriesCatsRes.body);
-            final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? ''}).toList();
-            _seriesCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
-          }
-        } catch (_) {}
       }
-    } catch (_) {}
+    } catch (e) {}
+
     _applyFilters();
     _isFetchingData = false;
     notifyListeners();
   }
 
   void _applyFilters() {
-    List<PlaylistItem> filtered = _allStreams.where((item) {
-      if (_activeTab != item.type) return false;
-      if (_selectedCategory != "all" && item.categoryName != _selectedCategory) return false;
-      if (_searchQuery.isNotEmpty && !item.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
+    _filteredStreams = _allStreams.where((stream) {
+      if (_activeTab != stream.type) return false;
+      if (_selectedCategory != "all" && stream.categoryId != _selectedCategory) return false;
+      if (_searchQuery.isNotEmpty && !stream.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
       return true;
     }).toList();
-    _filteredStreams = filtered;
+  }
+
+  Future<void> setActiveTab(String tab) async {
+    _activeTab = tab;
+    _selectedCategory = "all";
+    _applyFilters();
     notifyListeners();
   }
 
-  void setCategory(String category) { _selectedCategory = category; _applyFilters(); }
-  void setSearchQuery(String query) { _searchQuery = query; _applyFilters(); }
-  void setTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
-
-  void selectStream(PlaylistItem item) { _currentStream = item; addToRecentlyPlayed(item); notifyListeners(); }
-  void zapChannel(bool next) {
-    if (_filteredStreams.isEmpty) return;
-    int index = _filteredStreams.indexWhere((s) => s.streamId == _currentStream?.streamId);
-    if (index == -1) index = 0;
-    else index = next ? (index + 1) % _filteredStreams.length : (index - 1 + _filteredStreams.length) % _filteredStreams.length;
-    selectStream(_filteredStreams[index]);
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    _applyFilters();
+    notifyListeners();
   }
 
-  void toggleFavorite(String streamId) async {
-    if (_favorites.contains(streamId)) _favorites.remove(streamId);
-    else _favorites.add(streamId);
+  void selectStream(PlaylistItem item) {
+    _currentStream = item;
+    addToRecentlyPlayed(item);
     notifyListeners();
+  }
+
+  Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favorites', _favorites);
-  }
-
-  Future<void> changeSubscription() async {
-    _isLoggedIn = false; _savedPlaylists.clear(); _activationCode = "";
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_logged_in', false);
-    await prefs.remove('active_code');
-    await prefs.remove('saved_playlists');
+    await prefs.clear();
+    _isLoggedIn = false;
+    _savedPlaylists.clear();
+    _allStreams.clear();
     notifyListeners();
   }
-
-  void logout() { changeSubscription(); }
 }

@@ -772,34 +772,53 @@ class IPTVProvider with ChangeNotifier {
     if (playlist.id.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
     _activePlaylistId = id;
 
+    // ALWAYS load curated menu from GitHub for all users
+    try {
+      final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      final res = await http.get(url);
+      if (res.statusCode == 200) {
+        final List<dynamic> data = json.decode(res.body);
+        List<Map<String, String>> tempCats = [];
+        List<PlaylistItem> tempStreams = [];
+        Set<String> catNames = {};
+        for (int i = 0; i < data.length; i++) {
+          final item = data[i];
+          final catName = item['category_name']?.toString() ?? 'Other';
+          final catId = item['category_id']?.toString() ?? catName;
+          if (!catNames.contains(catId)) {
+            catNames.add(catId);
+            tempCats.add({'category_id': catId, 'category_name': catName, 'parent_id': '0'});
+          }
+          Map<String, String>? clearKeys;
+          if (item['keys'] != null && item['keys'] is Map)
+            clearKeys = (item['keys'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()));
+          tempStreams.add(PlaylistItem(
+              num: i,
+              streamId: "custom_$i",
+              name: item['name']?.toString() ?? '',
+              streamIcon: item['icon']?.toString() ?? '',
+              categoryId: catId,
+              categoryName: catName,
+              url: item['url']?.toString() ?? '',
+              type: item['type']?.toString() ?? 'live',
+              customUserAgent: item['user_agent']?.toString(),
+              customReferer: item['referer']?.toString(),
+              clearKeys: clearKeys));
+        }
+        _liveCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('live') || !c['category_id'].toString().contains('movie') && !c['category_id'].toString().contains('series')).toList(), blockAdult: _blockAdultContent);
+        _movieCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('movie')).toList(), blockAdult: _blockAdultContent);
+        _seriesCategories = FilterService.interceptAndFilterCategories(tempCats.where((c) => c['category_id'].toString().contains('series')).toList(), blockAdult: _blockAdultContent);
+        _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+        _applyFilters();
+      }
+    } catch (e) {
+      debugPrint("Failed to load GitHub menu: $e");
+    }
+
+    // If it's a standard Xtream/Stalker login, we can also load their specific content if needed
+    // But for now, we prioritize the GitHub curated list as requested.
     if (_activationCode == "2027") {
-       try {
-         final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
-         final res = await http.get(url);
-         if (res.statusCode == 200) {
-            final List<dynamic> data = json.decode(res.body);
-            List<Map<String, String>> tempCats = [];
-            List<PlaylistItem> tempStreams = [];
-            Set<String> catNames = {};
-            for (int i=0; i<data.length; i++) {
-               final item = data[i];
-               final catName = item['category_name']?.toString() ?? 'Other';
-               final catId = item['category_id']?.toString() ?? catName;
-               if (!catNames.contains(catId)) {
-                  catNames.add(catId);
-                  tempCats.add({'category_id': catId, 'category_name': catName, 'parent_id': '0'});
-               }
-               Map<String, String>? clearKeys;
-               if (item['keys'] != null && item['keys'] is Map) clearKeys = (item['keys'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()));
-               tempStreams.add(PlaylistItem(num: i, streamId: "custom_$i", name: item['name']?.toString() ?? '', streamIcon: item['icon']?.toString() ?? '', categoryId: catId, categoryName: catName, url: item['url']?.toString() ?? '', type: 'live', customUserAgent: item['user_agent']?.toString(), customReferer: item['referer']?.toString(), clearKeys: clearKeys));
-            }
-            _liveCategories = FilterService.interceptAndFilterCategories(tempCats, blockAdult: _blockAdultContent);
-            _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-            _movieCategories = []; _seriesCategories = [];
-            _applyFilters();
-         }
-       } catch (e) {}
-       _isFetchingData = false; notifyListeners(); return;
+        _isFetchingData = false; notifyListeners(); return;
     }
 
     try {

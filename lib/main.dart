@@ -2090,7 +2090,7 @@ class DynamicSectionsWidget extends StatelessWidget {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
 
-    if (provider.activationCode != "2027" || provider.liveCategories.isEmpty) {
+    if (provider.liveCategories.isEmpty) {
       // Default Sections
       final showMoviesSeries = provider.showMoviesSeries;
       final List<Widget> staticCards = [

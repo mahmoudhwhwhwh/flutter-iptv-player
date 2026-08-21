@@ -40,6 +40,15 @@
       }
     },
     {
+      "name": "FAMILY VIP",
+      "host": "http://195.154.167.147:8080",
+      "username": "141522215341",
+      "password": "43UMfWpa5x",
+      "users": {
+        "family_vip": { "expiry_date": "2027-01-17", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
       "name": "Server 5",
       "host": "http://4kpro2.com",
       "type": "stalker",
@@ -87,25 +96,24 @@
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
-      "name": "JOKER 4",
-      "host": "http://dhoomtv.xyz",
-      "username": "8zpo3GsVY7",
-      "password": "beneficial2concern",
+      "name": "VIP 2027",
+      "host": "http://technologycloud.eu/c/",
+      "type": "stalker",
       "users": {
-        "joker4": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker4": { "username": "00:1A:79:9E:56:2F", "expiry_date": "2027-12-29", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
-      "name": "JOKER 5",
-      "host": "http://filex.me:8080",
-      "username": "@boss1751",
-      "password": "rS27a9QKeT",
+      "name": "LEGENDS 2027",
+      "host": "http://weaseltv.live/c/",
+      "type": "stalker",
       "users": {
-        "joker5": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker5": { "username": "00:1A:79:AD:15:67", "expiry_date": "2027-06-21", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -118,12 +126,11 @@
       }
     },
     {
-      "name": "JOKER 7",
-      "host": "http://alliptvapp.com:8080",
-      "username": "575612159628",
-      "password": "210763093616",
+      "name": "DINO 2027",
+      "host": "http://mag.dino.ws/c/",
+      "type": "stalker",
       "users": {
-        "joker7": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker7": { "username": "00:1A:79:78:23:55", "expiry_date": "2027-07-14", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -154,21 +161,19 @@
       }
     },
     {
-      "name": "JOKER 11",
-      "host": "http://mypythonpremium.com:8789",
-      "username": "wilderd",
-      "password": "tFeWsYW",
+      "name": "DARK 2027",
+      "host": "http://d.tvdark.eu/c/",
+      "type": "stalker",
       "users": {
-        "joker11": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker11": { "username": "00:1A:79:46:5A:73", "expiry_date": "2027-08-17", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
-      "name": "JOKER 12",
-      "host": "http://falcon-sa.xyz",
-      "username": "wSGGTNJH",
-      "password": "32CC849A",
+      "name": "STREAM 2027",
+      "host": "http://a47.streamtrx.xyz/c/",
+      "type": "stalker",
       "users": {
-        "joker12": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker12": { "username": "00:1A:79:32:0F:7D", "expiry_date": "2027-02-22", "devices": ["UKQ1.240624.001"] }
       }
     }
   ],

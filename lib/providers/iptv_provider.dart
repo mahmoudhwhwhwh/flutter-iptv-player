@@ -68,10 +68,10 @@ class IPTVProvider with ChangeNotifier {
   String _channelFilter = "all";
   String get channelFilter => _channelFilter;
   void setChannelFilter(String f) { _channelFilter = f; _applyFilters(); }
-  int _currentVersionCode = 239;
+  int _currentVersionCode = 240;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
-  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.39 للاستمرار.";
+  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.40 للاستمرار.";
   int get playerSettingsVersion => 1;
   String _profileName = 'Premium User', _profileLogo = 'play', _profileImagePath = '';
   String get profileName => _profileName;
@@ -99,9 +99,9 @@ class IPTVProvider with ChangeNotifier {
   void setTvBoxFocusEnabled(bool val) { _tvBoxFocusEnabled = val; notifyListeners(); }
 
   List<String> get categories {
-    if (_activeTab == "live") return _liveCategories.map((e) => e['category_name']!).toList();
-    if (_activeTab == "movie") return _movieCategories.map((e) => e['category_name']!).toList();
-    if (_activeTab == "series") return _seriesCategories.map((e) => e['category_name']!).toList();
+    if (_activeTab == "live") return _liveCategories.map((e) => e['category_name'] ?? 'بث مباشر').toList();
+    if (_activeTab == "movie") return _movieCategories.map((e) => e['category_name'] ?? 'أفلام').toList();
+    if (_activeTab == "series") return _seriesCategories.map((e) => e['category_name'] ?? 'مسلسلات').toList();
     return [];
   }
 
@@ -121,7 +121,7 @@ class IPTVProvider with ChangeNotifier {
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) { try { _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList(); } catch(e) {} }
     final packageInfo = await PackageInfo.fromPlatform();
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 239;
+    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 240;
     await checkRemoteBlocking();
     if (_isLoggedIn && _activationCode.isNotEmpty) await loginWithCode(_activationCode);
     _isLoading = false; notifyListeners();
@@ -203,24 +203,30 @@ class IPTVProvider with ChangeNotifier {
     try {
       final hRes = await http.get(Uri.parse("$baseUrl?type=stb&action=handshake"), headers: headers).timeout(const Duration(seconds: 10));
       if (hRes.statusCode == 200) {
-        final hData = json.decode(hRes.body);
-        _stalkerToken = hData['js']?['token'];
-        if (_stalkerToken != null) headers['Authorization'] = 'Bearer $_stalkerToken';
+        try { final hData = json.decode(hRes.body); _stalkerToken = hData['js']?['token']; if (_stalkerToken != null) headers['Authorization'] = 'Bearer $_stalkerToken'; } catch(_) {}
       }
       await http.get(Uri.parse("$baseUrl?type=stb&action=get_profile"), headers: headers).timeout(const Duration(seconds: 10));
       final catRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_categories"), headers: headers).timeout(const Duration(seconds: 10));
       if (catRes.statusCode == 200) {
         final dynamic decoded = json.decode(catRes.body);
-        final List cats = (decoded is Map) ? (decoded['js'] ?? []) : (decoded is List ? decoded : []);
+        List cats = [];
+        if (decoded is Map && decoded['js'] != null) { cats = decoded['js'] is List ? decoded['js'] : []; }
+        else if (decoded is List) { cats = decoded; }
         _liveCategories = cats.map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
       }
       final chanRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_all_channels"), headers: headers).timeout(const Duration(seconds: 15));
       if (chanRes.statusCode == 200) {
         final dynamic decoded = json.decode(chanRes.body);
-        final List channels = (decoded is Map) ? (decoded['js']?['data'] ?? []) : (decoded is List ? decoded : []);
+        List channels = [];
+        if (decoded is Map && decoded['js'] != null) {
+          final js = decoded['js'];
+          if (js is Map && js['data'] != null) { channels = js['data'] is List ? js['data'] : []; }
+          else if (js is List) { channels = js; }
+        } else if (decoded is List) { channels = decoded; }
         for (var item in channels) {
+          if (item is! Map) continue;
           final catId = item['category_id']?.toString() ?? '', cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: "$baseUrl?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd'] ?? '')}", type: "live"));
+          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? (cat['category_name'] ?? 'بث مباشر') : 'بث مباشر', url: "$baseUrl?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd']?.toString() ?? '')}", type: "live"));
         }
       }
     } catch (e) {}
@@ -230,11 +236,11 @@ class IPTVProvider with ChangeNotifier {
     final h = {'User-Agent': 'IPTVSmarters'};
     try {
       final r1 = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories"), headers: h).timeout(const Duration(seconds: 10));
-      if (r1.statusCode == 200) { final d = json.decode(r1.body); if (d is List) _liveCategories = d.map<Map<String, String>>((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'بث مباشر'}).toList(); }
+      if (r1.statusCode == 200) { final d = json.decode(r1.body); if (d is List) _liveCategories = d.map((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'بث مباشر'}).toList(); }
       final r2 = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories"), headers: h).timeout(const Duration(seconds: 10));
-      if (r2.statusCode == 200) { final d = json.decode(r2.body); if (d is List) _movieCategories = d.map<Map<String, String>>((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'أفلام'}).toList(); }
+      if (r2.statusCode == 200) { final d = json.decode(r2.body); if (d is List) _movieCategories = d.map((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'أفلام'}).toList(); }
       final r3 = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories"), headers: h).timeout(const Duration(seconds: 10));
-      if (r3.statusCode == 200) { final d = json.decode(r3.body); if (d is List) _seriesCategories = d.map<Map<String, String>>((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'مسلسلات'}).toList(); }
+      if (r3.statusCode == 200) { final d = json.decode(r3.body); if (d is List) _seriesCategories = d.map((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'مسلسلات'}).toList(); }
     } catch (e) {}
   }
 

@@ -1,6 +1,6 @@
 {
   "app_name": "تطبيق البث المميز",
-  "app_version": "v2.2.35",
+  "app_version": "v2.2.36",
   "users": {},
   "servers": [
     {
@@ -174,11 +174,11 @@
   ],
   "blocking": {
     "min_version_code": 1,
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.35 للاستمرار."
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.36 للاستمرار."
   },
   "update": {
-    "latest_version": "v2.2.35",
+    "latest_version": "v2.2.36",
     "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
-    "update_message": "نسخة جديدة متاحة (v2.2.35). يرجى التحديث الآن للحصول على أفضل تجربة."
+    "update_message": "نسخة جديدة متاحة (v2.2.36). يرجى التحديث الآن للحصول على أفضل تجربة."
   }
 }

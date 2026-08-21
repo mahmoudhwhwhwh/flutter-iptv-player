@@ -16,8 +16,8 @@ class MainActivity: FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // حماية تامة ضد تصوير الشاشة وتسجيل الفيديو وحجب محتوى التطبيق بالكامل
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // تم السماح بتصوير الشاشة وتسجيل الفيديو بناءً على طلب المستخدم في النسخة 2.2.36
+        // window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

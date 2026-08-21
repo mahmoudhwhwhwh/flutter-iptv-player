@@ -51,18 +51,18 @@
     },
     {
       "name": "Server 5",
-      "host": "http://main.light-ott.net:80/c/",
+      "host": "http://main.light-ott.net/c/",
       "type": "stalker",
       "users": {
-        "s5_code1": { "username": "00:1A:79:FB:3B:0E", "expiry_date": "2027-01-27", "devices": ["UKQ1.240624.001"] }
+        "s5_code1": { "username": "00:1A:79:47:07:8E", "expiry_date": "2027-10-08", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
       "name": "Server 6",
-      "host": "http://line.moja-teve9.me:8080/c/",
+      "host": "http://v.4k-gold.com/c/",
       "type": "stalker",
       "users": {
-        "s6_code1": { "username": "00:1A:79:47:07:8E", "expiry_date": "2027-10-08", "devices": ["UKQ1.240624.001"] }
+        "s6_code1": { "username": "00:1A:79:FB:3B:0E", "expiry_date": "2027-01-27", "devices": ["UKQ1.240624.001"] }
       }
     },
     {

@@ -141,7 +141,7 @@ class IPTVProvider with ChangeNotifier {
       final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
-        if (data['min_version_code'] != null && _currentVersionCode < data['min_version_code']) {
+        if (data['blocking'] != null && data['blocking']['min_version_code'] != null && _currentVersionCode < data['blocking']['min_version_code']) {
           _isVersionBlocked = true; notifyListeners();
         }
       }
@@ -157,35 +157,35 @@ class IPTVProvider with ChangeNotifier {
       final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
           final config = json.decode(res.body);
-          if (config['users'] != null && config['users'][cleanCode] != null) {
-              final userData = config['users'][cleanCode];
-              final sIndex = userData['server_index'] ?? 0;
-              final server = config['servers'][sIndex];
-              final mode = userData['mode'] ?? 'iptv';
-              
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('active_code', cleanCode);
-              await prefs.setBool('is_logged_in', true);
-              _isLoggedIn = true; _activationCode = cleanCode;
-              
-              final list = UserPlaylist(
-                id: "gh_$cleanCode", 
-                name: server['name'] ?? "Premium", 
-                type: server['type'] ?? 'xtream', 
-                host: server['host'], 
-                username: server['username'], 
-                password: server['password']
-              );
-              _savedPlaylists = [list]; _activePlaylistId = list.id;
-              await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-              
-              if (mode == 'github') {
-                  await _loadCuratedGitHubContent();
-              } else {
-                  await loadPlaylistStreams(list.id);
+          final List servers = config['servers'] ?? [];
+          
+          for (var server in servers) {
+              final users = server['users'] ?? {};
+              if (users[cleanCode] != null) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('active_code', cleanCode);
+                  await prefs.setBool('is_logged_in', true);
+                  _isLoggedIn = true; _activationCode = cleanCode;
+                  
+                  final list = UserPlaylist(
+                    id: "gh_$cleanCode", 
+                    name: server['name'] ?? "Premium", 
+                    type: server['type'] ?? 'xtream', 
+                    host: server['host'], 
+                    username: server['username'], 
+                    password: server['password']
+                  );
+                  _savedPlaylists = [list]; _activePlaylistId = list.id;
+                  await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+                  
+                  if (cleanCode == "96827" || cleanCode == "2027") {
+                      await _loadCuratedGitHubContent();
+                  } else {
+                      await loadPlaylistStreams(list.id);
+                  }
+                  
+                  _isLoading = false; notifyListeners(); return true;
               }
-              
-              _isLoading = false; notifyListeners(); return true;
           }
       }
     } catch(e) {}

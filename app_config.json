@@ -2,16 +2,19 @@
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
   "min_version_code": 200,
-  "api_endpoint": "https://iptv-subscription-api.tvkora56.workers.dev/",
+  "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
   "blocking": {
     "min_version_code": 200,
-    "block_message": "🚨 يرجى التحديث."
+    "block_message": "🚨 يرجى التحديث للاستمرار."
   },
   "users": {
-    "2027": { "server_index": 0 },
-    "96827": { "server_index": 0 },
-    "mahmoud209": { "server_index": 1 },
-    "joker03": { "server_index": 2 }
+    "2027": { "server_index": 0, "mode": "github" },
+    "96827": { "server_index": 0, "mode": "github" },
+    "mahmoud209": { "server_index": 1, "mode": "iptv" },
+    "joker03": { "server_index": 2, "mode": "iptv" },
+    "Abu Ali 58": { "server_index": 1, "mode": "iptv" },
+    "mahmoud53": { "server_index": 1, "mode": "iptv" },
+    "ALi51": { "server_index": 1, "mode": "iptv" }
   },
   "servers": [
     {
@@ -36,7 +39,7 @@
       "password": "joker123"
     }
   ],
-  "announcement": "تم تفعيل الحصن السحابي بنجاح. جميع الأكواد تعمل الآن بدقة.",
+  "announcement": "تم العودة لنظام GitHub المستقر. جميع الأكواد تعمل الآن بدقة عالية.",
   "disable_vpn_check": true,
   "disable_sniffer_check": true
 }

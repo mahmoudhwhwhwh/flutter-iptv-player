@@ -160,7 +160,7 @@ class IPTVProvider with ChangeNotifier {
     if (cleanCode.isEmpty) { lastError = "رمز الدخول فارغ"; return false; }
     _isLoading = true; notifyListeners();
     
-    // 1. GitHub Primary (Bypass Cloudflare issues)
+    // GitHub Primary
     try {
       final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
@@ -169,41 +169,68 @@ class IPTVProvider with ChangeNotifier {
               final userData = config['users'][cleanCode];
               final sIndex = userData['server_index'] ?? 0;
               final server = config['servers'][sIndex];
+              final mode = userData['mode'] ?? 'iptv';
+              
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('active_code', cleanCode);
               await prefs.setBool('is_logged_in', true);
               _isLoggedIn = true; _activationCode = cleanCode;
-              final list = UserPlaylist(id: "gh_$cleanCode", name: "Premium", type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
+              
+              final list = UserPlaylist(
+                id: "gh_$cleanCode", 
+                name: server['name'] ?? "Premium", 
+                type: server['type'] ?? 'xtream', 
+                host: server['host'], 
+                username: server['username'], 
+                password: server['password']
+              );
               _savedPlaylists = [list]; _activePlaylistId = list.id;
               await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-              await loadPlaylistStreams(list.id);
+              
+              if (mode == 'github') {
+                  await _loadCuratedGitHubContent();
+              } else {
+                  await loadPlaylistStreams(list.id);
+              }
+              
               _isLoading = false; notifyListeners(); return true;
           }
       }
-    } catch(e) {}
-
-    // 2. Cloudflare Fallback
-    try {
-      final res = await http.post(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"), headers: {"Content-Type": "application/json"}, body: json.encode({"code": cleanCode, "version_code": _currentVersionCode})).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        if (data['ok'] == true) {
-          final u = data['user'];
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('active_code', cleanCode);
-          await prefs.setBool('is_logged_in', true);
-          _activationCode = cleanCode; _isLoggedIn = true;
-          final list = UserPlaylist(id: "cf_$cleanCode", name: "Premium", type: u['server_type'], host: u['host'], username: u['username'], password: u['password']);
-          _savedPlaylists = [list]; _activePlaylistId = list.id;
-          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-          await loadPlaylistStreams(list.id);
-          _isLoading = false; notifyListeners(); return true;
-        }
-      }
-    } catch (e) {}
+    } catch(e) { debugPrint("GH Login Error: $e"); }
 
     lastError = "رمز الدخول غير صحيح";
     _isLoading = false; notifyListeners(); return false;
+  }
+
+  Future<void> _loadCuratedGitHubContent() async {
+    _isFetchingData = true; notifyListeners();
+    _allStreams = []; _liveCategories = []; _movieCategories = []; _seriesCategories = [];
+    try {
+      final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final List decoded = json.decode(res.body);
+        final catsSeen = <String, String>{};
+        for (var item in decoded) {
+            final catId = item['category_id']?.toString() ?? '99';
+            final catName = item['category_name']?.toString() ?? 'بث مباشر';
+            if (!catsSeen.containsKey(catId)) {
+                catsSeen[catId] = catName;
+                _liveCategories.add({'category_id': catId, 'category_name': catName});
+            }
+            _allStreams.add(PlaylistItem(
+                num: null,
+                streamId: _allStreams.length.toString(),
+                name: item['name']?.toString() ?? 'Unknown',
+                streamIcon: item['icon']?.toString() ?? '',
+                categoryId: catId,
+                categoryName: catName,
+                url: item['url']?.toString() ?? "",
+                type: "live"
+            ));
+        }
+      }
+    } catch (e) { debugPrint("Load Curated Error: $e"); }
+    _applyFilters(); _isFetchingData = false; notifyListeners();
   }
 
   Future<void> loadPlaylistStreams(String id) async {

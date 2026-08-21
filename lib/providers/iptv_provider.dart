@@ -37,10 +37,15 @@ class IPTVProvider with ChangeNotifier {
   
   String _appLanguage = 'العربية';
   String get appLanguage => _appLanguage;
+  void setAppLanguage(String lang) async { _appLanguage = lang; notifyListeners(); (await SharedPreferences.getInstance()).setString('app_language', lang); }
   
   Color get accentColor => const Color(0xFFA855F7);
   Color get themeBackground => const Color(0xFF09091A);
   Color get themeSurface => const Color(0xFF14112B);
+  
+  bool _premiumTheme = true;
+  bool get premiumTheme => _premiumTheme;
+  void setPremiumTheme(bool val) { _premiumTheme = val; notifyListeners(); }
 
   // Security & Loading
   bool _isSecured = true;
@@ -54,6 +59,11 @@ class IPTVProvider with ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   String _activationCode = "";
   String get activationCode => _activationCode;
+  
+  bool get snifferDetected => false;
+  bool get vpnDetected => false;
+  String get securityMessage => "";
+  bool get isExpired => false;
   
   // Data
   List<PlaylistItem> _allStreams = [];
@@ -80,6 +90,11 @@ class IPTVProvider with ChangeNotifier {
   String _searchQuery = "";
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
+  void setShowMoviesSeries(bool val) { _showMoviesSeries = val; notifyListeners(); }
+  
+  String _channelFilter = "all";
+  String get channelFilter => _channelFilter;
+  void setChannelFilter(String f) { _channelFilter = f; _applyFilters(); }
   
   // Versioning
   int _currentVersionCode = 236;
@@ -110,6 +125,13 @@ class IPTVProvider with ChangeNotifier {
   bool get isParentalEnabled => _parentalPin.isNotEmpty;
   List<String> _lockedCategories = [];
   List<String> get lockedCategories => _lockedCategories;
+  bool get blockAdultContent => false;
+  void setBlockAdultContent(bool val) { notifyListeners(); }
+  void setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
+  void clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
+  bool isCategoryLocked(String cat) => _lockedCategories.contains(cat);
+  void toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  void unlockCategorySession(String cat) { /* Session unlock logic */ }
 
   // Player State
   PlaylistItem? _currentStream;
@@ -117,6 +139,10 @@ class IPTVProvider with ChangeNotifier {
   String? get stalkerToken => null;
   String get globalUserAgent => "Mozilla/5.0";
   String get globalReferer => "";
+  
+  bool _tvBoxFocusEnabled = false;
+  bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
+  void setTvBoxFocusEnabled(bool val) { _tvBoxFocusEnabled = val; notifyListeners(); }
 
   List<String> get categories {
     if (_activeTab == "live") return _liveCategories.map((e) => e['category_name']!).toList();
@@ -387,15 +413,20 @@ class IPTVProvider with ChangeNotifier {
 
   void setCategory(String cat) { _selectedCategory = cat; _applyFilters(); }
   void setSearch(String query) { _searchQuery = query; _applyFilters(); }
+  void setSearchQuery(String query) { _searchQuery = query; _applyFilters(); }
   void setTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
 
   void selectStream(PlaylistItem stream) {
     _currentStream = stream;
+    addToRecentlyPlayed(stream);
+    notifyListeners();
+  }
+
+  void addToRecentlyPlayed(PlaylistItem stream) {
     if (!_recentlyPlayed.any((s) => s.streamId == stream.streamId)) {
         _recentlyPlayed.insert(0, stream);
         if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast();
     }
-    notifyListeners();
   }
 
   void toggleFavorite(String streamId) async {
@@ -422,6 +453,14 @@ class IPTVProvider with ChangeNotifier {
   void setProfileLogo(String logo) { _profileLogo = logo; notifyListeners(); }
   void setProfileImagePath(String path) { _profileImagePath = path; notifyListeners(); }
   void setBlockAdultContent(bool val) { /* Mock implementation */ }
-  void clearParentalSettings() { _parentalPin = ""; notifyListeners(); }
+  void clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
   void changeSubscription(String code) { loginWithCode(code); }
+  void logout() async { 
+    _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = [];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_logged_in', false);
+    await prefs.remove('active_code');
+    notifyListeners();
+  }
+  void setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); }
 }

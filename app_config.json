@@ -7,7 +7,36 @@
     "min_version_code": 200,
     "block_message": "🚨 يرجى التحديث."
   },
-  "announcement": "مرحباً بكم في النسخة الجديدة المؤمنة!",
+  "users": {
+    "2027": { "server_index": 0 },
+    "96827": { "server_index": 0 },
+    "mahmoud209": { "server_index": 1 },
+    "joker03": { "server_index": 2 }
+  },
+  "servers": [
+    {
+      "name": "GitHub Curated",
+      "type": "xtream",
+      "host": "https://iptv-subscription-api.tvkora56.workers.dev",
+      "username": "2027",
+      "password": "pr"
+    },
+    {
+      "name": "Mahmoud Server",
+      "type": "xtream",
+      "host": "http://185.191.126.127:8080",
+      "username": "b0:99:d7:15:88:50",
+      "password": "3090914536649669"
+    },
+    {
+      "name": "Joker Server",
+      "type": "xtream",
+      "host": "http://joker-ps.link:8080",
+      "username": "joker3",
+      "password": "joker123"
+    }
+  ],
+  "announcement": "مرحباً بكم! تم تفعيل نظام النسخ الاحتياطي لضمان عمل جميع الأكواد.",
   "disable_vpn_check": true,
   "disable_sniffer_check": true
 }

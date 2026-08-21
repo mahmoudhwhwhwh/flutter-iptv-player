@@ -18,7 +18,7 @@
       "name": "GitHub Curated",
       "type": "xtream",
       "host": "https://iptv-subscription-api.tvkora56.workers.dev",
-      "username": "2027",
+      "username": "96827",
       "password": "pr"
     },
     {
@@ -36,7 +36,7 @@
       "password": "joker123"
     }
   ],
-  "announcement": "مرحباً بكم! تم تفعيل نظام النسخ الاحتياطي لضمان عمل جميع الأكواد.",
+  "announcement": "تم تفعيل الحصن السحابي بنجاح. جميع الأكواد تعمل الآن بدقة.",
   "disable_vpn_check": true,
   "disable_sniffer_check": true
 }

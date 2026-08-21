@@ -123,7 +123,10 @@ class IPTVProvider with ChangeNotifier {
     _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 235;
 
     await checkRemoteBlocking();
-    if (_isLoggedIn && _savedPlaylists.isNotEmpty) {
+    if (_isLoggedIn && _activationCode.isNotEmpty) {
+      // Force re-login to refresh host/credentials from Cloudflare
+      await loginWithCode(_activationCode);
+    } else if (_isLoggedIn && _savedPlaylists.isNotEmpty) {
       _activePlaylistId = _savedPlaylists.first.id;
       loadPlaylistStreams(_activePlaylistId!);
     }

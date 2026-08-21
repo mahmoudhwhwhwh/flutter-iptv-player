@@ -36,8 +36,13 @@ jobs:
         run: |
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: LIVE_STREAM_PREMIUM_v2.2.35
-          path: LIVE_STREAM_PREMIUM.apk
+          tag_name: ${{ env.TAG_VERSION }}
+          name: Release ${{ env.TAG_VERSION }}
+          files: LIVE_STREAM_PREMIUM.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

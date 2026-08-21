@@ -126,13 +126,7 @@ class IPTVProvider with ChangeNotifier {
   List<String> _lockedCategories = [];
   List<String> get lockedCategories => _lockedCategories;
   bool get blockAdultContent => false;
-  void setBlockAdultContent(bool val) { notifyListeners(); }
-  Future<void> setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
-  Future<void> clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
-  bool isCategoryLocked(String cat) => _lockedCategories.contains(cat);
-  void toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
-  void unlockCategorySession(String cat) { /* Session unlock logic */ }
-
+  
   // Player State
   PlaylistItem? _currentStream;
   PlaylistItem? get currentStream => _currentStream;
@@ -439,10 +433,11 @@ class IPTVProvider with ChangeNotifier {
     (await SharedPreferences.getInstance()).setStringList('favorites', _favorites);
   }
 
-  void zapChannel(int offset) {
+  void zapChannel(bool next) {
     if (_filteredStreams.isEmpty || _currentStream == null) return;
     int index = _filteredStreams.indexWhere((s) => s.streamId == _currentStream!.streamId);
     if (index == -1) return;
+    int offset = next ? 1 : -1;
     int newIndex = (index + offset) % _filteredStreams.length;
     if (newIndex < 0) newIndex += _filteredStreams.length;
     selectStream(_filteredStreams[newIndex]);
@@ -454,7 +449,7 @@ class IPTVProvider with ChangeNotifier {
   Future<void> setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); }
   void setBlockAdultContent(bool val) { notifyListeners(); }
   Future<void> clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
-  Future<void> changeSubscription(String code) async { loginWithCode(code); }
+  Future<void> changeSubscription() async { logout(); }
   Future<void> logout() async { 
     _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = [];
     final prefs = await SharedPreferences.getInstance();

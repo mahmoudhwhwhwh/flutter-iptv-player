@@ -41,69 +41,12 @@
       }
     },
     {
-      "name": "Server 5 (WEASEL VIP)",
-      "host": "http://weaseltv.live/c/",
-      "type": "stalker",
-      "users": {
-        "joker4": {
-          "username": "00:1A:79:AD:15:67",
-          "expiry_date": "2027-06-21T00:00:00Z"
-        }
-      }
-    },
-    {
-      "name": "Server 6 (DINO 4K)",
-      "host": "http://mag.dino.ws/c/",
-      "type": "stalker",
-      "users": {
-        "joker7": {
-          "username": "00:1A:79:78:23:55",
-          "expiry_date": "2027-07-14T00:00:00Z"
-        }
-      }
-    },
-    {
-      "name": "Server 7 (DEVBOX VIP)",
-      "host": "http://m.devbox.tv/c/",
-      "type": "stalker",
-      "users": {
-        "mahmoud20": {
-          "username": "00:1A:79:73:0F:F0",
-          "expiry_date": "2027-06-29T00:00:00Z"
-        }
-      }
-    },
-    {
       "name": "FAMILY VIP",
       "host": "http://family-iptv.com:8080",
       "username": "family_user",
       "password": "family_password",
       "users": {
         "family_vip": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    },
-    {
-      "name": "VIP 2027",
-      "host": "http://weaseltv.live/c/",
-      "type": "stalker",
-      "users": {
-        "vip2027": { "username": "00:1A:79:C1:49:FA", "expiry_date": "2027-06-20T00:00:00Z" }
-      }
-    },
-    {
-      "name": "DINO 2027",
-      "host": "http://mag.dino.ws/c/",
-      "type": "stalker",
-      "users": {
-        "dino2027": { "username": "00:1A:79:9C:3D:FD", "expiry_date": "2027-05-14T00:00:00Z" }
-      }
-    },
-    {
-      "name": "LEGENDS 2027",
-      "host": "http://technologycloud.eu/c/",
-      "type": "stalker",
-      "users": {
-        "legends2027": { "username": "00:1A:79:9E:56:2F", "expiry_date": "2027-12-29T00:00:00Z" }
       }
     }
   ],

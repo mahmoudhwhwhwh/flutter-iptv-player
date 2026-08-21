@@ -68,10 +68,10 @@ class IPTVProvider with ChangeNotifier {
   String _channelFilter = "all";
   String get channelFilter => _channelFilter;
   void setChannelFilter(String f) { _channelFilter = f; _applyFilters(); }
-  int _currentVersionCode = 237;
+  int _currentVersionCode = 238;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
-  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.37 للاستمرار.";
+  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.38 للاستمرار.";
   int get playerSettingsVersion => 1;
   String _profileName = 'Premium User', _profileLogo = 'play', _profileImagePath = '';
   String get profileName => _profileName;
@@ -121,7 +121,7 @@ class IPTVProvider with ChangeNotifier {
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) { try { _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList(); } catch(e) {} }
     final packageInfo = await PackageInfo.fromPlatform();
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 237;
+    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 238;
     await checkRemoteBlocking();
     if (_isLoggedIn && _activationCode.isNotEmpty) await loginWithCode(_activationCode);
     _isLoading = false; notifyListeners();
@@ -263,21 +263,25 @@ class IPTVProvider with ChangeNotifier {
 
   void setCategory(String cat) { _selectedCategory = cat; _applyFilters(); }
   void setSearch(String query) { _searchQuery = query; _applyFilters(); }
+  void setSearchQuery(String query) { _searchQuery = query; _applyFilters(); }
   void setActiveTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
-  void setTab(String tab) => setActiveTab(tab); // Alias for compatibility
-  void selectStream(PlaylistItem stream) { _currentStream = stream; notifyListeners(); _addToRecentlyPlayed(stream); }
-  void _addToRecentlyPlayed(PlaylistItem s) { _recentlyPlayed.removeWhere((item) => item.streamId == s.streamId); _recentlyPlayed.insert(0, s); if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast(); }
+  void setTab(String tab) => setActiveTab(tab); 
+  void selectStream(PlaylistItem stream) { _currentStream = stream; notifyListeners(); addToRecentlyPlayed(stream); }
+  void addToRecentlyPlayed(PlaylistItem s) { _recentlyPlayed.removeWhere((item) => item.streamId == s.streamId); _recentlyPlayed.insert(0, s); if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast(); }
   void toggleFavorite(String id) async { if (_favorites.contains(id)) _favorites.remove(id); else _favorites.add(id); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('favorites', _favorites); }
   void setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
   
   bool isCategoryLocked(String catName) => _lockedCategories.contains(catName) && !_unlockedSessions.contains(catName);
-  void toggleCategoryLock(String catName) async { if (_lockedCategories.contains(catName)) _lockedCategories.remove(catName); else _lockedCategories.add(catName); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  Future<void> toggleCategoryLock(String catName) async { if (_lockedCategories.contains(catName)) _lockedCategories.remove(catName); else _lockedCategories.add(catName); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
   void unlockCategorySession(String catName) { _unlockedSessions.add(catName); notifyListeners(); }
+  Future<void> clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; _unlockedSessions = []; notifyListeners(); final prefs = await SharedPreferences.getInstance(); await prefs.remove('parental_pin'); await prefs.remove('locked_categories'); }
 
-  void setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); notifyListeners(); }
-  void setProfileName(String name) async { _profileName = name; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_name', name); }
-  void setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_logo', logo); }
-  void setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_image_path', path); }
+  Future<void> setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); notifyListeners(); }
+  Future<void> setProfileName(String name) async { _profileName = name; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_name', name); }
+  Future<void> setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_logo', logo); }
+  Future<void> setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_image_path', path); }
+  Future<void> changeSubscription() async { notifyListeners(); }
+  void zapChannel(PlaylistItem next) { selectStream(next); }
 
   Future<void> logout() async { final prefs = await SharedPreferences.getInstance(); await prefs.clear(); _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; notifyListeners(); }
 }

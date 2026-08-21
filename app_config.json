@@ -9,8 +9,7 @@
       "username": "20299538378191",
       "password": "36172842922822",
       "users": {
-        "mahmoud2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "s1_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "mahmoud2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -19,8 +18,7 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "02389": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "s2_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "02389": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -38,10 +36,7 @@
       "username": "01112727740kh",
       "password": "khiary7740",
       "users": {
-        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
-        "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
-        "s4_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" }
       }
     },
     {
@@ -65,8 +60,7 @@
       "host": "http://line.tvdsz.cc",
       "type": "stalker",
       "users": {
-        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " },
-        "s7_code1": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " }
+        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " }
       }
     },
     {
@@ -93,13 +87,7 @@
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "joker3": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "joker03": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "Abu Ali 58": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "mahmoud53": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "ALi51": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -185,12 +173,12 @@
     }
   ],
   "blocking": {
-    "min_version_code": 20,
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث للاستمرار."
+    "min_version_code": 232,
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.35 للاستمرار."
   },
   "update": {
     "latest_version": "v2.2.35",
     "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
-    "update_message": "نسخة جديدة متاحة. يرجى التحديث الآن."
+    "update_message": "نسخة جديدة متاحة (v2.2.35). يرجى التحديث الآن للحصول على أفضل تجربة."
   }
 }

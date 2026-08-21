@@ -32,7 +32,6 @@ class UserPlaylist {
 }
 
 class IPTVProvider with ChangeNotifier {
-  // Theme & Language
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
   void toggleTheme() async { _isDarkMode = !_isDarkMode; notifyListeners(); (await SharedPreferences.getInstance()).setBool('isDarkMode', _isDarkMode); }
@@ -42,7 +41,6 @@ class IPTVProvider with ChangeNotifier {
   Color get themeBackground => const Color(0xFF09091A);
   Color get themeSurface => const Color(0xFF14112B);
 
-  // Security & State
   bool _isSecured = true;
   bool get isSecured => _isSecured;
   String? lastError;
@@ -55,7 +53,6 @@ class IPTVProvider with ChangeNotifier {
   String _activationCode = "";
   String get activationCode => _activationCode;
   
-  // Data
   List<PlaylistItem> _allStreams = [];
   List<PlaylistItem> get allStreams => _allStreams;
   List<PlaylistItem> _filteredStreams = [];
@@ -72,7 +69,6 @@ class IPTVProvider with ChangeNotifier {
   List<Map<String, String>> _seriesCategories = [];
   List<Map<String, String>> get seriesCategories => _seriesCategories;
 
-  // Filters
   String _activeTab = "live"; 
   String get activeTab => _activeTab;
   String _selectedCategory = "all";
@@ -81,13 +77,11 @@ class IPTVProvider with ChangeNotifier {
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
   
-  // Versioning
   int _currentVersionCode = 235;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
-  String get remoteBlockMessage => "🚨 تحديث إجباري مطلوب فوراً 🚨";
+  String get remoteBlockMessage => "Update Required";
 
-  // Profile & UI
   String _profileName = 'Premium User';
   String get profileName => _profileName;
   String _profileLogo = 'play';
@@ -99,7 +93,6 @@ class IPTVProvider with ChangeNotifier {
   List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
   List<String> _favorites = [];
 
-  // Parental Control
   String _parentalPin = "";
   String get parentalPin => _parentalPin;
   List<String> _lockedCategories = [];
@@ -157,10 +150,9 @@ class IPTVProvider with ChangeNotifier {
 
   Future<bool> loginWithCode(String code) async {
     lastError = null; String cleanCode = code.trim();
-    if (cleanCode.isEmpty) { lastError = "رمز الدخول فارغ"; return false; }
+    if (cleanCode.isEmpty) { lastError = "Empty code"; return false; }
     _isLoading = true; notifyListeners();
     
-    // GitHub Primary
     try {
       final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
@@ -196,9 +188,9 @@ class IPTVProvider with ChangeNotifier {
               _isLoading = false; notifyListeners(); return true;
           }
       }
-    } catch(e) { debugPrint("GH Login Error: $e"); }
+    } catch(e) {}
 
-    lastError = "رمز الدخول غير صحيح";
+    lastError = "Invalid code";
     _isLoading = false; notifyListeners(); return false;
   }
 
@@ -229,7 +221,7 @@ class IPTVProvider with ChangeNotifier {
             ));
         }
       }
-    } catch (e) { debugPrint("Load Curated Error: $e"); }
+    } catch (e) {}
     _applyFilters(); _isFetchingData = false; notifyListeners();
   }
 

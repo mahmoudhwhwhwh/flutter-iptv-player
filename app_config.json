@@ -5,7 +5,7 @@
   "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
   "blocking": {
     "min_version_code": 200,
-    "block_message": "🚨 يرجى التحديث للاستمرار."
+    "block_message": "Required Update"
   },
   "users": {
     "2027": { "server_index": 0, "mode": "github" },
@@ -18,28 +18,27 @@
   },
   "servers": [
     {
-      "name": "GitHub Curated",
+      "name": "S1",
       "type": "xtream",
       "host": "https://iptv-subscription-api.tvkora56.workers.dev",
       "username": "96827",
       "password": "pr"
     },
     {
-      "name": "Mahmoud Server",
+      "name": "S2",
       "type": "xtream",
       "host": "http://185.191.126.127:8080",
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669"
     },
     {
-      "name": "Joker Server",
+      "name": "S3",
       "type": "xtream",
       "host": "http://joker-ps.link:8080",
       "username": "joker3",
       "password": "joker123"
     }
   ],
-  "announcement": "تم العودة لنظام GitHub المستقر. جميع الأكواد تعمل الآن بدقة عالية.",
   "disable_vpn_check": true,
   "disable_sniffer_check": true
 }

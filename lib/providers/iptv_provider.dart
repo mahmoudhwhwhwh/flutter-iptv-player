@@ -267,12 +267,7 @@ class IPTVProvider with ChangeNotifier {
   Future<void> setProfileName(String name) async { _profileName = name; notifyListeners(); }
   Future<void> setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); }
   Future<void> setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); }
-  Future<void> setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
-  Future<void> clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
   Future<void> changeSubscription() async { logout(); }
   Future<void> logout() async { _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; final prefs = await SharedPreferences.getInstance(); await prefs.setBool('is_logged_in', false); await prefs.remove('active_code'); notifyListeners(); }
   Future<void> setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); }
-  bool isCategoryLocked(String cat) => _lockedCategories.contains(cat);
-  void toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
-  void unlockCategorySession(String cat) {}
 }

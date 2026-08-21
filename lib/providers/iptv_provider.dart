@@ -270,6 +270,6 @@ class IPTVProvider with ChangeNotifier {
   Future<void> logout() async { _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; final prefs = await SharedPreferences.getInstance(); await prefs.setBool('is_logged_in', false); await prefs.remove('active_code'); notifyListeners(); }
   Future<void> setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); }
   bool isCategoryLocked(String cat) => _lockedCategories.contains(cat);
-  void toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  Future<void> toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
   void unlockCategorySession(String cat) {}
 }

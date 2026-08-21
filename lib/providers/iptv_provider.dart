@@ -31,13 +31,6 @@ class UserPlaylist {
   );
 }
 
-class MyHttpOverrides extends HttpOverrides {
-  final String proxyAddress;
-  MyHttpOverrides(this.proxyAddress);
-  @override
-  HttpClient createHttpClient(SecurityContext? context) => super.createHttpClient(context)..findProxy = (uri) => proxyAddress.isNotEmpty ? "PROXY $proxyAddress;" : "DIRECT"..badCertificateCallback = (cert, host, port) => false;
-}
-
 class IPTVProvider with ChangeNotifier {
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
@@ -80,13 +73,9 @@ class IPTVProvider with ChangeNotifier {
   List<Map<String, String>> _seriesCategories = [];
 
   String _activationCode = "";
-  String _subscriptionType = "";
-
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
-  String _channelFilter = "الكل";
-  String get channelFilter => _channelFilter;
-
+  
   int _currentVersionCode = 235;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
@@ -112,11 +101,12 @@ class IPTVProvider with ChangeNotifier {
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     _activationCode = prefs.getString('active_code') ?? "";
     _favorites = prefs.getStringList('favorites') ?? [];
+    
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) {
         try {
             _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList();
-        } catch(e) { debugPrint("Saved Playlists Error: $e"); }
+        } catch(e) {}
     }
     
     final packageInfo = await PackageInfo.fromPlatform();
@@ -124,7 +114,6 @@ class IPTVProvider with ChangeNotifier {
 
     await checkRemoteBlocking();
     if (_isLoggedIn && _activationCode.isNotEmpty) {
-      // Force re-login to refresh host/credentials from Cloudflare
       await loginWithCode(_activationCode);
     } else if (_isLoggedIn && _savedPlaylists.isNotEmpty) {
       _activePlaylistId = _savedPlaylists.first.id;
@@ -135,7 +124,7 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final res = await http.get(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
+      final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         if (data['min_version_code'] != null && _currentVersionCode < data['min_version_code']) {
@@ -149,30 +138,12 @@ class IPTVProvider with ChangeNotifier {
     lastError = null; String cleanCode = code.trim();
     if (cleanCode.isEmpty) { lastError = "رمز الدخول فارغ"; return false; }
     _isLoading = true; notifyListeners();
-    try {
-      final res = await http.post(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"), headers: {"Content-Type": "application/json"}, body: json.encode({"code": cleanCode, "version_code": _currentVersionCode})).timeout(const Duration(seconds: 15));
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        if (data['ok'] == true) {
-          final u = data['user'];
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('active_code', cleanCode);
-          await prefs.setBool('is_logged_in', true);
-          _activationCode = cleanCode; _isLoggedIn = true;
-          final list = UserPlaylist(id: "srv_$cleanCode", name: "Premium", type: u['server_type'], host: u['host'], username: u['username'], password: u['password']);
-          _savedPlaylists = [list]; _activePlaylistId = list.id;
-          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-          await loadPlaylistStreams(list.id);
-          _isLoading = false; notifyListeners(); return true;
-        }
-      }
-    } catch (e) { debugPrint("Login Error: $e"); }
     
-    // GitHub Fallback
+    // 1. GitHub Primary (Bypass expired Cloudflare)
     try {
-      final fallbackRes = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json")).timeout(const Duration(seconds: 10));
-      if (fallbackRes.statusCode == 200) {
-          final config = json.decode(fallbackRes.body);
+      final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+          final config = json.decode(res.body);
           if (config['users'] != null && config['users'][cleanCode] != null) {
               final userData = config['users'][cleanCode];
               final sIndex = userData['server_index'] ?? 0;
@@ -181,14 +152,34 @@ class IPTVProvider with ChangeNotifier {
               await prefs.setString('active_code', cleanCode);
               await prefs.setBool('is_logged_in', true);
               _isLoggedIn = true; _activationCode = cleanCode;
-              final list = UserPlaylist(id: "fallback_$cleanCode", name: "Premium", type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
+              final list = UserPlaylist(id: "gh_$cleanCode", name: "Premium", type: server['type'] ?? 'xtream', host: server['host'], username: server['username'], password: server['password']);
               _savedPlaylists = [list]; _activePlaylistId = list.id;
               await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
               await loadPlaylistStreams(list.id);
               _isLoading = false; notifyListeners(); return true;
           }
       }
-    } catch(e) { debugPrint("Fallback Login Error: $e"); }
+    } catch(e) {}
+
+    // 2. Cloudflare Fallback
+    try {
+      final res = await http.post(Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"), headers: {"Content-Type": "application/json"}, body: json.encode({"code": cleanCode, "version_code": _currentVersionCode})).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (data['ok'] == true) {
+          final u = data['user'];
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('active_code', cleanCode);
+          await prefs.setBool('is_logged_in', true);
+          _activationCode = cleanCode; _isLoggedIn = true;
+          final list = UserPlaylist(id: "cf_$cleanCode", name: "Premium", type: u['server_type'], host: u['host'], username: u['username'], password: u['password']);
+          _savedPlaylists = [list]; _activePlaylistId = list.id;
+          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+          await loadPlaylistStreams(list.id);
+          _isLoading = false; notifyListeners(); return true;
+        }
+      }
+    } catch (e) {}
 
     lastError = "رمز الدخول غير صحيح";
     _isLoading = false; notifyListeners(); return false;
@@ -208,13 +199,9 @@ class IPTVProvider with ChangeNotifier {
     if (host.isEmpty || user.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
 
     try {
-      // 1. Load Categories (Live, VOD, Series)
       await _loadCategories(host, user, pass);
-      
-      // 2. Load Streams (Live, VOD, Series)
       await _loadStreams(host, user, pass);
-      
-    } catch (e) { debugPrint("Load Playlist Error: $e"); }
+    } catch (e) {}
     
     _applyFilters(); _isFetchingData = false; notifyListeners();
   }
@@ -224,34 +211,16 @@ class IPTVProvider with ChangeNotifier {
       final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final List decoded = json.decode(res.body);
-        _liveCategories = decoded.map<Map<String, String>>((item) => {
-            'category_id': item['category_id']?.toString() ?? '',
-            'category_name': item['category_name']?.toString() ?? 'بث مباشر'
-        }).toList();
+        _liveCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'بث مباشر'}).toList();
       }
-    } catch (e) { debugPrint("Live Cats Error: $e"); }
-
+    } catch (e) {}
     try {
       final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final List decoded = json.decode(res.body);
-        _movieCategories = decoded.map<Map<String, String>>((item) => {
-            'category_id': item['category_id']?.toString() ?? '',
-            'category_name': item['category_name']?.toString() ?? 'أفلام'
-        }).toList();
+        _movieCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'أفلام'}).toList();
       }
-    } catch (e) { debugPrint("VOD Cats Error: $e"); }
-
-    try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        _seriesCategories = decoded.map<Map<String, String>>((item) => {
-            'category_id': item['category_id']?.toString() ?? '',
-            'category_name': item['category_name']?.toString() ?? 'مسلسلات'
-        }).toList();
-      }
-    } catch (e) { debugPrint("Series Cats Error: $e"); }
+    } catch (e) {}
   }
 
   Future<void> _loadStreams(String host, String user, String pass) async {
@@ -263,45 +232,11 @@ class IPTVProvider with ChangeNotifier {
             try {
                 final catId = item['category_id']?.toString() ?? '';
                 final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
-                _allStreams.add(PlaylistItem(
-                    num: item['num'] is int ? item['num'] : null,
-                    streamId: item['stream_id']?.toString() ?? '',
-                    name: item['name']?.toString() ?? 'Unknown',
-                    streamIcon: item['stream_icon']?.toString() ?? '',
-                    categoryId: catId,
-                    categoryName: catName,
-                    url: item['url']?.toString() ?? "$host/live/$user/$pass/${item['stream_id']}.ts",
-                    type: "live"
-                ));
+                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: item['url']?.toString() ?? "$host/live/$user/$pass/${item['stream_id']}.ts", type: "live"));
             } catch(e) {}
         }
       }
-    } catch (e) { debugPrint("Live Streams Error: $e"); }
-
-    try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).timeout(const Duration(seconds: 20));
-      if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        for (var item in decoded) {
-            try {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                final catName = cat.isNotEmpty ? cat['category_name']! : 'أفلام';
-                _allStreams.add(PlaylistItem(
-                    num: item['num'] is int ? item['num'] : null,
-                    streamId: item['stream_id']?.toString() ?? '',
-                    name: item['name']?.toString() ?? 'Unknown',
-                    streamIcon: item['stream_icon']?.toString() ?? '',
-                    categoryId: catId,
-                    categoryName: catName,
-                    url: item['url']?.toString() ?? "$host/movie/$user/$pass/${item['stream_id']}.mp4",
-                    type: "movie"
-                ));
-            } catch(e) {}
-        }
-      }
-    } catch (e) { debugPrint("VOD Streams Error: $e"); }
+    } catch (e) {}
   }
 
   void _applyFilters() {

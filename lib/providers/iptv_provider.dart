@@ -68,10 +68,10 @@ class IPTVProvider with ChangeNotifier {
   String _channelFilter = "all";
   String get channelFilter => _channelFilter;
   void setChannelFilter(String f) { _channelFilter = f; _applyFilters(); }
-  int _currentVersionCode = 238;
+  int _currentVersionCode = 239;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
-  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.38 للاستمرار.";
+  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.39 للاستمرار.";
   int get playerSettingsVersion => 1;
   String _profileName = 'Premium User', _profileLogo = 'play', _profileImagePath = '';
   String get profileName => _profileName;
@@ -121,7 +121,7 @@ class IPTVProvider with ChangeNotifier {
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) { try { _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList(); } catch(e) {} }
     final packageInfo = await PackageInfo.fromPlatform();
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 238;
+    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 239;
     await checkRemoteBlocking();
     if (_isLoggedIn && _activationCode.isNotEmpty) await loginWithCode(_activationCode);
     _isLoading = false; notifyListeners();
@@ -281,7 +281,14 @@ class IPTVProvider with ChangeNotifier {
   Future<void> setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_logo', logo); }
   Future<void> setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_image_path', path); }
   Future<void> changeSubscription() async { notifyListeners(); }
-  void zapChannel(PlaylistItem next) { selectStream(next); }
+  
+  void zapChannel(bool next) {
+    if (_filteredStreams.isEmpty || _currentStream == null) return;
+    int index = _filteredStreams.indexWhere((s) => s.streamId == _currentStream!.streamId);
+    if (index == -1) return;
+    if (next) { index = (index + 1) % _filteredStreams.length; } else { index = (index - 1 + _filteredStreams.length) % _filteredStreams.length; }
+    selectStream(_filteredStreams[index]);
+  }
 
   Future<void> logout() async { final prefs = await SharedPreferences.getInstance(); await prefs.clear(); _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; notifyListeners(); }
 }

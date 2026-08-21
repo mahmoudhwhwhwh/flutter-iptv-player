@@ -32,65 +32,62 @@ class UserPlaylist {
 }
 
 class IPTVProvider with ChangeNotifier {
+  // Theme & Language
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
   void toggleTheme() async { _isDarkMode = !_isDarkMode; notifyListeners(); (await SharedPreferences.getInstance()).setBool('isDarkMode', _isDarkMode); }
-
   String _appLanguage = 'العربية';
   String get appLanguage => _appLanguage;
-  
   Color get accentColor => const Color(0xFFA855F7);
   Color get themeBackground => const Color(0xFF09091A);
   Color get themeSurface => const Color(0xFF14112B);
 
+  // Security & State
   bool _isSecured = true;
   bool get isSecured => _isSecured;
-  
   String? lastError;
-  List<PlaylistItem> _allStreams = [];
-  List<PlaylistItem> _filteredStreams = [];
-  List<PlaylistItem> get streams => _filteredStreams;
-
-  List<UserPlaylist> _savedPlaylists = [];
-  List<UserPlaylist> get savedPlaylists => _savedPlaylists;
-  
-  String? _activePlaylistId;
-  List<String> _favorites = [];
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   bool _isFetchingData = false;
   bool get isFetchingData => _isFetchingData;
-  
-  String _activeTab = "live"; 
-  String get activeTab => _activeTab;
-  
-  String _selectedCategory = "all";
-  String get selectedCategory => _selectedCategory;
-  
-  String _searchQuery = "";
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
-
-  List<Map<String, String>> _liveCategories = [];
-  List<Map<String, String>> get liveCategories => _liveCategories;
-  
-  List<Map<String, String>> _movieCategories = [];
-  List<Map<String, String>> _seriesCategories = [];
-
   String _activationCode = "";
   String get activationCode => _activationCode;
   
+  // Data
+  List<PlaylistItem> _allStreams = [];
+  List<PlaylistItem> get allStreams => _allStreams;
+  List<PlaylistItem> _filteredStreams = [];
+  List<PlaylistItem> get streams => _filteredStreams;
+  
+  List<UserPlaylist> _savedPlaylists = [];
+  List<UserPlaylist> get savedPlaylists => _savedPlaylists;
+  String? _activePlaylistId;
+  
+  List<Map<String, String>> _liveCategories = [];
+  List<Map<String, String>> get liveCategories => _liveCategories;
+  List<Map<String, String>> _movieCategories = [];
+  List<Map<String, String>> get movieCategories => _movieCategories;
+  List<Map<String, String>> _seriesCategories = [];
+  List<Map<String, String>> get seriesCategories => _seriesCategories;
+
+  // Filters
+  String _activeTab = "live"; 
+  String get activeTab => _activeTab;
+  String _selectedCategory = "all";
+  String get selectedCategory => _selectedCategory;
+  String _searchQuery = "";
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
   
+  // Versioning
   int _currentVersionCode = 235;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
   String get remoteBlockMessage => "🚨 تحديث إجباري مطلوب فوراً 🚨";
 
-  List<PlaylistItem> _recentlyPlayed = [];
-  List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
-
+  // Profile & UI
   String _profileName = 'Premium User';
   String get profileName => _profileName;
   String _profileLogo = 'play';
@@ -98,21 +95,21 @@ class IPTVProvider with ChangeNotifier {
   String _profileImagePath = '';
   String get profileImagePath => _profileImagePath;
   String get subscriptionType => "Premium";
+  List<PlaylistItem> _recentlyPlayed = [];
+  List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
+  List<String> _favorites = [];
+
+  // Parental Control
+  String _parentalPin = "";
+  String get parentalPin => _parentalPin;
+  List<String> _lockedCategories = [];
+  List<String> get lockedCategories => _lockedCategories;
 
   List<String> get categories {
     if (_activeTab == "live") return _liveCategories.map((e) => e['category_name']!).toList();
     if (_activeTab == "movie") return _movieCategories.map((e) => e['category_name']!).toList();
     if (_activeTab == "series") return _seriesCategories.map((e) => e['category_name']!).toList();
     return [];
-  }
-
-  void addToRecentlyPlayed(PlaylistItem stream) async {
-    _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
-    _recentlyPlayed.insert(0, stream);
-    if (_recentlyPlayed.length > 10) _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('recently_played_streams', jsonEncode(_recentlyPlayed.map((e) => e.toJson()).toList()));
   }
 
   void init() async {
@@ -123,6 +120,8 @@ class IPTVProvider with ChangeNotifier {
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     _activationCode = prefs.getString('active_code') ?? "";
     _favorites = prefs.getStringList('favorites') ?? [];
+    _parentalPin = prefs.getString('parental_pin') ?? "";
+    _lockedCategories = prefs.getStringList('locked_categories') ?? [];
     
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) {
@@ -161,7 +160,7 @@ class IPTVProvider with ChangeNotifier {
     if (cleanCode.isEmpty) { lastError = "رمز الدخول فارغ"; return false; }
     _isLoading = true; notifyListeners();
     
-    // 1. GitHub Primary (Bypass expired Cloudflare)
+    // 1. GitHub Primary (Bypass Cloudflare issues)
     try {
       final res = await http.get(Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
@@ -317,7 +316,26 @@ class IPTVProvider with ChangeNotifier {
     (await SharedPreferences.getInstance()).setStringList('favorites', _favorites);
   }
   bool isFavorite(String streamId) => _favorites.contains(streamId);
-  bool isCategoryLocked(String category) => false;
+  void addToRecentlyPlayed(PlaylistItem stream) async {
+    _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
+    _recentlyPlayed.insert(0, stream);
+    if (_recentlyPlayed.length > 10) _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('recently_played_streams', jsonEncode(_recentlyPlayed.map((e) => e.toJson()).toList()));
+  }
+  
+  bool isCategoryLocked(String category) => _lockedCategories.contains(category);
   void unlockCategorySession(String category) {}
+  void toggleCategoryLock(String category) async {
+    if (_lockedCategories.contains(category)) _lockedCategories.remove(category); else _lockedCategories.add(category);
+    notifyListeners();
+    (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories);
+  }
+  void setParentalPin(String pin) async {
+    _parentalPin = pin; notifyListeners();
+    (await SharedPreferences.getInstance()).setString('parental_pin', pin);
+  }
+
   Future<void> logout() async { (await SharedPreferences.getInstance()).clear(); _isLoggedIn = false; _savedPlaylists = []; _allStreams = []; notifyListeners(); }
 }

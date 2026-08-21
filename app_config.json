@@ -9,6 +9,7 @@
       "username": "20299538378191",
       "password": "36172842922822",
       "users": {
+        "s1_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "mahmoud2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
@@ -27,7 +28,7 @@
       "username": "251878975765",
       "password": "924893245689",
       "users": {
-        "s3_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "s3_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -36,7 +37,7 @@
       "username": "01112727740kh",
       "password": "khiary7740",
       "users": {
-        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" }
+        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -61,7 +62,7 @@
       "host": "http://4kpro2.com/c/",
       "type": "stalker",
       "users": {
-        "s6_code1": { "username": "00:1A:79:EC:D7:C4", "expiry_date": "2027-09-08", "devices": ["UKQ1.240624.001"] }
+        "s6_code1": { "username": "00:1A:79:EC:D7:C4", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -69,7 +70,7 @@
       "host": "http://line.tvdsz.cc/c/",
       "type": "stalker",
       "users": {
-        "mahmoud20": { "username": "00:1A:79:5F:42:F5", "expiry_date": "2027-08-09" }
+        "mahmoud20": { "username": "00:1A:79:5F:42:F5", "expiry_date": "بلا حدود " }
       }
     },
     {
@@ -91,13 +92,17 @@
       }
     },
     {
-      "name": "mahmoud",
+      "name": "JOKER 3",
       "host": "http://185.191.126.127:8080",
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "joker3": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "joker03": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "mahmoud209": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "Abu Ali 58": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "mahmoud53": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "ALi51": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {

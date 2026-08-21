@@ -2,43 +2,45 @@
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
   "min_version_code": 200,
-  "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
+  "api_endpoint": "https://iptv-subscription-api.tvkora56.workers.dev/",
   "blocking": {
     "min_version_code": 200,
-    "block_message": "Required Update"
+    "block_message": "🚨 يرجى التحديث للاستمرار."
   },
   "users": {
-    "2027": { "server_index": 0, "mode": "github" },
-    "96827": { "server_index": 0, "mode": "github" },
-    "mahmoud209": { "server_index": 1, "mode": "iptv" },
-    "joker03": { "server_index": 2, "mode": "iptv" },
-    "Abu Ali 58": { "server_index": 1, "mode": "iptv" },
-    "mahmoud53": { "server_index": 1, "mode": "iptv" },
-    "ALi51": { "server_index": 1, "mode": "iptv" }
+    "mahmoud209": { "expiry_date": "بلا حدود", "server_index": 0 },
+    "joker03": { "expiry_date": "بلا حدود", "server_index": 1 },
+    "joker1": { "expiry_date": "بلا حدود", "server_index": 2 },
+    "joker2": { "expiry_date": "بلا حدود", "server_index": 3 },
+    "joker4": { "expiry_date": "بلا حدود", "server_index": 4 },
+    "joker5": { "expiry_date": "بلا حدود", "server_index": 5 },
+    "joker6": { "expiry_date": "بلا حدود", "server_index": 6 },
+    "joker7": { "expiry_date": "بلا حدود", "server_index": 7 },
+    "joker8": { "expiry_date": "بلا حدود", "server_index": 8 },
+    "joker9": { "expiry_date": "بلا حدود", "server_index": 9 },
+    "joker10": { "expiry_date": "بلا حدود", "server_index": 10 },
+    "joker11": { "expiry_date": "بلا حدود", "server_index": 11 },
+    "joker12": { "expiry_date": "بلا حدود", "server_index": 12 },
+    "2027": { "expiry_date": "بلا حدود", "server_index": 0, "mode": "github" },
+    "96827": { "expiry_date": "بلا حدود", "server_index": 0, "mode": "github" },
+    "Abu Ali 58": { "expiry_date": "بلا حدود", "server_index": 0, "mode": "iptv" },
+    "mahmoud53": { "expiry_date": "بلا حدود", "server_index": 0, "mode": "iptv" },
+    "ALi51": { "expiry_date": "بلا حدود", "server_index": 0, "mode": "iptv" }
   },
   "servers": [
-    {
-      "name": "S1",
-      "type": "xtream",
-      "host": "https://iptv-subscription-api.tvkora56.workers.dev",
-      "username": "96827",
-      "password": "pr"
-    },
-    {
-      "name": "S2",
-      "type": "xtream",
-      "host": "http://185.191.126.127:8080",
-      "username": "b0:99:d7:15:88:50",
-      "password": "3090914536649669"
-    },
-    {
-      "name": "S3",
-      "type": "xtream",
-      "host": "http://joker-ps.link:8080",
-      "username": "joker3",
-      "password": "joker123"
-    }
+    { "name": "Server Mahmoud", "type": "xtream", "host": "http://185.191.126.127:8080", "username": "b0:99:d7:15:88:50", "password": "3090914536649669" },
+    { "name": "Server Joker 3", "type": "xtream", "host": "http://line.tvdsz.cc", "username": "00:1A:79:B6:28:FE", "password": "" },
+    { "name": "JOKER 1", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker1", "password": "joker123" },
+    { "name": "JOKER 2", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker2", "password": "joker123" },
+    { "name": "JOKER 4", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker4", "password": "joker123" },
+    { "name": "JOKER 5", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker5", "password": "joker123" },
+    { "name": "JOKER 6", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker6", "password": "joker123" },
+    { "name": "JOKER 7", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker7", "password": "joker123" },
+    { "name": "JOKER 8", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker8", "password": "joker123" },
+    { "name": "JOKER 9", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker9", "password": "joker123" },
+    { "name": "JOKER 10", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker10", "password": "joker123" },
+    { "name": "JOKER 11", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker11", "password": "joker123" },
+    { "name": "JOKER 12", "type": "xtream", "host": "http://joker-ps.link:8080", "username": "joker12", "password": "joker123" }
   ],
-  "disable_vpn_check": true,
-  "disable_sniffer_check": true
+  "note": "Full legacy support with all Joker servers."
 }

@@ -175,8 +175,8 @@ class IPTVProvider with ChangeNotifier {
                     name: server['name'] ?? "Premium", 
                     type: server['type'] ?? 'xtream', 
                     host: server['host'], 
-                    username: server['username'] ?? userData['username'], 
-                    password: server['password'] ?? userData['password']
+                    username: userData['username'] ?? server['username'], 
+                    password: userData['password'] ?? server['password']
                   );
                   _savedPlaylists = [list]; _activePlaylistId = list.id;
                   await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
@@ -242,74 +242,120 @@ class IPTVProvider with ChangeNotifier {
     if (host.isEmpty || user.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
 
     try {
-      await _loadCategories(host, user, pass);
-      await _loadStreams(host, user, pass);
+      if (playlist.type == 'stalker') {
+        await _loadStalkerData(host, user);
+      } else {
+        await _loadCategories(host, user, pass);
+        await _loadStreams(host, user, pass);
+      }
     } catch (e) {}
     
     _applyFilters(); _isFetchingData = false; notifyListeners();
   }
 
+  Future<void> _loadStalkerData(String host, String mac) async {
+    final baseUrl = host.endsWith('/') ? host : '$host/';
+    final headers = {'User-Agent': 'Mozilla/5.0', 'Cookie': 'mac=$mac'};
+    
+    try {
+      final res = await http.get(Uri.parse("${baseUrl}portal.php?type=itv&action=get_categories"), headers: headers);
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        final List cats = data['js'] ?? [];
+        _liveCategories = cats.map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
+      }
+      
+      final resStreams = await http.get(Uri.parse("${baseUrl}portal.php?type=itv&action=get_all_channels"), headers: headers);
+      if (resStreams.statusCode == 200) {
+        final data = json.decode(resStreams.body);
+        final List channels = data['js']['data'] ?? [];
+        for (var item in channels) {
+          final catId = item['category_id']?.toString() ?? '';
+          final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+          _allStreams.add(PlaylistItem(
+            num: int.tryParse(item['number']?.toString() ?? ''),
+            streamId: item['id']?.toString() ?? '',
+            name: item['name']?.toString() ?? 'Unknown',
+            streamIcon: item['logo']?.toString() ?? '',
+            categoryId: catId,
+            categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر',
+            url: "${baseUrl}portal.php?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd'] ?? '')}",
+            type: "live"
+          ));
+        }
+      }
+    } catch (e) {}
+  }
+
   Future<void> _loadCategories(String host, String user, String pass) async {
+    final headers = {'User-Agent': 'IPTVSmarters'};
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories")).timeout(const Duration(seconds: 10));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories"), headers: headers).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        _liveCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'بث مباشر'}).toList();
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          _liveCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'بث مباشر'}).toList();
+        }
       }
     } catch (e) {}
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).timeout(const Duration(seconds: 10));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories"), headers: headers).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        _movieCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'أفلام'}).toList();
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          _movieCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'أفلام'}).toList();
+        }
       }
     } catch (e) {}
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).timeout(const Duration(seconds: 10));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories"), headers: headers).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        _seriesCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'مسلسلات'}).toList();
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          _seriesCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'مسلسلات'}).toList();
+        }
       }
     } catch (e) {}
   }
 
   Future<void> _loadStreams(String host, String user, String pass) async {
+    final headers = {'User-Agent': 'IPTVSmarters'};
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_streams")).timeout(const Duration(seconds: 20));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_streams"), headers: headers).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        for (var item in decoded) {
-            try {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: item['url']?.toString() ?? "$host/live/$user/$pass/${item['stream_id']}.ts", type: "live"));
-            } catch(e) {}
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          for (var item in decoded) {
+            final catId = item['category_id']?.toString() ?? '';
+            final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+            _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: item['url']?.toString() ?? "$host/live/$user/$pass/${item['stream_id']}.ts", type: "live"));
+          }
         }
       }
     } catch (e) {}
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).timeout(const Duration(seconds: 20));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams"), headers: headers).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        for (var item in decoded) {
-            try {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'أفلام', url: item['url']?.toString() ?? "$host/movie/$user/$pass/${item['stream_id']}.mp4", type: "movie"));
-            } catch(e) {}
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          for (var item in decoded) {
+            final catId = item['category_id']?.toString() ?? '';
+            final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+            _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'أفلام', url: item['url']?.toString() ?? "$host/movie/$user/$pass/${item['stream_id']}.mp4", type: "movie"));
+          }
         }
       }
     } catch (e) {}
     try {
-      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).timeout(const Duration(seconds: 20));
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series"), headers: headers).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        for (var item in decoded) {
-            try {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _seriesCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['series_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['cover']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'مسلسلات', url: "", type: "series"));
-            } catch(e) {}
+        final decoded = json.decode(res.body);
+        if (decoded is List) {
+          for (var item in decoded) {
+            final catId = item['category_id']?.toString() ?? '';
+            final cat = _seriesCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+            _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['series_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['cover']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'مسلسلات', url: "", type: "series"));
+          }
         }
       }
     } catch (e) {}

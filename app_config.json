@@ -9,7 +9,8 @@
       "username": "20299538378191",
       "password": "36172842922822",
       "users": {
-        "mahmoud2027": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "mahmoud2027": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "s1_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -18,7 +19,8 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "02389": { "expiry_date": "بلا بلا حدود", "devices": ["UKQ1.240624.001"] }
+        "02389": { "expiry_date": "بلا بلا حدود", "devices": ["UKQ1.240624.001"] },
+        "s2_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -38,6 +40,7 @@
       "users": {
         "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
         "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
+        "s4_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
@@ -46,7 +49,8 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-        "999499": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001"], "blocked": true }
+        "999499": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001"], "blocked": true },
+        "s5_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -62,7 +66,8 @@
       "host": "http://line.tvdsz.cc",
       "type": "stalker",
       "users": {
-        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "2027-01-01T00:00:00Z" }
+        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "2027-01-01T00:00:00Z" },
+        "s7_code1": { "username": "00:1A:79:B6:28:FE", "expiry_date": "2027-01-01T00:00:00Z" }
       }
     },
     {

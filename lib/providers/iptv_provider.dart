@@ -158,37 +158,55 @@ class IPTVProvider with ChangeNotifier {
       if (res.statusCode == 200) {
           final config = json.decode(res.body);
           final List servers = config['servers'] ?? [];
+          final Map rootUsers = config['users'] ?? {};
           
-          for (var server in servers) {
-              final users = server['users'] ?? {};
-              if (users[cleanCode] != null) {
-                  final userData = users[cleanCode];
-                  final mode = userData['mode'] ?? 'iptv';
-                  
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('active_code', cleanCode);
-                  await prefs.setBool('is_logged_in', true);
-                  _isLoggedIn = true; _activationCode = cleanCode;
-                  
-                  final list = UserPlaylist(
-                    id: "gh_$cleanCode", 
-                    name: server['name'] ?? "Premium", 
-                    type: server['type'] ?? 'xtream', 
-                    host: server['host'], 
-                    username: userData['username'] ?? server['username'], 
-                    password: userData['password'] ?? server['password']
-                  );
-                  _savedPlaylists = [list]; _activePlaylistId = list.id;
-                  await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-                  
-                  if (mode == 'github') {
-                      await _loadCuratedGitHubContent();
-                  } else {
-                      await loadPlaylistStreams(list.id);
+          dynamic userData;
+          dynamic targetServer;
+          
+          // 1. Check root users map
+          if (rootUsers[cleanCode] != null) {
+              userData = rootUsers[cleanCode];
+              final sIndex = userData['server_index'] ?? 0;
+              if (sIndex < servers.length) targetServer = servers[sIndex];
+          }
+          
+          // 2. If not found, check per-server users map
+          if (targetServer == null) {
+              for (var server in servers) {
+                  final serverUsers = server['users'] ?? {};
+                  if (serverUsers[cleanCode] != null) {
+                      userData = serverUsers[cleanCode];
+                      targetServer = server;
+                      break;
                   }
-                  
-                  _isLoading = false; notifyListeners(); return true;
               }
+          }
+          
+          if (targetServer != null) {
+              final mode = userData['mode'] ?? 'iptv';
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('active_code', cleanCode);
+              await prefs.setBool('is_logged_in', true);
+              _isLoggedIn = true; _activationCode = cleanCode;
+              
+              final list = UserPlaylist(
+                id: "gh_$cleanCode", 
+                name: targetServer['name'] ?? "Premium", 
+                type: targetServer['type'] ?? 'xtream', 
+                host: targetServer['host'], 
+                username: userData['username'] ?? targetServer['username'], 
+                password: userData['password'] ?? targetServer['password']
+              );
+              _savedPlaylists = [list]; _activePlaylistId = list.id;
+              await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+              
+              if (mode == 'github') {
+                  await _loadCuratedGitHubContent();
+              } else {
+                  await loadPlaylistStreams(list.id);
+              }
+              
+              _isLoading = false; notifyListeners(); return true;
           }
       }
     } catch(e) {}

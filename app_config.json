@@ -2,6 +2,36 @@
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
   "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
+  "users": {
+    "mahmoud2027": { "server_index": 0, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s1_code1": { "server_index": 0, "expiry_date": "2027-01-01T00:00:00Z" },
+    "02389": { "server_index": 1, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s2_code1": { "server_index": 1, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s3_code1": { "server_index": 2, "expiry_date": "2027-01-01T00:00:00Z" },
+    "96827": { "server_index": 3, "mode": "github", "expiry_date": "2027-01-01T00:00:00Z" },
+    "2027": { "server_index": 3, "mode": "github", "expiry_date": "2027-01-01T00:00:00Z" },
+    "s4_code1": { "server_index": 3, "expiry_date": "2027-01-01T00:00:00Z" },
+    "1111": { "server_index": 3, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s5_code1": { "server_index": 4, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s6_code1": { "server_index": 5, "expiry_date": "2027-01-01T00:00:00Z" },
+    "mahmoud20": { "server_index": 6, "expiry_date": "2027-01-01T00:00:00Z" },
+    "s7_code1": { "server_index": 6, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker1": { "server_index": 7, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker2": { "server_index": 8, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker3": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker03": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
+    "mahmoud209": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
+    "609155765757": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker4": { "server_index": 10, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker5": { "server_index": 11, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker6": { "server_index": 12, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker7": { "server_index": 13, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker8": { "server_index": 14, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker9": { "server_index": 15, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker10": { "server_index": 16, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker11": { "server_index": 17, "expiry_date": "2027-01-01T00:00:00Z" },
+    "joker12": { "server_index": 18, "expiry_date": "2027-01-01T00:00:00Z" }
+  },
   "servers": [
     {
       "name": "Server 1",
@@ -19,7 +49,7 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "02389": { "expiry_date": "بلا بلا حدود", "devices": ["UKQ1.240624.001"] },
+        "02389": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "s2_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
@@ -38,10 +68,10 @@
       "username": "01112727740kh",
       "password": "khiary7740",
       "users": {
-        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
-        "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
+        "96827": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"], "mode": "github" },
+        "2027": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"], "mode": "github" },
         "s4_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "1111": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -49,7 +79,6 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-        "999499": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001"], "blocked": true },
         "s5_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
       }
     },
@@ -97,6 +126,7 @@
         "joker3": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "joker03": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "mahmoud209": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
+        "609155765757": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "Abu Ali 58": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "mahmoud53": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
         "ALi51": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }

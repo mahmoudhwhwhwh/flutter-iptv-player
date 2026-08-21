@@ -2,36 +2,6 @@
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
   "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
-  "users": {
-    "mahmoud2027": { "server_index": 0, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s1_code1": { "server_index": 0, "expiry_date": "2027-01-01T00:00:00Z" },
-    "02389": { "server_index": 1, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s2_code1": { "server_index": 1, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s3_code1": { "server_index": 2, "expiry_date": "2027-01-01T00:00:00Z" },
-    "96827": { "server_index": 3, "mode": "github", "expiry_date": "2027-01-01T00:00:00Z" },
-    "2027": { "server_index": 3, "mode": "github", "expiry_date": "2027-01-01T00:00:00Z" },
-    "s4_code1": { "server_index": 3, "expiry_date": "2027-01-01T00:00:00Z" },
-    "1111": { "server_index": 3, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s5_code1": { "server_index": 4, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s6_code1": { "server_index": 5, "expiry_date": "2027-01-01T00:00:00Z" },
-    "mahmoud20": { "server_index": 6, "expiry_date": "2027-01-01T00:00:00Z" },
-    "s7_code1": { "server_index": 6, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker1": { "server_index": 7, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker2": { "server_index": 8, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker3": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker03": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
-    "mahmoud209": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
-    "609155765757": { "server_index": 9, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker4": { "server_index": 10, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker5": { "server_index": 11, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker6": { "server_index": 12, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker7": { "server_index": 13, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker8": { "server_index": 14, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker9": { "server_index": 15, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker10": { "server_index": 16, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker11": { "server_index": 17, "expiry_date": "2027-01-01T00:00:00Z" },
-    "joker12": { "server_index": 18, "expiry_date": "2027-01-01T00:00:00Z" }
-  },
   "servers": [
     {
       "name": "Server 1",
@@ -215,7 +185,7 @@
     }
   ],
   "blocking": {
-    "min_version_code": 200,
+    "min_version_code": 20,
     "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
   },
   "update": {

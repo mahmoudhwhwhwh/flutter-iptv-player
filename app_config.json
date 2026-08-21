@@ -2,6 +2,36 @@
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
   "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
+  "users": {
+    "mahmoud2027": { "server_index": 0, "expiry_date": "بلا حدود " },
+    "s1_code1": { "server_index": 0, "expiry_date": "بلا حدود " },
+    "02389": { "server_index": 1, "expiry_date": "بلا حدود " },
+    "s2_code1": { "server_index": 1, "expiry_date": "بلا حدود " },
+    "s3_code1": { "server_index": 2, "expiry_date": "بلا حدود " },
+    "96827": { "server_index": 3, "mode": "github", "expiry_date": "بلا حدود " },
+    "2027": { "server_index": 3, "mode": "github", "expiry_date": "بلا حدود " },
+    "s4_code1": { "server_index": 3, "expiry_date": "بلا حدود " },
+    "1111": { "server_index": 3, "expiry_date": "بلا حدود " },
+    "s5_code1": { "server_index": 4, "expiry_date": "بلا حدود " },
+    "s6_code1": { "server_index": 5, "expiry_date": "بلا حدود " },
+    "mahmoud20": { "server_index": 6, "expiry_date": "بلا حدود " },
+    "s7_code1": { "server_index": 6, "expiry_date": "بلا حدود " },
+    "joker1": { "server_index": 7, "expiry_date": "بلا حدود " },
+    "joker2": { "server_index": 8, "expiry_date": "بلا حدود " },
+    "joker3": { "server_index": 9, "expiry_date": "بلا حدود " },
+    "joker03": { "server_index": 9, "expiry_date": "بلا حدود " },
+    "mahmoud209": { "server_index": 9, "expiry_date": "بلا حدود " },
+    "609155765757": { "server_index": 9, "expiry_date": "بلا حدود " },
+    "joker4": { "server_index": 10, "expiry_date": "بلا حدود " },
+    "joker5": { "server_index": 11, "expiry_date": "بلا حدود " },
+    "joker6": { "server_index": 12, "expiry_date": "بلا حدود " },
+    "joker7": { "server_index": 13, "expiry_date": "بلا حدود " },
+    "joker8": { "server_index": 14, "expiry_date": "بلا حدود " },
+    "joker9": { "server_index": 15, "expiry_date": "بلا حدود " },
+    "joker10": { "server_index": 16, "expiry_date": "بلا حدود " },
+    "joker11": { "server_index": 17, "expiry_date": "بلا حدود " },
+    "joker12": { "server_index": 18, "expiry_date": "بلا حدود " }
+  },
   "servers": [
     {
       "name": "Server 1",
@@ -9,8 +39,8 @@
       "username": "20299538378191",
       "password": "36172842922822",
       "users": {
-        "mahmoud2027": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "s1_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "mahmoud2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "s1_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -19,8 +49,8 @@
       "username": "khaledsliman",
       "password": "755246419856",
       "users": {
-        "02389": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "s2_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "02389": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "s2_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -29,7 +59,7 @@
       "username": "251878975765",
       "password": "924893245689",
       "users": {
-        "s3_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "s3_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -38,10 +68,10 @@
       "username": "01112727740kh",
       "password": "khiary7740",
       "users": {
-        "96827": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"], "mode": "github" },
-        "2027": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"], "mode": "github" },
-        "s4_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "1111": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
+        "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
+        "s4_code1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -49,7 +79,7 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-        "s5_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "s5_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -57,7 +87,7 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-        "s6_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "s6_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -65,8 +95,8 @@
       "host": "http://line.tvdsz.cc",
       "type": "stalker",
       "users": {
-        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "2027-01-01T00:00:00Z" },
-        "s7_code1": { "username": "00:1A:79:B6:28:FE", "expiry_date": "2027-01-01T00:00:00Z" }
+        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " },
+        "s7_code1": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " }
       }
     },
     {
@@ -75,7 +105,7 @@
       "username": "marv90746918",
       "password": "khaled974635",
       "users": {
-        "joker1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker1": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -84,7 +114,7 @@
       "username": "PCJ7KCNU0AX6",
       "password": "36508313",
       "users": {
-        "joker2": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker2": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -93,13 +123,10 @@
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
       "users": {
-        "joker3": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "joker03": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "mahmoud209": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "609155765757": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "Abu Ali 58": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "mahmoud53": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] },
-        "ALi51": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker3": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "joker03": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -108,7 +135,7 @@
       "username": "8zpo3GsVY7",
       "password": "beneficial2concern",
       "users": {
-        "joker4": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker4": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -117,7 +144,7 @@
       "username": "@boss1751",
       "password": "rS27a9QKeT",
       "users": {
-        "joker5": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker5": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -126,7 +153,7 @@
       "username": "162228198272",
       "password": "847259919147",
       "users": {
-        "joker6": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker6": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -135,7 +162,7 @@
       "username": "575612159628",
       "password": "210763093616",
       "users": {
-        "joker7": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker7": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -144,7 +171,7 @@
       "username": "3525480303377768",
       "password": "3525480303377768",
       "users": {
-        "joker8": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker8": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -153,7 +180,7 @@
       "username": "52705199363828",
       "password": "24129350577560",
       "users": {
-        "joker9": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker9": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -162,7 +189,7 @@
       "username": "15034094901029",
       "password": "18800196589372",
       "users": {
-        "joker10": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker10": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -171,7 +198,7 @@
       "username": "wilderd",
       "password": "tFeWsYW",
       "users": {
-        "joker11": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker11": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -180,7 +207,7 @@
       "username": "wSGGTNJH",
       "password": "32CC849A",
       "users": {
-        "joker12": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+        "joker12": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     }
   ],

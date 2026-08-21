@@ -1,19 +1,14 @@
 {
-  "app_name": "LIVE STREAM PREMIUM",
+  "app_name": "تطبيق البث المميز",
   "app_version": "v2.2.35",
-  "min_version_code": 200,
-  "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
-  "blocking": {
-    "min_version_code": 200,
-    "block_message": "Required Update"
-  },
   "users": {
     "mahmoud2027": { "server_index": 0, "mode": "iptv" },
     "02389": { "server_index": 1, "mode": "iptv" },
     "s3_code1": { "server_index": 2, "mode": "iptv" },
+    "1111": { "server_index": 3, "mode": "iptv" },
     "96827": { "server_index": 3, "mode": "github" },
     "2027": { "server_index": 3, "mode": "github" },
-    "999499": { "server_index": 4, "mode": "iptv" },
+    "123": { "server_index": 4, "mode": "iptv" },
     "s6_code1": { "server_index": 5, "mode": "iptv" },
     "mahmoud20": { "server_index": 6, "mode": "iptv" },
     "joker1": { "server_index": 7, "mode": "iptv" },
@@ -35,13 +30,66 @@
     "joker12": { "server_index": 18, "mode": "iptv" }
   },
   "servers": [
-    { "name": "Server 1", "type": "xtream", "host": "http://megatv.shop:2052", "username": "20299538378191", "password": "36172842922822" },
-    { "name": "Server 2", "type": "xtream", "host": "http://2@cliccck52258.club:2082", "username": "khaledsliman", "password": "755246419856" },
-    { "name": "Server 3", "type": "xtream", "host": "http://1@cliccck52258.club:2082", "username": "251878975765", "password": "924893245689" },
-    { "name": "Server 4", "type": "xtream", "host": "http://marveliptv.life", "username": "01112727740kh", "password": "khiary7740" },
-    { "name": "Server 5", "type": "stalker", "host": "http://4kpro2.com", "username": "00:1A:79:70:9D:14", "password": "" },
-    { "name": "Server 6", "type": "stalker", "host": "http://4kpro2.com", "username": "00:1A:79:70:9D:14", "password": "" },
-    { "name": "Server 7", "type": "stalker", "host": "http://line.tvdsz.cc", "username": "00:1A:79:B6:28:FE", "password": "" },
+    {
+      "name": "Server 1",
+      "host": "http://megatv.shop:2052",
+      "username": "20299538378191",
+      "password": "36172842922822",
+      "users": {
+        "mahmoud2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
+      "name": "Server 2",
+      "host": "http://2@cliccck52258.club:2082",
+      "username": "khaledsliman",
+      "password": "755246419856",
+      "users": {
+        "202623": { "expiry_date": "بلا بلا حدود", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
+      "name": "Server 3",
+      "host": "http://1@cliccck52258.club:2082",
+      "username": "251878975765",
+      "password": "924893245689",
+      "users": {
+        "s3_code1": { "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
+      "name": "Server 4",
+      "host": "http://marveliptv.life",
+      "username": "01112727740kh",
+      "password": "khiary7740",
+      "users": {
+        "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
+      "name": "Server 5",
+      "host": "http://4kpro2.com",
+      "type": "stalker",
+      "users": {
+        "123": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001", "RKQ1.211119.001"], "blocked": true }
+      }
+    },
+    {
+      "name": "Server 6",
+      "host": "http://4kpro2.com",
+      "type": "stalker",
+      "users": {
+        "s6_code1": { "username": "00:1A:79:70:9D:14", "expiry_date": "2027-01-01T00:00:00Z", "devices": ["UKQ1.240624.001"] }
+      }
+    },
+    {
+      "name": "Server 7",
+      "host": "http://line.tvdsz.cc",
+      "type": "stalker",
+      "users": {
+        "mahmoud20": { "username": "00:1A:79:B6:28:FE", "expiry_date": "بلا حدود " }
+      }
+    },
     { "name": "JOKER 1", "type": "xtream", "host": "http://31.220.41.178", "username": "marv90746918", "password": "khaled974635" },
     { "name": "JOKER 2", "type": "xtream", "host": "http://app.upsdo.me:8080", "username": "PCJ7KCNU0AX6", "password": "36508313" },
     { "name": "JOKER 3", "type": "xtream", "host": "http://185.191.126.127:8080", "username": "b0:99:d7:15:88:50", "password": "3090914536649669" },
@@ -55,6 +103,16 @@
     { "name": "JOKER 11", "type": "xtream", "host": "http://mypythonpremium.com:8789", "username": "wilderd", "password": "tFeWsYW" },
     { "name": "JOKER 12", "type": "xtream", "host": "http://falcon-sa.xyz", "username": "wSGGTNJH", "password": "32CC849A" }
   ],
-  "disable_vpn_check": true,
-  "disable_sniffer_check": true
+  "xtream_host": "http://digi.dtv3.lol:2082",
+  "default_xtream_user": "mejdoubnew_958581",
+  "default_xtream_pass": "CHmNLjSr",
+  "blocking": {
+    "min_version_code": 200,
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث للاستمرار."
+  },
+  "update": {
+    "latest_version": "v2.2.35",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/latest/download/app-release.apk",
+    "update_message": "نسخة جديدة متاحة. يرجى التحديث الآن للحصول على أفضل تجربة."
+  }
 }

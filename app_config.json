@@ -1,11 +1,7 @@
 {
   "app_name": "LIVE STREAM PREMIUM",
   "app_version": "v2.2.35",
-<<<<<<< HEAD
-  "users": {},
-=======
   "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
   "servers": [
     {
       "name": "Server 1",
@@ -40,14 +36,9 @@
       "username": "01112727740kh",
       "password": "khiary7740",
       "users": {
-<<<<<<< HEAD
-        "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
-=======
         "96827": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
         "2027": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"], "mode": "github" },
         "1111": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
       }
     },
     {
@@ -55,11 +46,7 @@
       "host": "http://4kpro2.com",
       "type": "stalker",
       "users": {
-<<<<<<< HEAD
-        "999499": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001", "RKQ1.211119.001"], "blocked": true }
-=======
         "999499": { "username": "00:1A:79:70:9D:14", "expiry_date": "2026-08-03T00:00:00Z", "devices": ["UKQ1.240624.001"], "blocked": true }
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
       }
     },
     {
@@ -194,12 +181,7 @@
   ],
   "blocking": {
     "min_version_code": 200,
-<<<<<<< HEAD
-    "blocked_version_codes": [125, 130, 140, 144, 205, 211, 212],
-    "block_message": "🚨 تم إيقاف جميع الإصدارات الأقدم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
-=======
     "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
   },
   "update": {
     "latest_version": "v2.2.35",

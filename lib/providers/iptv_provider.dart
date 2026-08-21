@@ -162,12 +162,9 @@ class IPTVProvider with ChangeNotifier {
           for (var server in servers) {
               final users = server['users'] ?? {};
               if (users[cleanCode] != null) {
-<<<<<<< HEAD
-=======
                   final userData = users[cleanCode];
                   final mode = userData['mode'] ?? 'iptv';
                   
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setString('active_code', cleanCode);
                   await prefs.setBool('is_logged_in', true);
@@ -178,17 +175,13 @@ class IPTVProvider with ChangeNotifier {
                     name: server['name'] ?? "Premium", 
                     type: server['type'] ?? 'xtream', 
                     host: server['host'], 
-                    username: server['username'], 
-                    password: server['password']
+                    username: server['username'] ?? userData['username'], 
+                    password: server['password'] ?? userData['password']
                   );
                   _savedPlaylists = [list]; _activePlaylistId = list.id;
                   await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
                   
-<<<<<<< HEAD
-                  if (cleanCode == "96827" || cleanCode == "2027") {
-=======
                   if (mode == 'github') {
->>>>>>> 582f6a5 (fix: resolve empty app issue by updating provider to handle nested user structure)
                       await _loadCuratedGitHubContent();
                   } else {
                       await loadPlaylistStreams(list.id);

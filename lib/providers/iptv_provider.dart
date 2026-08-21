@@ -90,8 +90,9 @@ class IPTVProvider with ChangeNotifier {
 
   PlaylistItem? _currentStream;
   PlaylistItem? get currentStream => _currentStream;
-  String? get stalkerToken => null;
-  String get globalUserAgent => "Mozilla/5.0";
+  String? _stalkerToken;
+  String? get stalkerToken => _stalkerToken;
+  String get globalUserAgent => "MAG250 stbapp ver: 2 rev: 250";
   String get globalReferer => "";
   bool _tvBoxFocusEnabled = false;
   bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
@@ -193,19 +194,37 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _loadStalkerData(String host, String mac) async {
-    final baseUrl = host.endsWith('/') ? host : '$host/', headers = {'User-Agent': 'Mozilla/5.0', 'Cookie': 'mac=$mac'};
+    String baseUrl = host;
+    if (!baseUrl.contains('/portal.php')) { baseUrl = baseUrl.endsWith('/') ? '${baseUrl}portal.php' : '$baseUrl/portal.php'; }
+    final headers = {'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
     try {
-      final res = await http.get(Uri.parse("${baseUrl}portal.php?type=itv&action=get_categories"), headers: headers);
-      if (res.statusCode == 200) {
-        final List cats = json.decode(res.body)['js'] ?? [];
+      // 1. Handshake
+      final hRes = await http.get(Uri.parse("$baseUrl?type=stb&action=handshake"), headers: headers).timeout(const Duration(seconds: 10));
+      if (hRes.statusCode == 200) {
+        final hData = json.decode(hRes.body);
+        _stalkerToken = hData['js']?['token'];
+        if (_stalkerToken != null) headers['Authorization'] = 'Bearer $_stalkerToken';
+      }
+
+      // 2. Get Profile (to ensure session is active)
+      await http.get(Uri.parse("$baseUrl?type=stb&action=get_profile"), headers: headers).timeout(const Duration(seconds: 10));
+
+      // 3. Get Categories
+      final catRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_categories"), headers: headers).timeout(const Duration(seconds: 10));
+      if (catRes.statusCode == 200) {
+        final dynamic decoded = json.decode(catRes.body);
+        final List cats = (decoded is Map) ? (decoded['js'] ?? []) : (decoded is List ? decoded : []);
         _liveCategories = cats.map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
       }
-      final resStreams = await http.get(Uri.parse("${baseUrl}portal.php?type=itv&action=get_all_channels"), headers: headers);
-      if (resStreams.statusCode == 200) {
-        final List channels = json.decode(resStreams.body)['js']['data'] ?? [];
+
+      // 4. Get Channels
+      final chanRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_all_channels"), headers: headers).timeout(const Duration(seconds: 15));
+      if (chanRes.statusCode == 200) {
+        final dynamic decoded = json.decode(chanRes.body);
+        final List channels = (decoded is Map) ? (decoded['js']?['data'] ?? []) : (decoded is List ? decoded : []);
         for (var item in channels) {
           final catId = item['category_id']?.toString() ?? '', cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: "${baseUrl}portal.php?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd'] ?? '')}", type: "live"));
+          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'بث مباشر', url: "$baseUrl?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd'] ?? '')}", type: "live"));
         }
       }
     } catch (e) {}
@@ -248,28 +267,11 @@ class IPTVProvider with ChangeNotifier {
 
   void setCategory(String cat) { _selectedCategory = cat; _applyFilters(); }
   void setSearch(String query) { _searchQuery = query; _applyFilters(); }
-  void setSearchQuery(String query) { _searchQuery = query; _applyFilters(); }
-  void setTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
-  void selectStream(PlaylistItem stream) { _currentStream = stream; addToRecentlyPlayed(stream); notifyListeners(); }
-  void addToRecentlyPlayed(PlaylistItem stream) { if (!_recentlyPlayed.any((s) => s.streamId == stream.streamId)) { _recentlyPlayed.insert(0, stream); if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast(); } }
-  void toggleFavorite(String streamId) async { if (_favorites.contains(streamId)) _favorites.remove(streamId); else _favorites.add(streamId); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('favorites', _favorites); }
-  void zapChannel(bool next) {
-    if (_filteredStreams.isEmpty || _currentStream == null) return;
-    int index = _filteredStreams.indexWhere((s) => s.streamId == _currentStream!.streamId);
-    if (index == -1) return;
-    int offset = next ? 1 : -1, newIndex = (index + offset) % _filteredStreams.length;
-    if (newIndex < 0) newIndex += _filteredStreams.length;
-    selectStream(_filteredStreams[newIndex]);
-  }
-  Future<void> setProfileName(String name) async { _profileName = name; notifyListeners(); }
-  Future<void> setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); }
-  Future<void> setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); }
-  Future<void> setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
-  Future<void> clearParentalSettings() async { _parentalPin = ""; _lockedCategories = []; notifyListeners(); (await SharedPreferences.getInstance()).remove('parental_pin'); (await SharedPreferences.getInstance()).remove('locked_categories'); }
-  Future<void> changeSubscription() async { logout(); }
-  Future<void> logout() async { _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; final prefs = await SharedPreferences.getInstance(); await prefs.setBool('is_logged_in', false); await prefs.remove('active_code'); notifyListeners(); }
-  Future<void> setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); }
-  bool isCategoryLocked(String cat) => _lockedCategories.contains(cat);
-  Future<void> toggleCategoryLock(String cat) async { if (_lockedCategories.contains(cat)) _lockedCategories.remove(cat); else _lockedCategories.add(cat); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
-  void unlockCategorySession(String cat) {}
+  void setActiveTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
+  void selectStream(PlaylistItem stream) { _currentStream = stream; notifyListeners(); _addToRecentlyPlayed(stream); }
+  void _addToRecentlyPlayed(PlaylistItem s) { _recentlyPlayed.removeWhere((item) => item.streamId == s.streamId); _recentlyPlayed.insert(0, s); if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast(); }
+  void toggleFavorite(String id) async { if (_favorites.contains(id)) _favorites.remove(id); else _favorites.add(id); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('favorites', _favorites); }
+  void setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
+  void toggleCategoryLock(String catId) async { if (_lockedCategories.contains(catId)) _lockedCategories.remove(catId); else _lockedCategories.add(catId); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  Future<void> logout() async { final prefs = await SharedPreferences.getInstance(); await prefs.clear(); _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; notifyListeners(); }
 }

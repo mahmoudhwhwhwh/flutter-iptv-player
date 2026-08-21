@@ -68,10 +68,10 @@ class IPTVProvider with ChangeNotifier {
   String _channelFilter = "all";
   String get channelFilter => _channelFilter;
   void setChannelFilter(String f) { _channelFilter = f; _applyFilters(); }
-  int _currentVersionCode = 236;
+  int _currentVersionCode = 237;
   bool _isVersionBlocked = false;
   bool get isVersionBlocked => _isVersionBlocked;
-  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.36 للاستمرار.";
+  String get remoteBlockMessage => "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.37 للاستمرار.";
   int get playerSettingsVersion => 1;
   String _profileName = 'Premium User', _profileLogo = 'play', _profileImagePath = '';
   String get profileName => _profileName;
@@ -79,7 +79,7 @@ class IPTVProvider with ChangeNotifier {
   String get profileImagePath => _profileImagePath;
   String get subscriptionType => "Premium";
   String get expirationDateFormatted => "بلا حدود ";
-  List<String> _favorites = [], _lockedCategories = [];
+  List<String> _favorites = [], _lockedCategories = [], _unlockedSessions = [];
   List<String> get favorites => _favorites;
   List<String> get lockedCategories => _lockedCategories;
   String _parentalPin = "";
@@ -115,10 +115,13 @@ class IPTVProvider with ChangeNotifier {
     _favorites = prefs.getStringList('favorites') ?? [];
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
+    _profileName = prefs.getString('profile_name') ?? 'Premium User';
+    _profileLogo = prefs.getString('profile_logo') ?? 'play';
+    _profileImagePath = prefs.getString('profile_image_path') ?? '';
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) { try { _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList(); } catch(e) {} }
     final packageInfo = await PackageInfo.fromPlatform();
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 236;
+    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 237;
     await checkRemoteBlocking();
     if (_isLoggedIn && _activationCode.isNotEmpty) await loginWithCode(_activationCode);
     _isLoading = false; notifyListeners();
@@ -198,26 +201,19 @@ class IPTVProvider with ChangeNotifier {
     if (!baseUrl.contains('/portal.php')) { baseUrl = baseUrl.endsWith('/') ? '${baseUrl}portal.php' : '$baseUrl/portal.php'; }
     final headers = {'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
     try {
-      // 1. Handshake
       final hRes = await http.get(Uri.parse("$baseUrl?type=stb&action=handshake"), headers: headers).timeout(const Duration(seconds: 10));
       if (hRes.statusCode == 200) {
         final hData = json.decode(hRes.body);
         _stalkerToken = hData['js']?['token'];
         if (_stalkerToken != null) headers['Authorization'] = 'Bearer $_stalkerToken';
       }
-
-      // 2. Get Profile (to ensure session is active)
       await http.get(Uri.parse("$baseUrl?type=stb&action=get_profile"), headers: headers).timeout(const Duration(seconds: 10));
-
-      // 3. Get Categories
       final catRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_categories"), headers: headers).timeout(const Duration(seconds: 10));
       if (catRes.statusCode == 200) {
         final dynamic decoded = json.decode(catRes.body);
         final List cats = (decoded is Map) ? (decoded['js'] ?? []) : (decoded is List ? decoded : []);
         _liveCategories = cats.map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
       }
-
-      // 4. Get Channels
       final chanRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_all_channels"), headers: headers).timeout(const Duration(seconds: 15));
       if (chanRes.statusCode == 200) {
         final dynamic decoded = json.decode(chanRes.body);
@@ -268,10 +264,20 @@ class IPTVProvider with ChangeNotifier {
   void setCategory(String cat) { _selectedCategory = cat; _applyFilters(); }
   void setSearch(String query) { _searchQuery = query; _applyFilters(); }
   void setActiveTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
+  void setTab(String tab) => setActiveTab(tab); // Alias for compatibility
   void selectStream(PlaylistItem stream) { _currentStream = stream; notifyListeners(); _addToRecentlyPlayed(stream); }
   void _addToRecentlyPlayed(PlaylistItem s) { _recentlyPlayed.removeWhere((item) => item.streamId == s.streamId); _recentlyPlayed.insert(0, s); if (_recentlyPlayed.length > 20) _recentlyPlayed.removeLast(); }
   void toggleFavorite(String id) async { if (_favorites.contains(id)) _favorites.remove(id); else _favorites.add(id); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('favorites', _favorites); }
   void setParentalPin(String pin) async { _parentalPin = pin; notifyListeners(); (await SharedPreferences.getInstance()).setString('parental_pin', pin); }
-  void toggleCategoryLock(String catId) async { if (_lockedCategories.contains(catId)) _lockedCategories.remove(catId); else _lockedCategories.add(catId); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  
+  bool isCategoryLocked(String catName) => _lockedCategories.contains(catName) && !_unlockedSessions.contains(catName);
+  void toggleCategoryLock(String catName) async { if (_lockedCategories.contains(catName)) _lockedCategories.remove(catName); else _lockedCategories.add(catName); notifyListeners(); (await SharedPreferences.getInstance()).setStringList('locked_categories', _lockedCategories); }
+  void unlockCategorySession(String catName) { _unlockedSessions.add(catName); notifyListeners(); }
+
+  void setPlayerStringPreference(String key, String val) async { (await SharedPreferences.getInstance()).setString(key, val); notifyListeners(); }
+  void setProfileName(String name) async { _profileName = name; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_name', name); }
+  void setProfileLogo(String logo) async { _profileLogo = logo; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_logo', logo); }
+  void setProfileImagePath(String path) async { _profileImagePath = path; notifyListeners(); (await SharedPreferences.getInstance()).setString('profile_image_path', path); }
+
   Future<void> logout() async { final prefs = await SharedPreferences.getInstance(); await prefs.clear(); _isLoggedIn = false; _activationCode = ""; _allStreams = []; _filteredStreams = []; notifyListeners(); }
 }

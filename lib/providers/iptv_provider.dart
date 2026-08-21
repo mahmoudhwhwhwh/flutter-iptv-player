@@ -38,41 +38,48 @@ class IPTVProvider with ChangeNotifier {
 
   String _appLanguage = 'العربية';
   String get appLanguage => _appLanguage;
-  String _premiumTheme = 'البنفسجي الملكي';
-  String get premiumTheme => _premiumTheme;
+  
   Color get accentColor => const Color(0xFFA855F7);
   Color get themeBackground => const Color(0xFF09091A);
   Color get themeSurface => const Color(0xFF14112B);
 
-  bool _tvBoxFocusEnabled = true;
-  bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
-
   bool _isSecured = true;
   bool get isSecured => _isSecured;
-  bool _blockAdultContent = true;
-  bool get blockAdultContent => _blockAdultContent;
-
+  
   String? lastError;
   List<PlaylistItem> _allStreams = [];
   List<PlaylistItem> _filteredStreams = [];
+  List<PlaylistItem> get streams => _filteredStreams;
+
   List<UserPlaylist> _savedPlaylists = [];
   List<UserPlaylist> get savedPlaylists => _savedPlaylists;
+  
   String? _activePlaylistId;
-  PlaylistItem? _currentStream;
   List<String> _favorites = [];
   bool _isLoading = false;
+  bool get isLoading => _isLoading;
   bool _isFetchingData = false;
   bool get isFetchingData => _isFetchingData;
+  
   String _activeTab = "live"; 
+  String get activeTab => _activeTab;
+  
   String _selectedCategory = "all";
+  String get selectedCategory => _selectedCategory;
+  
   String _searchQuery = "";
   bool _isLoggedIn = false;
+  bool get isLoggedIn => _isLoggedIn;
 
   List<Map<String, String>> _liveCategories = [];
+  List<Map<String, String>> get liveCategories => _liveCategories;
+  
   List<Map<String, String>> _movieCategories = [];
   List<Map<String, String>> _seriesCategories = [];
 
   String _activationCode = "";
+  String get activationCode => _activationCode;
+  
   bool _showMoviesSeries = true;
   bool get showMoviesSeries => _showMoviesSeries;
   
@@ -83,6 +90,21 @@ class IPTVProvider with ChangeNotifier {
 
   List<PlaylistItem> _recentlyPlayed = [];
   List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
+
+  String _profileName = 'Premium User';
+  String get profileName => _profileName;
+  String _profileLogo = 'play';
+  String get profileLogo => _profileLogo;
+  String _profileImagePath = '';
+  String get profileImagePath => _profileImagePath;
+  String get subscriptionType => "Premium";
+
+  List<String> get categories {
+    if (_activeTab == "live") return _liveCategories.map((e) => e['category_name']!).toList();
+    if (_activeTab == "movie") return _movieCategories.map((e) => e['category_name']!).toList();
+    if (_activeTab == "series") return _seriesCategories.map((e) => e['category_name']!).toList();
+    return [];
+  }
 
   void addToRecentlyPlayed(PlaylistItem stream) async {
     _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
@@ -221,6 +243,13 @@ class IPTVProvider with ChangeNotifier {
         _movieCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'أفلام'}).toList();
       }
     } catch (e) {}
+    try {
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final List decoded = json.decode(res.body);
+        _seriesCategories = decoded.map<Map<String, String>>((item) => {'category_id': item['category_id']?.toString() ?? '', 'category_name': item['category_name']?.toString() ?? 'مسلسلات'}).toList();
+      }
+    } catch (e) {}
   }
 
   Future<void> _loadStreams(String host, String user, String pass) async {
@@ -237,19 +266,58 @@ class IPTVProvider with ChangeNotifier {
         }
       }
     } catch (e) {}
+    try {
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final List decoded = json.decode(res.body);
+        for (var item in decoded) {
+            try {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['stream_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'أفلام', url: item['url']?.toString() ?? "$host/movie/$user/$pass/${item['stream_id']}.mp4", type: "movie"));
+            } catch(e) {}
+        }
+      }
+    } catch (e) {}
+    try {
+      final res = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final List decoded = json.decode(res.body);
+        for (var item in decoded) {
+            try {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _seriesCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+                _allStreams.add(PlaylistItem(num: item['num'] is int ? item['num'] : null, streamId: item['series_id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['cover']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? cat['category_name']! : 'مسلسلات', url: "", type: "series"));
+            } catch(e) {}
+        }
+      }
+    } catch (e) {}
   }
 
   void _applyFilters() {
     _filteredStreams = _allStreams.where((s) {
       if (_activeTab != s.type) return false;
-      if (_selectedCategory != "all" && s.categoryId != _selectedCategory) return false;
+      if (_selectedCategory != "all") {
+          final cat = categories.firstWhere((c) => c == _selectedCategory, orElse: () => "");
+          if (cat.isEmpty) return false;
+          if (s.categoryName != cat) return false;
+      }
       if (_searchQuery.isNotEmpty && !s.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
       return true;
     }).toList();
   }
 
-  void setActiveTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); notifyListeners(); }
+  void setTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); notifyListeners(); }
+  void setCategory(String category) { _selectedCategory = category; _applyFilters(); notifyListeners(); }
   void setSearchQuery(String q) { _searchQuery = q; _applyFilters(); notifyListeners(); }
-  void selectStream(PlaylistItem item) { _currentStream = item; addToRecentlyPlayed(item); notifyListeners(); }
+  void selectStream(PlaylistItem item) { addToRecentlyPlayed(item); notifyListeners(); }
+  void toggleFavorite(String streamId) async {
+    if (_favorites.contains(streamId)) _favorites.remove(streamId); else _favorites.add(streamId);
+    notifyListeners();
+    (await SharedPreferences.getInstance()).setStringList('favorites', _favorites);
+  }
+  bool isFavorite(String streamId) => _favorites.contains(streamId);
+  bool isCategoryLocked(String category) => false;
+  void unlockCategorySession(String category) {}
   Future<void> logout() async { (await SharedPreferences.getInstance()).clear(); _isLoggedIn = false; _savedPlaylists = []; _allStreams = []; notifyListeners(); }
 }

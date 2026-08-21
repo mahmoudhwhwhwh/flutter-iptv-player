@@ -1,37 +1,7 @@
 {
-  "app_name": "LIVE STREAM PREMIUM",
+  "app_name": "تطبيق البث المميز",
   "app_version": "v2.2.35",
-  "api_endpoint": "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/",
-  "users": {
-    "mahmoud2027": { "server_index": 0, "expiry_date": "بلا حدود " },
-    "s1_code1": { "server_index": 0, "expiry_date": "بلا حدود " },
-    "02389": { "server_index": 1, "expiry_date": "بلا حدود " },
-    "s2_code1": { "server_index": 1, "expiry_date": "بلا حدود " },
-    "s3_code1": { "server_index": 2, "expiry_date": "بلا حدود " },
-    "96827": { "server_index": 3, "mode": "github", "expiry_date": "بلا حدود " },
-    "2027": { "server_index": 3, "mode": "github", "expiry_date": "بلا حدود " },
-    "s4_code1": { "server_index": 3, "expiry_date": "بلا حدود " },
-    "1111": { "server_index": 3, "expiry_date": "بلا حدود " },
-    "s5_code1": { "server_index": 4, "expiry_date": "بلا حدود " },
-    "s6_code1": { "server_index": 5, "expiry_date": "بلا حدود " },
-    "mahmoud20": { "server_index": 6, "expiry_date": "بلا حدود " },
-    "s7_code1": { "server_index": 6, "expiry_date": "بلا حدود " },
-    "joker1": { "server_index": 7, "expiry_date": "بلا حدود " },
-    "joker2": { "server_index": 8, "expiry_date": "بلا حدود " },
-    "joker3": { "server_index": 9, "expiry_date": "بلا حدود " },
-    "joker03": { "server_index": 9, "expiry_date": "بلا حدود " },
-    "mahmoud209": { "server_index": 9, "expiry_date": "بلا حدود " },
-    "609155765757": { "server_index": 9, "expiry_date": "بلا حدود " },
-    "joker4": { "server_index": 10, "expiry_date": "بلا حدود " },
-    "joker5": { "server_index": 11, "expiry_date": "بلا حدود " },
-    "joker6": { "server_index": 12, "expiry_date": "بلا حدود " },
-    "joker7": { "server_index": 13, "expiry_date": "بلا حدود " },
-    "joker8": { "server_index": 14, "expiry_date": "بلا حدود " },
-    "joker9": { "server_index": 15, "expiry_date": "بلا حدود " },
-    "joker10": { "server_index": 16, "expiry_date": "بلا حدود " },
-    "joker11": { "server_index": 17, "expiry_date": "بلا حدود " },
-    "joker12": { "server_index": 18, "expiry_date": "بلا حدود " }
-  },
+  "users": {},
   "servers": [
     {
       "name": "Server 1",
@@ -118,7 +88,7 @@
       }
     },
     {
-      "name": "JOKER 3",
+      "name": "mahmoud",
       "host": "http://185.191.126.127:8080",
       "username": "b0:99:d7:15:88:50",
       "password": "3090914536649669",
@@ -126,7 +96,10 @@
         "joker3": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
         "joker03": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
         "mahmoud209": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
-        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
+        "609155765757": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "Abu Ali 58": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "mahmoud53": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] },
+        "ALi51": { "expiry_date": "بلا حدود ", "devices": ["UKQ1.240624.001"] }
       }
     },
     {
@@ -213,11 +186,11 @@
   ],
   "blocking": {
     "min_version_code": 20,
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى تنزيل LIVE STREAM PREMIUM v2.2.13 للاستمرار."
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث للاستمرار."
   },
   "update": {
     "latest_version": "v2.2.35",
     "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
-    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على أفضل تجربة."
+    "update_message": "نسخة جديدة متاحة. يرجى التحديث الآن."
   }
 }

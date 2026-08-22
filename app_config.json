@@ -1,62 +1,14 @@
 {
   "app_name": "تطبيق البث المميز",
   "app_version": "v2.2.40",
-  "users": {},
-  "servers": [
-    {
-      "name": "Server 1",
-      "host": "http://megatv.shop:2052",
-      "username": "20299538378191",
-      "password": "36172842922822",
-      "users": {
-        "s1_code1": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    },
-    {
-      "name": "Server 2",
-      "host": "http://2@cliccck52258.club:2082",
-      "username": "khaledsliman",
-      "password": "755246419856",
-      "users": {
-        "02389": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    },
-    {
-      "name": "JOKER 3",
-      "host": "http://185.191.126.127:8080",
-      "username": "b0:99:d7:15:88:50",
-      "password": "3090914536649669",
-      "users": {
-        "joker3": { "expiry_date": "2027-01-01T00:00:00Z" },
-        "mahmoud209": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    },
-    {
-      "name": "Server 4",
-      "host": "http://marveliptv.life",
-      "username": "01112727740kh",
-      "password": "khiary7740",
-      "users": {
-        "96827": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    },
-    {
-      "name": "FAMILY VIP",
-      "host": "http://family-iptv.com:8080",
-      "username": "family_user",
-      "password": "family_password",
-      "users": {
-        "family_vip": { "expiry_date": "2027-01-01T00:00:00Z" }
-      }
-    }
-  ],
+  "servers": [],
   "blocking": {
     "min_version_code": 1,
     "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والاستقرار.\nيرجى التحديث إلى v2.2.40 للاستمرار."
   },
   "update": {
     "latest_version": "v2.2.40",
-    "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/v2.2.40/LIVE_STREAM_PREMIUM.apk",
     "update_message": "نسخة جديدة متاحة (v2.2.40). يرجى التحديث الآن للحصول على أفضل تجربة."
   }
 }

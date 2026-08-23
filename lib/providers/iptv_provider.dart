@@ -36,9 +36,39 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Color get accentColor => const Color(0xFFA855F7);
+  String _premiumTheme = 'البنفسجي الملكي';
+  String get premiumTheme => _premiumTheme;
+  Color get accentColor {
+    const colors = <String, Color>{
+      'البنفسجي الملكي': Color(0xFFA855F7),
+      'الأزرق الليلي': Color(0xFF4F8CFF),
+      'الذهبي الفاخر': Color(0xFFEAB308),
+      'الزمردي الداكن': Color(0xFF10B981),
+      'الروبي السينمائي': Color(0xFFEF476F),
+      'السماوي الكهربائي': Color(0xFF22D3EE),
+      'الغروب البرتقالي': Color(0xFFF97316),
+    };
+    return colors[_premiumTheme] ?? const Color(0xFFA855F7);
+  }
   Color get themeBackground => const Color(0xFF09091A);
   Color get themeSurface => const Color(0xFF14112B);
+  Future<void> setPremiumTheme(String value) async {
+    _premiumTheme = value.trim().isEmpty ? 'البنفسجي الملكي' : value.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('premium_theme', _premiumTheme);
+    notifyListeners();
+  }
+
+  // هذه الحالات لا تفترض وجود root/VPN/sniffer؛ لا نحجب المستخدمين الطبيعيين بتخمينات.
+  bool get snifferDetected => false;
+  bool get vpnDetected => false;
+  bool get isSecured => true;
+  String get securityMessage => '';
+  String _remoteBlockMessage = 'هذه النسخة غير مدعومة. يرجى استخدام LIVE STREAM PREMIUM 2.2.32.';
+  String get remoteBlockMessage => _remoteBlockMessage;
+  String? _lastError;
+  String? get lastError => _lastError;
+  bool get isExpired => _expirationAt != null && _expirationAt!.isBefore(DateTime.now().toUtc());
 
   bool _isLoading = false, _isFetchingData = false, _isLoggedIn = false;
   bool get isLoading => _isLoading;
@@ -67,6 +97,76 @@ class IPTVProvider with ChangeNotifier {
   String _activeTab = 'live', _selectedCategory = 'all', _searchQuery = '';
   String get activeTab => _activeTab;
   String get selectedCategory => _selectedCategory;
+  List<String> get categories {
+    final seen = <String>{};
+    return _liveCategories.map((category) => category['category_name']?.trim() ?? '').where((name) => name.isNotEmpty && seen.add(name)).toList();
+  }
+  void setCategory(String category) {
+    if (category == 'الكل' || category == 'all' || category.trim().isEmpty) {
+      _selectedCategory = 'all';
+    } else {
+      final matched = _liveCategories.firstWhere(
+        (item) => item['category_name'] == category || item['category_id'] == category,
+        orElse: () => {},
+      );
+      _selectedCategory = matched.isEmpty ? category : (matched['category_name'] ?? category);
+    }
+    _applyFilters();
+    notifyListeners();
+  }
+  void setTab(String tab) => setActiveTab(tab);
+
+  final Set<String> _favorites = <String>{};
+  Set<String> get favorites => Set.unmodifiable(_favorites);
+  PlaylistItem? _currentStream;
+  PlaylistItem? get currentStream => _currentStream;
+  void selectStream(PlaylistItem stream) {
+    _currentStream = stream;
+    notifyListeners();
+  }
+  void zapChannel(bool next) {
+    final source = _filteredStreams.isNotEmpty ? _filteredStreams : _allStreams;
+    if (source.isEmpty) return;
+    final currentIndex = _currentStream == null ? -1 : source.indexWhere((item) => item.streamId == _currentStream!.streamId);
+    final nextIndex = currentIndex < 0 ? 0 : (next ? (currentIndex + 1) % source.length : (currentIndex - 1 + source.length) % source.length);
+    _currentStream = source[nextIndex];
+    notifyListeners();
+  }
+  Future<void> toggleFavorite(String streamId) async {
+    if (streamId.trim().isEmpty) return;
+    if (!_favorites.add(streamId)) _favorites.remove(streamId);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favorites', _favorites.toList());
+    notifyListeners();
+  }
+  Future<void> addToRecentlyPlayed(PlaylistItem stream) async {
+    _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
+    _recentlyPlayed.insert(0, stream);
+    if (_recentlyPlayed.length > 30) _recentlyPlayed = _recentlyPlayed.take(30).toList();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('recently_played', json.encode(_recentlyPlayed.map((item) => item.toJson()).toList()));
+    notifyListeners();
+  }
+  int _playerSettingsVersion = 0;
+  int get playerSettingsVersion => _playerSettingsVersion;
+  Future<void> setPlayerStringPreference(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+    if (key == 'global_referer') _globalReferer = value;
+    _playerSettingsVersion++;
+    notifyListeners();
+  }
+
+  final Set<String> _lockedCategories = <String>{};
+  Set<String> get lockedCategories => Set.unmodifiable(_lockedCategories);
+  Future<void> toggleCategoryLock(String category) async {
+    final value = category.trim();
+    if (value.isEmpty) return;
+    if (!_lockedCategories.add(value)) _lockedCategories.remove(value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('locked_categories', _lockedCategories.toList());
+    notifyListeners();
+  }
 
   int _currentVersionCode = 232;
   bool _isVersionBlocked = false;
@@ -122,8 +222,9 @@ class IPTVProvider with ChangeNotifier {
   bool get isParentalEnabled => _isParentalEnabled;
   String get parentalPin => _parentalPin;
   bool isCategoryLocked(String categoryName) {
-    if (!_isParentalEnabled || categoryName.trim().isEmpty) return false;
-    return FilterService.isAdultStream('', categoryName) && !_unlockedCategories.contains(categoryName);
+    if (categoryName.trim().isEmpty) return false;
+    if (_unlockedCategories.contains(categoryName)) return false;
+    return _lockedCategories.contains(categoryName) || (_isParentalEnabled && FilterService.isAdultStream('', categoryName));
   }
   void unlockCategorySession(String categoryName) {
     if (categoryName.trim().isEmpty) return;
@@ -209,6 +310,16 @@ class IPTVProvider with ChangeNotifier {
     _profileName = prefs.getString('profile_name') ?? 'LIVE STREAM PREMIUM';
     _profileLogo = prefs.getString('profile_logo') ?? 'play';
     _profileImagePath = prefs.getString('profile_image_path') ?? '';
+    _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
+    _favorites.addAll(prefs.getStringList('favorites') ?? const <String>[]);
+    _lockedCategories.addAll(prefs.getStringList('locked_categories') ?? const <String>[]);
+    final recentJson = prefs.getString('recently_played');
+    if (recentJson != null) {
+      try {
+        final decoded = json.decode(recentJson);
+        if (decoded is List) _recentlyPlayed = decoded.whereType<Map>().map((item) => PlaylistItem.fromJson(Map<String, dynamic>.from(item))).toList();
+      } catch (_) {}
+    }
     final savedPlaylistsStr = prefs.getString('saved_playlists');
     if (savedPlaylistsStr != null) {
       try {
@@ -239,6 +350,7 @@ class IPTVProvider with ChangeNotifier {
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         final blocking = data['blocking'];
+        if (blocking is Map && blocking['block_message'] is String) _remoteBlockMessage = blocking['block_message'].toString();
         if (blocking is Map && blocking['min_version_code'] != null && _currentVersionCode < (int.tryParse(blocking['min_version_code'].toString()) ?? 0)) {
           _isVersionBlocked = true;
           notifyListeners();
@@ -251,6 +363,7 @@ class IPTVProvider with ChangeNotifier {
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) return false;
     _isLoading = true;
+    _lastError = null;
     notifyListeners();
     try {
       final res = await http.post(
@@ -282,6 +395,19 @@ class IPTVProvider with ChangeNotifier {
             await _loadCuratedGitHubContent();
           } else {
             await loadPlaylistStreams(list.id);
+          }
+          if (_allStreams.isEmpty) {
+            _lastError = 'تم قبول الكود، لكن مصدر القنوات لم يُرجع قائمة حالياً. حاول التحديث بعد لحظات.';
+            _isLoggedIn = false;
+            _activationCode = '';
+            _savedPlaylists = [];
+            _activePlaylistId = null;
+            await prefs.remove('active_code');
+            await prefs.remove('saved_playlists');
+            await prefs.setBool('is_logged_in', false);
+            _isLoading = false;
+            notifyListeners();
+            return false;
           }
           _isLoading = false;
           notifyListeners();
@@ -452,7 +578,9 @@ class IPTVProvider with ChangeNotifier {
   void _applyFilters() {
     var result = FilterService.interceptAndFilterStreams(_allStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
     if (_searchQuery.isNotEmpty) result = result.where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-    if (_selectedCategory != 'all') result = result.where((s) => s.categoryId == _selectedCategory).toList();
+    if (_selectedCategory != 'all') {
+      result = result.where((s) => s.categoryId == _selectedCategory || s.categoryName == _selectedCategory).toList();
+    }
     _filteredStreams = result;
   }
 
@@ -461,11 +589,7 @@ class IPTVProvider with ChangeNotifier {
     _applyFilters();
     notifyListeners();
   }
-  void setSelectedCategory(String cat) {
-    _selectedCategory = cat;
-    _applyFilters();
-    notifyListeners();
-  }
+  void setSelectedCategory(String category) => setCategory(category);
   void setActiveTab(String tab) {
     _activeTab = tab;
     _selectedCategory = 'all';
@@ -487,6 +611,8 @@ class IPTVProvider with ChangeNotifier {
     _liveCategories = [];
     _subscriptionType = '';
     _expirationAt = null;
+    _currentStream = null;
+    _lastError = null;
     notifyListeners();
   }
 

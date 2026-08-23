@@ -86,6 +86,9 @@ class IPTVProvider with ChangeNotifier {
   List<UserPlaylist> _savedPlaylists = [];
   List<UserPlaylist> get savedPlaylists => _savedPlaylists;
 
+  List<UserPlaylist> _macProfiles = [];
+  List<UserPlaylist> get macProfiles => List.unmodifiable(_macProfiles);
+
   String? _activePlaylistId;
   String? get activePlaylistId => _activePlaylistId;
 
@@ -328,6 +331,18 @@ class IPTVProvider with ChangeNotifier {
         _savedPlaylists = [];
       }
     }
+    final macProfilesStr = prefs.getString('mac_profiles');
+    if (macProfilesStr != null) {
+      try {
+        _macProfiles = (json.decode(macProfilesStr) as List)
+            .map((e) => UserPlaylist.fromJson(Map<String, dynamic>.from(e)))
+            .where((profile) => profile.type == 'stalker' && profile.host?.isNotEmpty == true && profile.username?.isNotEmpty == true)
+            .toList();
+      } catch (_) {
+        _macProfiles = [];
+      }
+    }
+    _mergeMacProfilesIntoSavedPlaylists();
     final packageInfo = await PackageInfo.fromPlatform();
     _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 232;
     await checkRemoteBlocking();
@@ -389,8 +404,9 @@ class IPTVProvider with ChangeNotifier {
             host: server['host']?.toString(), username: server['username']?.toString(), password: server['password']?.toString(),
           );
           _savedPlaylists = [list];
+          _mergeMacProfilesIntoSavedPlaylists();
           _activePlaylistId = list.id;
-          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+          await _persistSavedPlaylists();
           if (server['content_mode']?.toString() == 'github') {
             await _loadCuratedGitHubContent();
           } else {
@@ -400,10 +416,10 @@ class IPTVProvider with ChangeNotifier {
             _lastError = 'تم قبول الكود، لكن مصدر القنوات لم يُرجع قائمة حالياً. حاول التحديث بعد لحظات.';
             _isLoggedIn = false;
             _activationCode = '';
-            _savedPlaylists = [];
+            _savedPlaylists = List<UserPlaylist>.from(_macProfiles);
             _activePlaylistId = null;
             await prefs.remove('active_code');
-            await prefs.remove('saved_playlists');
+            await _persistSavedPlaylists();
             await prefs.setBool('is_logged_in', false);
             _isLoading = false;
             notifyListeners();
@@ -623,14 +639,111 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void _mergeMacProfilesIntoSavedPlaylists() {
+    _savedPlaylists.removeWhere((playlist) => playlist.id.startsWith('mac_'));
+    _savedPlaylists.addAll(_macProfiles);
+  }
+
+  Future<void> _persistSavedPlaylists() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((playlist) => playlist.toJson()).toList()));
+  }
+
+  String _normalizeMacHost(String host) {
+    var value = host.trim();
+    if (value.endsWith('/')) value = value.substring(0, value.length - 1);
+    return value;
+  }
+
+  Future<bool> saveMacProfile({
+    required String name,
+    required String host,
+    required String mac,
+    String? profileId,
+  }) async {
+    final normalizedName = name.trim();
+    final normalizedHost = _normalizeMacHost(host);
+    final normalizedMac = mac.trim().toUpperCase();
+    final isValidHost = Uri.tryParse(normalizedHost)?.hasAbsolutePath == true;
+    final isValidMac = RegExp(r'^[0-9A-F]{2}(:[0-9A-F]{2}){5}$').hasMatch(normalizedMac);
+    if (normalizedName.isEmpty || !isValidHost || !isValidMac) return false;
+
+    final id = profileId ?? 'mac_${DateTime.now().microsecondsSinceEpoch}';
+    final profile = UserPlaylist(
+      id: id,
+      name: normalizedName,
+      type: 'stalker',
+      host: normalizedHost,
+      username: normalizedMac,
+    );
+    final index = _macProfiles.indexWhere((item) => item.id == id);
+    if (index >= 0) {
+      _macProfiles[index] = profile;
+      final savedIndex = _savedPlaylists.indexWhere((item) => item.id == id);
+      if (savedIndex >= 0) _savedPlaylists[savedIndex] = profile;
+    } else {
+      _macProfiles.add(profile);
+      _savedPlaylists.add(profile);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mac_profiles', json.encode(_macProfiles.map((item) => item.toJson()).toList()));
+    await _persistSavedPlaylists();
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> switchMacProfile(String profileId) async {
+    final profile = _macProfiles.firstWhere(
+      (item) => item.id == profileId,
+      orElse: () => UserPlaylist(id: '', name: '', type: ''),
+    );
+    if (profile.id.isEmpty) return false;
+    if (_activePlaylistId == profile.id && _allStreams.isNotEmpty) return true;
+
+    final previousId = _activePlaylistId;
+    final previousStreams = List<PlaylistItem>.from(_allStreams);
+    final previousFiltered = List<PlaylistItem>.from(_filteredStreams);
+    final previousCategories = List<Map<String, String>>.from(_liveCategories);
+    final previousToken = _stalkerToken;
+    await loadPlaylistStreams(profile.id);
+    if (_allStreams.isEmpty) {
+      _activePlaylistId = previousId;
+      _allStreams = previousStreams;
+      _filteredStreams = previousFiltered;
+      _liveCategories = previousCategories;
+      _stalkerToken = previousToken;
+      notifyListeners();
+      return false;
+    }
+    _activeTab = 'live';
+    _selectedCategory = 'all';
+    _applyFilters();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('active_mac_profile_id', profile.id);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteMacProfile(String profileId) async {
+    if (_activePlaylistId == profileId) return false;
+    final exists = _macProfiles.any((item) => item.id == profileId);
+    if (!exists) return false;
+    _macProfiles.removeWhere((item) => item.id == profileId);
+    _savedPlaylists.removeWhere((item) => item.id == profileId);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mac_profiles', json.encode(_macProfiles.map((item) => item.toJson()).toList()));
+    await _persistSavedPlaylists();
+    notifyListeners();
+    return true;
+  }
+
   Future<void> changeSubscription() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_code');
-    await prefs.remove('saved_playlists');
     await prefs.setBool('is_logged_in', false);
     _isLoggedIn = false;
     _activationCode = '';
-    _savedPlaylists = [];
+    _savedPlaylists = List<UserPlaylist>.from(_macProfiles);
     _activePlaylistId = null;
     _allStreams = [];
     _filteredStreams = [];
@@ -639,6 +752,7 @@ class IPTVProvider with ChangeNotifier {
     _expirationAt = null;
     _currentStream = null;
     _lastError = null;
+    await _persistSavedPlaylists();
     notifyListeners();
   }
 

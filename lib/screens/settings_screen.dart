@@ -176,6 +176,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () => _confirmSubscriptionChange(provider),
                 ),
               ),
+              const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) => _buildActionButtonSettingCard(
+                  title: 'اشتراكات MAC المحفوظة',
+                  description: provider.macProfiles.isEmpty
+                      ? 'أضف أكثر من اشتراك MAC وتبدّل بينها من داخل التطبيق.'
+                      : '${provider.macProfiles.length} اشتراك محفوظ. بدّل الاشتراك النشط دون إعادة كتابة البيانات.',
+                  actionLabel: 'إدارة MAC',
+                  icon: Icons.connected_tv_rounded,
+                  onTap: () => _showMacProfilesManager(provider),
+                ),
+              ),
               const SizedBox(height: 24),
               _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
@@ -625,6 +637,205 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     }
+  }
+
+  Future<void> _showMacProfilesManager(IPTVProvider provider) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final profiles = provider.macProfiles;
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              backgroundColor: _SettingsPalette.surfaceElevated,
+              title: Row(
+                children: [
+                  const Icon(Icons.connected_tv_rounded, color: _SettingsPalette.cyan),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('إدارة اشتراكات MAC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+                  IconButton(
+                    tooltip: 'إضافة اشتراك MAC',
+                    icon: const Icon(Icons.add_circle_rounded, color: _SettingsPalette.purpleBright),
+                    onPressed: () async {
+                      await _showMacProfileEditor(provider);
+                      if (dialogContext.mounted) setDialogState(() {});
+                    },
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 520,
+                height: profiles.isEmpty ? 150 : 360,
+                child: profiles.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'لا توجد اشتراكات MAC محفوظة حالياً.\nاضغط زر + لإضافة أول اشتراك.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: _SettingsPalette.textMuted, height: 1.6),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: profiles.length,
+                        separatorBuilder: (_, __) => const Divider(color: _SettingsPalette.divider, height: 1),
+                        itemBuilder: (context, index) {
+                          final profile = profiles[index];
+                          final active = provider.activePlaylistId == profile.id;
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                            leading: CircleAvatar(
+                              backgroundColor: active ? _SettingsPalette.cyan.withOpacity(0.18) : const Color(0xFF11111B),
+                              child: Icon(active ? Icons.play_circle_fill_rounded : Icons.dns_rounded, color: active ? _SettingsPalette.cyan : _SettingsPalette.purpleBright),
+                            ),
+                            title: Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            subtitle: Text(
+                              '${profile.host ?? ''}\n${profile.username ?? ''}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.35),
+                            ),
+                            isThreeLine: true,
+                            trailing: Wrap(
+                              spacing: 2,
+                              children: [
+                                IconButton(
+                                  tooltip: active ? 'نشط الآن' : 'التبديل إلى هذا الاشتراك',
+                                  icon: Icon(active ? Icons.check_circle_rounded : Icons.play_arrow_rounded, color: active ? _SettingsPalette.cyan : Colors.white),
+                                  onPressed: active
+                                      ? null
+                                      : () async {
+                                          final changed = await provider.switchMacProfile(profile.id);
+                                          if (!dialogContext.mounted) return;
+                                          if (!changed) {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تحميل القنوات لهذا الاشتراك. بقي الاشتراك السابق نشطاً.')));
+                                          }
+                                          setDialogState(() {});
+                                        },
+                                ),
+                                IconButton(
+                                  tooltip: 'تعديل',
+                                  icon: const Icon(Icons.edit_rounded, color: _SettingsPalette.gold),
+                                  onPressed: () async {
+                                    await _showMacProfileEditor(provider, profile: profile);
+                                    if (dialogContext.mounted) setDialogState(() {});
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: active ? 'بدّل الاشتراك قبل الحذف' : 'حذف',
+                                  icon: Icon(Icons.delete_outline_rounded, color: active ? _SettingsPalette.textMuted : _SettingsPalette.danger),
+                                  onPressed: active
+                                      ? null
+                                      : () async {
+                                          await provider.deleteMacProfile(profile.id);
+                                          if (dialogContext.mounted) setDialogState(() {});
+                                        },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
+                  onPressed: () async {
+                    await _showMacProfileEditor(provider);
+                    if (dialogContext.mounted) setDialogState(() {});
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('إضافة اشتراك'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showMacProfileEditor(IPTVProvider provider, {UserPlaylist? profile}) async {
+    final nameController = TextEditingController(text: profile?.name ?? 'اشتراك MAC');
+    final hostController = TextEditingController(text: profile?.host ?? 'http://');
+    final macController = TextEditingController(text: profile?.username ?? '');
+    String? validationMessage;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: _SettingsPalette.surfaceElevated,
+            title: Text(profile == null ? 'إضافة اشتراك MAC' : 'تعديل اشتراك MAC', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            content: SizedBox(
+              width: 460,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildMacField(controller: nameController, label: 'اسم الاشتراك', icon: Icons.badge_rounded),
+                  const SizedBox(height: 12),
+                  _buildMacField(controller: hostController, label: 'رابط السيرفر', icon: Icons.language_rounded, keyboardType: TextInputType.url),
+                  const SizedBox(height: 12),
+                  _buildMacField(controller: macController, label: 'عنوان MAC', icon: Icons.memory_rounded, capitalization: TextCapitalization.characters),
+                  if (validationMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(validationMessage!, style: const TextStyle(color: _SettingsPalette.danger, fontSize: 12), textAlign: TextAlign.right),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
+                onPressed: () async {
+                  final saved = await provider.saveMacProfile(
+                    name: nameController.text,
+                    host: hostController.text,
+                    mac: macController.text,
+                    profileId: profile?.id,
+                  );
+                  if (!dialogContext.mounted) return;
+                  if (!saved) {
+                    setDialogState(() => validationMessage = 'أدخل اسماً ورابط http/https صحيحاً وMAC بصيغة 00:1A:79:AA:BB:CC.');
+                    return;
+                  }
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('حفظ'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    nameController.dispose();
+    hostController.dispose();
+    macController.dispose();
+  }
+
+  Widget _buildMacField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    TextCapitalization capitalization = TextCapitalization.none,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      textCapitalization: capitalization,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: _SettingsPalette.textMuted),
+        prefixIcon: Icon(icon, color: _SettingsPalette.purpleBright),
+        filled: true,
+        fillColor: const Color(0xFF11111B),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      ),
+    );
   }
 
   Future<void> _pickProfileImage(IPTVProvider provider) async {

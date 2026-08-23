@@ -2,6 +2,14 @@ import 'package:flutter_iptv_player/providers/iptv_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('MAC profile starts with an unknown connection state', () {
+    const status = MacProfileConnectionStatus.unknown();
+
+    expect(status.state, MacProfileConnectionState.unknown);
+    expect(status.message, 'لم يُفحص بعد');
+    expect(status.checkedAt, isNull);
+  });
+
   test('MAC profile survives JSON persistence', () {
     final profile = UserPlaylist(
       id: 'mac_profile_1',

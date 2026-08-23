@@ -655,6 +655,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 10),
                   const Expanded(child: Text('إدارة اشتراكات MAC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
                   IconButton(
+                    tooltip: 'تحديث حالة كل الاشتراكات',
+                    icon: const Icon(Icons.refresh_rounded, color: _SettingsPalette.cyan),
+                    onPressed: profiles.isEmpty
+                        ? null
+                        : () async {
+                            await provider.refreshMacProfilesStatus();
+                            if (dialogContext.mounted) setDialogState(() {});
+                          },
+                  ),
+                  IconButton(
                     tooltip: 'إضافة اشتراك MAC',
                     icon: const Icon(Icons.add_circle_rounded, color: _SettingsPalette.purpleBright),
                     onPressed: () async {
@@ -681,23 +691,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         itemBuilder: (context, index) {
                           final profile = profiles[index];
                           final active = provider.activePlaylistId == profile.id;
+                          final health = provider.macProfileStatus(profile.id);
+                          final statusColor = _macStatusColor(health.state);
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                             leading: CircleAvatar(
                               backgroundColor: active ? _SettingsPalette.cyan.withOpacity(0.18) : const Color(0xFF11111B),
                               child: Icon(active ? Icons.play_circle_fill_rounded : Icons.dns_rounded, color: active ? _SettingsPalette.cyan : _SettingsPalette.purpleBright),
                             ),
-                            title: Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                            subtitle: Text(
-                              '${profile.host ?? ''}\n${profile.username ?? ''}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.35),
+                            title: Row(
+                              children: [
+                                Expanded(child: Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: statusColor.withOpacity(0.16), borderRadius: BorderRadius.circular(999), border: Border.all(color: statusColor.withOpacity(0.45))),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(_macStatusIcon(health.state), size: 13, color: statusColor),
+                                      const SizedBox(width: 4),
+                                      Text(health.message, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${profile.host ?? ''}\n${profile.username ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.35)),
+                                if (health.checkedAt != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 3),
+                                    child: Text('آخر فحص: ${_macStatusTime(health.checkedAt!)}', style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 10)),
+                                  ),
+                              ],
                             ),
                             isThreeLine: true,
                             trailing: Wrap(
                               spacing: 2,
                               children: [
+                                IconButton(
+                                  tooltip: 'فحص الحالة',
+                                  icon: Icon(Icons.wifi_tethering_rounded, color: health.state == MacProfileConnectionState.checking ? _SettingsPalette.textMuted : _SettingsPalette.cyan),
+                                  onPressed: health.state == MacProfileConnectionState.checking
+                                      ? null
+                                      : () async {
+                                          await provider.checkMacProfileStatus(profile.id);
+                                          if (dialogContext.mounted) setDialogState(() {});
+                                        },
+                                ),
                                 IconButton(
                                   tooltip: active ? 'نشط الآن' : 'التبديل إلى هذا الاشتراك',
                                   icon: Icon(active ? Icons.check_circle_rounded : Icons.play_arrow_rounded, color: active ? _SettingsPalette.cyan : Colors.white),
@@ -738,6 +782,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(foregroundColor: _SettingsPalette.cyan, side: const BorderSide(color: _SettingsPalette.cyan)),
+                  onPressed: profiles.isEmpty
+                      ? null
+                      : () async {
+                          await provider.refreshMacProfilesStatus();
+                          if (dialogContext.mounted) setDialogState(() {});
+                        },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('تحديث الحالة'),
+                ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
                   onPressed: () async {
@@ -753,6 +808,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
       ),
     );
+  }
+
+  Color _macStatusColor(MacProfileConnectionState state) {
+    switch (state) {
+      case MacProfileConnectionState.active:
+        return const Color(0xFF4ADE80);
+      case MacProfileConnectionState.unauthorized:
+        return _SettingsPalette.gold;
+      case MacProfileConnectionState.offline:
+        return _SettingsPalette.danger;
+      case MacProfileConnectionState.checking:
+        return _SettingsPalette.cyan;
+      case MacProfileConnectionState.unknown:
+        return _SettingsPalette.textMuted;
+    }
+  }
+
+  IconData _macStatusIcon(MacProfileConnectionState state) {
+    switch (state) {
+      case MacProfileConnectionState.active:
+        return Icons.check_circle_rounded;
+      case MacProfileConnectionState.unauthorized:
+        return Icons.lock_outline_rounded;
+      case MacProfileConnectionState.offline:
+        return Icons.portable_wifi_off_rounded;
+      case MacProfileConnectionState.checking:
+        return Icons.sync_rounded;
+      case MacProfileConnectionState.unknown:
+        return Icons.help_outline_rounded;
+    }
+  }
+
+  String _macStatusTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Future<void> _showMacProfileEditor(IPTVProvider provider, {UserPlaylist? profile}) async {

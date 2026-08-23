@@ -17,6 +17,21 @@ class UserPlaylist {
   );
 }
 
+enum MacProfileConnectionState { unknown, checking, active, unauthorized, offline }
+
+class MacProfileConnectionStatus {
+  final MacProfileConnectionState state;
+  final String message;
+  final DateTime? checkedAt;
+
+  const MacProfileConnectionStatus({required this.state, required this.message, this.checkedAt});
+
+  const MacProfileConnectionStatus.unknown()
+      : state = MacProfileConnectionState.unknown,
+        message = 'لم يُفحص بعد',
+        checkedAt = null;
+}
+
 class IPTVProvider with ChangeNotifier {
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
@@ -88,6 +103,9 @@ class IPTVProvider with ChangeNotifier {
 
   List<UserPlaylist> _macProfiles = [];
   List<UserPlaylist> get macProfiles => List.unmodifiable(_macProfiles);
+
+  final Map<String, MacProfileConnectionStatus> _macProfileStatuses = {};
+  Map<String, MacProfileConnectionStatus> get macProfileStatuses => Map.unmodifiable(_macProfileStatuses);
 
   String? _activePlaylistId;
   String? get activePlaylistId => _activePlaylistId;
@@ -510,13 +528,7 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _loadStalkerData(String host, String mac) async {
-    var baseUrl = host.trim();
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-    if (baseUrl.contains('/portal.php')) {
-      baseUrl = baseUrl.replaceFirst('/portal.php', '/server/load.php');
-    } else if (!baseUrl.contains('/server/load.php')) {
-      baseUrl = '$baseUrl/server/load.php';
-    }
+    final baseUrl = _stalkerPortalUrl(host);
     final headers = {'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
     try {
       final hRes = await http.get(Uri.parse('$baseUrl?type=stb&action=handshake&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 20));
@@ -655,6 +667,91 @@ class IPTVProvider with ChangeNotifier {
     return value;
   }
 
+  String _stalkerPortalUrl(String host) {
+    var baseUrl = _normalizeMacHost(host);
+    if (baseUrl.contains('/portal.php')) {
+      return baseUrl.replaceFirst('/portal.php', '/server/load.php');
+    }
+    if (!baseUrl.contains('/server/load.php')) return '$baseUrl/server/load.php';
+    return baseUrl;
+  }
+
+  MacProfileConnectionStatus macProfileStatus(String profileId) {
+    return _macProfileStatuses[profileId] ?? const MacProfileConnectionStatus.unknown();
+  }
+
+  Future<void> checkMacProfileStatus(String profileId) async {
+    final profile = _macProfiles.firstWhere(
+      (item) => item.id == profileId,
+      orElse: () => UserPlaylist(id: '', name: '', type: ''),
+    );
+    if (profile.id.isEmpty) return;
+    _macProfileStatuses[profileId] = const MacProfileConnectionStatus(
+      state: MacProfileConnectionState.checking,
+      message: 'جاري الفحص...',
+    );
+    notifyListeners();
+
+    final baseUrl = _stalkerPortalUrl(profile.host ?? '');
+    final mac = profile.username?.trim() ?? '';
+    final headers = <String, String>{'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
+    try {
+      final handshake = await http
+          .get(Uri.parse('$baseUrl?type=stb&action=handshake&JsHttpRequest=1-xml'), headers: headers)
+          .timeout(const Duration(seconds: 15));
+      if (handshake.statusCode == 401 || handshake.statusCode == 403) {
+        _setMacProfileStatus(profileId, MacProfileConnectionState.unauthorized, 'غير مصرح أو منتهي');
+        return;
+      }
+      if (handshake.statusCode != 200) {
+        _setMacProfileStatus(profileId, MacProfileConnectionState.offline, 'الخادم غير متاح');
+        return;
+      }
+      String? token;
+      try {
+        final data = json.decode(handshake.body);
+        if (data is Map) {
+          final payload = data['js'];
+          if (payload is Map) token = payload['token']?.toString();
+        }
+      } catch (_) {}
+      if (token == null || token.isEmpty) {
+        _setMacProfileStatus(profileId, MacProfileConnectionState.unauthorized, 'بيانات MAC غير صالحة');
+        return;
+      }
+      headers['Authorization'] = 'Bearer $token';
+      final genres = await http
+          .get(Uri.parse('$baseUrl?type=itv&action=get_genres&JsHttpRequest=1-xml'), headers: headers)
+          .timeout(const Duration(seconds: 20));
+      if (genres.statusCode == 401 || genres.statusCode == 403) {
+        _setMacProfileStatus(profileId, MacProfileConnectionState.unauthorized, 'غير مصرح أو منتهي');
+        return;
+      }
+      if (genres.statusCode == 200 && genres.body.trim().isNotEmpty) {
+        _setMacProfileStatus(profileId, MacProfileConnectionState.active, 'متصل وصالح');
+        return;
+      }
+      _setMacProfileStatus(profileId, MacProfileConnectionState.offline, 'متصل لكن الفئات غير متاحة');
+    } catch (_) {
+      _setMacProfileStatus(profileId, MacProfileConnectionState.offline, 'تعذر الاتصال بالخادم');
+    }
+  }
+
+  Future<void> refreshMacProfilesStatus() async {
+    for (final profile in _macProfiles) {
+      await checkMacProfileStatus(profile.id);
+    }
+  }
+
+  void _setMacProfileStatus(String profileId, MacProfileConnectionState state, String message) {
+    _macProfileStatuses[profileId] = MacProfileConnectionStatus(
+      state: state,
+      message: message,
+      checkedAt: DateTime.now(),
+    );
+    notifyListeners();
+  }
+
   Future<bool> saveMacProfile({
     required String name,
     required String host,
@@ -685,6 +782,7 @@ class IPTVProvider with ChangeNotifier {
       _macProfiles.add(profile);
       _savedPlaylists.add(profile);
     }
+    _macProfileStatuses[id] = const MacProfileConnectionStatus.unknown();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mac_profiles', json.encode(_macProfiles.map((item) => item.toJson()).toList()));
     await _persistSavedPlaylists();
@@ -720,6 +818,7 @@ class IPTVProvider with ChangeNotifier {
     _applyFilters();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('active_mac_profile_id', profile.id);
+    _setMacProfileStatus(profile.id, MacProfileConnectionState.active, 'متصل وصالح');
     notifyListeners();
     return true;
   }
@@ -730,6 +829,7 @@ class IPTVProvider with ChangeNotifier {
     if (!exists) return false;
     _macProfiles.removeWhere((item) => item.id == profileId);
     _savedPlaylists.removeWhere((item) => item.id == profileId);
+    _macProfileStatuses.remove(profileId);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mac_profiles', json.encode(_macProfiles.map((item) => item.toJson()).toList()));
     await _persistSavedPlaylists();

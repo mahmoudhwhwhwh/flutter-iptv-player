@@ -494,11 +494,16 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _loadStalkerData(String host, String mac) async {
-    var baseUrl = host;
-    if (!baseUrl.contains('/portal.php')) baseUrl = baseUrl.endsWith('/') ? '${baseUrl}portal.php' : '$baseUrl/portal.php';
+    var baseUrl = host.trim();
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    if (baseUrl.contains('/portal.php')) {
+      baseUrl = baseUrl.replaceFirst('/portal.php', '/server/load.php');
+    } else if (!baseUrl.contains('/server/load.php')) {
+      baseUrl = '$baseUrl/server/load.php';
+    }
     final headers = {'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
     try {
-      final hRes = await http.get(Uri.parse('$baseUrl?type=stb&action=handshake'), headers: headers).timeout(const Duration(seconds: 15));
+      final hRes = await http.get(Uri.parse('$baseUrl?type=stb&action=handshake&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 20));
       if (hRes.statusCode == 200) {
         try {
           final hData = json.decode(hRes.body);
@@ -506,31 +511,52 @@ class IPTVProvider with ChangeNotifier {
           if (_stalkerToken != null && _stalkerToken!.isNotEmpty) headers['Authorization'] = 'Bearer $_stalkerToken';
         } catch (_) {}
       }
-      await http.get(Uri.parse('$baseUrl?type=stb&action=get_profile'), headers: headers).timeout(const Duration(seconds: 15));
-      final catRes = await http.get(Uri.parse('$baseUrl?type=itv&action=get_categories'), headers: headers).timeout(const Duration(seconds: 20));
-      if (catRes.statusCode == 200) {
-        final decoded = json.decode(catRes.body);
-        List cats = [];
-        if (decoded is Map && decoded['js'] != null) cats = decoded['js'] is List ? decoded['js'] : [];
-        else if (decoded is List) cats = decoded;
-        _liveCategories = cats.whereType<Map>().map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
-        _liveCategories = FilterService.interceptAndFilterCategories(_liveCategories, blockAdult: _blockAdultContent);
-      }
-      final chanRes = await http.get(Uri.parse('$baseUrl?type=itv&action=get_all_channels'), headers: headers).timeout(const Duration(seconds: 30));
-      if (chanRes.statusCode == 200) {
-        final decoded = json.decode(chanRes.body);
-        List channels = [];
-        if (decoded is Map && decoded['js'] != null) {
+      await http.get(Uri.parse('$baseUrl?type=stb&action=get_profile&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 20));
+
+      List toList(dynamic decoded) {
+        if (decoded is List) return decoded;
+        if (decoded is Map) {
           final js = decoded['js'];
-          if (js is Map && js['data'] is List) channels = js['data'];
-          else if (js is List) channels = js;
-        } else if (decoded is List) channels = decoded;
+          if (js is List) return js;
+          if (js is Map && js['data'] is List) return js['data'] as List;
+        }
+        return [];
+      }
+
+      List cats = [];
+      for (final action in const ['get_genres', 'get_categories']) {
+        final catRes = await http.get(Uri.parse('$baseUrl?type=itv&action=$action&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 25));
+        if (catRes.statusCode != 200 || catRes.body.trim().isEmpty) continue;
+        try {
+          cats = toList(json.decode(catRes.body));
+          if (cats.isNotEmpty) break;
+        } catch (_) {}
+      }
+      _liveCategories = cats.whereType<Map>().map<Map<String, String>>((item) => {
+        'category_id': item['id']?.toString() ?? item['category_id']?.toString() ?? '',
+        'category_name': item['title']?.toString() ?? item['name']?.toString() ?? 'بث مباشر'
+      }).where((item) => item['category_id']!.isNotEmpty).toList();
+      _liveCategories = FilterService.interceptAndFilterCategories(_liveCategories, blockAdult: _blockAdultContent);
+
+      List channels = [];
+      for (final action in const ['get_all_channels', 'get_ordered_list']) {
+        final suffix = action == 'get_ordered_list' ? '&genre=0&p=1' : '';
+        final chanRes = await http.get(Uri.parse('$baseUrl?type=itv&action=$action$suffix&JsHttpRequest=1-xml'), headers: headers).timeout(const Duration(seconds: 45));
+        if (chanRes.statusCode != 200 || chanRes.body.trim().isEmpty) continue;
+        try {
+          channels = toList(json.decode(chanRes.body));
+          if (channels.isNotEmpty) break;
+        } catch (_) {}
+      }
+      if (channels.isNotEmpty) {
         for (final raw in channels) {
           if (raw is! Map) continue;
           final item = Map<String, dynamic>.from(raw);
+          final command = item['cmd']?.toString() ?? item['url']?.toString() ?? '';
+          if (command.isEmpty) continue;
           final catId = item['category_id']?.toString() ?? '';
           final cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? (cat['category_name'] ?? 'بث مباشر') : 'بث مباشر', url: '$baseUrl?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd']?.toString() ?? '')}', type: 'live'));
+          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? (cat['category_name'] ?? 'بث مباشر') : 'بث مباشر', url: command, type: 'stalker'));
         }
       }
     } catch (e) {

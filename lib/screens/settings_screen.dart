@@ -179,13 +179,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildActionButtonSettingCard(
-                  title: 'اشتراكات MAC المحفوظة',
-                  description: provider.macProfiles.isEmpty
-                      ? 'أضف أكثر من اشتراك MAC وتبدّل بينها من داخل التطبيق.'
-                      : '${provider.macProfiles.length} اشتراك محفوظ. بدّل الاشتراك النشط دون إعادة كتابة البيانات.',
-                  actionLabel: 'إدارة MAC',
-                  icon: Icons.connected_tv_rounded,
-                  onTap: () => _showMacProfilesManager(provider),
+                  title: 'أكواد الاشتراك المحفوظة',
+                  description: provider.savedSubscriptionCodes.isEmpty
+                      ? 'احفظ أكثر من كود مثل 02389 و96827 وبدّل بينها. التطبيق يحدد Xtream أو MAC تلقائياً.'
+                      : '${provider.savedSubscriptionCodes.length} كود محفوظ. بدّل الكود دون إدخال بيانات السيرفر أو MAC.',
+                  actionLabel: 'إدارة الأكواد',
+                  icon: Icons.key_rounded,
+                  onTap: () => _showSavedCodesManager(provider),
                 ),
               ),
               const SizedBox(height: 24),
@@ -637,6 +637,201 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     }
+  }
+
+  Future<void> _showSavedCodesManager(IPTVProvider provider) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final savedCodes = provider.savedSubscriptionCodes;
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              backgroundColor: _SettingsPalette.surfaceElevated,
+              title: Row(
+                children: [
+                  const Icon(Icons.key_rounded, color: _SettingsPalette.cyan),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('أكواد الاشتراك المحفوظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+                  IconButton(
+                    tooltip: 'إضافة كود',
+                    icon: const Icon(Icons.add_circle_rounded, color: _SettingsPalette.purpleBright),
+                    onPressed: () async {
+                      await _showSavedCodeEditor(provider);
+                      if (dialogContext.mounted) setDialogState(() {});
+                    },
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 520,
+                height: savedCodes.isEmpty ? 150 : 350,
+                child: savedCodes.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'لا توجد أكواد محفوظة.\nاضغط زر + وأدخل كود الاشتراك فقط.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: _SettingsPalette.textMuted, height: 1.6),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: savedCodes.length,
+                        separatorBuilder: (_, __) => const Divider(color: _SettingsPalette.divider, height: 1),
+                        itemBuilder: (context, index) {
+                          final saved = savedCodes[index];
+                          final active = provider.activationCode == saved.code;
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                            leading: CircleAvatar(
+                              backgroundColor: active ? _SettingsPalette.cyan.withOpacity(0.18) : const Color(0xFF11111B),
+                              child: Icon(active ? Icons.check_circle_rounded : Icons.key_rounded, color: active ? _SettingsPalette.cyan : _SettingsPalette.purpleBright),
+                            ),
+                            title: Text(saved.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            subtitle: Text(
+                              active ? 'الكود ${saved.code} • نشط الآن' : 'الكود ${saved.code} • يحدد التطبيق المصدر تلقائياً',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12),
+                            ),
+                            trailing: Wrap(
+                              spacing: 2,
+                              children: [
+                                IconButton(
+                                  tooltip: active ? 'نشط الآن' : 'التبديل إلى هذا الكود',
+                                  icon: Icon(active ? Icons.check_circle_rounded : Icons.play_arrow_rounded, color: active ? _SettingsPalette.cyan : Colors.white),
+                                  onPressed: active
+                                      ? null
+                                      : () async {
+                                          final switched = await provider.switchSavedSubscriptionCode(saved.code);
+                                          if (!dialogContext.mounted) return;
+                                          if (!switched) {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تسجيل الدخول بهذا الكود. بقي الاشتراك السابق نشطاً.')));
+                                          }
+                                          setDialogState(() {});
+                                        },
+                                ),
+                                IconButton(
+                                  tooltip: 'تعديل الاسم',
+                                  icon: const Icon(Icons.edit_rounded, color: _SettingsPalette.gold),
+                                  onPressed: () async {
+                                    await _showSavedCodeEditor(provider, savedCode: saved);
+                                    if (dialogContext.mounted) setDialogState(() {});
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: active ? 'بدّل الكود قبل الحذف' : 'حذف',
+                                  icon: Icon(Icons.delete_outline_rounded, color: active ? _SettingsPalette.textMuted : _SettingsPalette.danger),
+                                  onPressed: active
+                                      ? null
+                                      : () async {
+                                          await provider.deleteSavedSubscriptionCode(saved.code);
+                                          if (dialogContext.mounted) setDialogState(() {});
+                                        },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
+                  onPressed: () async {
+                    await _showSavedCodeEditor(provider);
+                    if (dialogContext.mounted) setDialogState(() {});
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('إضافة كود'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showSavedCodeEditor(IPTVProvider provider, {SavedSubscriptionCode? savedCode}) async {
+    final nameController = TextEditingController(text: savedCode?.name ?? 'اشتراك جديد');
+    final codeController = TextEditingController(text: savedCode?.code ?? '');
+    String? validationMessage;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: _SettingsPalette.surfaceElevated,
+            title: Text(savedCode == null ? 'إضافة كود اشتراك' : 'تعديل اسم الاشتراك', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'اسم يظهر لك داخل التطبيق',
+                      labelStyle: const TextStyle(color: _SettingsPalette.textMuted),
+                      prefixIcon: const Icon(Icons.badge_rounded, color: _SettingsPalette.purpleBright),
+                      filled: true,
+                      fillColor: const Color(0xFF11111B),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: codeController,
+                    readOnly: savedCode != null,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'كود الدخول',
+                      labelStyle: const TextStyle(color: _SettingsPalette.textMuted),
+                      prefixIcon: const Icon(Icons.key_rounded, color: _SettingsPalette.cyan),
+                      filled: true,
+                      fillColor: const Color(0xFF11111B),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  if (savedCode == null) ...[
+                    const SizedBox(height: 10),
+                    const Text('سيتم التحقق من الكود عبر الخدمة وتحديد نوع المصدر تلقائياً.', style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 12), textAlign: TextAlign.right),
+                  ],
+                  if (validationMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(validationMessage!, style: const TextStyle(color: _SettingsPalette.danger, fontSize: 12), textAlign: TextAlign.right),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
+                onPressed: () async {
+                  final ok = savedCode == null
+                      ? await provider.saveAndSwitchSubscriptionCode(code: codeController.text, name: nameController.text)
+                      : await provider.renameSavedSubscriptionCode(savedCode.code, nameController.text);
+                  if (!dialogContext.mounted) return;
+                  if (!ok) {
+                    setDialogState(() => validationMessage = savedCode == null ? 'الكود غير صالح أو لا يمكن الوصول للخدمة حالياً.' : 'اكتب اسماً صالحاً للاشتراك.');
+                    return;
+                  }
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(savedCode == null ? 'تحقق واحفظ' : 'حفظ الاسم'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    nameController.dispose();
+    codeController.dispose();
   }
 
   Future<void> _showMacProfilesManager(IPTVProvider provider) async {

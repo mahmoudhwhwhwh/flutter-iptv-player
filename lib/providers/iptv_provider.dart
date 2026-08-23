@@ -32,6 +32,22 @@ class MacProfileConnectionStatus {
         checkedAt = null;
 }
 
+class SavedSubscriptionCode {
+  final String code;
+  final String name;
+
+  const SavedSubscriptionCode({required this.code, required this.name});
+
+  Map<String, dynamic> toJson() => {'code': code, 'name': name};
+
+  factory SavedSubscriptionCode.fromJson(Map<String, dynamic> json) {
+    return SavedSubscriptionCode(
+      code: json['code']?.toString().trim() ?? '',
+      name: json['name']?.toString().trim() ?? '',
+    );
+  }
+}
+
 class IPTVProvider with ChangeNotifier {
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
@@ -92,6 +108,9 @@ class IPTVProvider with ChangeNotifier {
 
   String _activationCode = '';
   String get activationCode => _activationCode;
+
+  List<SavedSubscriptionCode> _savedSubscriptionCodes = [];
+  List<SavedSubscriptionCode> get savedSubscriptionCodes => List.unmodifiable(_savedSubscriptionCodes);
 
   List<PlaylistItem> _allStreams = [], _filteredStreams = [], _recentlyPlayed = [];
   List<PlaylistItem> get allStreams => _allStreams;
@@ -360,6 +379,17 @@ class IPTVProvider with ChangeNotifier {
         _macProfiles = [];
       }
     }
+    final savedCodesStr = prefs.getString('saved_subscription_codes');
+    if (savedCodesStr != null) {
+      try {
+        _savedSubscriptionCodes = (json.decode(savedCodesStr) as List)
+            .map((item) => SavedSubscriptionCode.fromJson(Map<String, dynamic>.from(item)))
+            .where((item) => item.code.isNotEmpty)
+            .toList();
+      } catch (_) {
+        _savedSubscriptionCodes = [];
+      }
+    }
     _mergeMacProfilesIntoSavedPlaylists();
     final packageInfo = await PackageInfo.fromPlatform();
     _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 232;
@@ -414,6 +444,7 @@ class IPTVProvider with ChangeNotifier {
           await prefs.setBool('is_logged_in', true);
           _isLoggedIn = true;
           _activationCode = cleanCode;
+          await _rememberSubscriptionCode(cleanCode);
           _subscriptionType = (subscription['max_devices']?.toString() == '0') ? 'اشتراك بلا حدود' : 'اشتراك Premium';
           final expiry = subscription['expires_at']?.toString();
           _expirationAt = expiry == null || expiry.isEmpty ? null : DateTime.tryParse(expiry);
@@ -659,6 +690,65 @@ class IPTVProvider with ChangeNotifier {
   Future<void> _persistSavedPlaylists() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((playlist) => playlist.toJson()).toList()));
+  }
+
+  Future<void> _persistSavedSubscriptionCodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_subscription_codes', json.encode(_savedSubscriptionCodes.map((item) => item.toJson()).toList()));
+  }
+
+  Future<void> _rememberSubscriptionCode(String code, {String? name}) async {
+    final normalizedCode = code.trim();
+    if (normalizedCode.isEmpty) return;
+    final preferredName = (name ?? '').trim();
+    final index = _savedSubscriptionCodes.indexWhere((item) => item.code == normalizedCode);
+    final profile = SavedSubscriptionCode(
+      code: normalizedCode,
+      name: preferredName.isNotEmpty ? preferredName : (index >= 0 ? _savedSubscriptionCodes[index].name : 'اشتراك $normalizedCode'),
+    );
+    if (index >= 0) {
+      _savedSubscriptionCodes[index] = profile;
+    } else {
+      _savedSubscriptionCodes.add(profile);
+    }
+    await _persistSavedSubscriptionCodes();
+  }
+
+  Future<bool> saveAndSwitchSubscriptionCode({required String code, required String name}) async {
+    final normalizedCode = code.trim();
+    if (normalizedCode.isEmpty) return false;
+    final loaded = await loginWithCode(normalizedCode);
+    if (!loaded) return false;
+    await _rememberSubscriptionCode(normalizedCode, name: name);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> switchSavedSubscriptionCode(String code) async {
+    return loginWithCode(code);
+  }
+
+  Future<bool> renameSavedSubscriptionCode(String code, String name) async {
+    final normalizedCode = code.trim();
+    final normalizedName = name.trim();
+    if (normalizedCode.isEmpty || normalizedName.isEmpty) return false;
+    final index = _savedSubscriptionCodes.indexWhere((item) => item.code == normalizedCode);
+    if (index < 0) return false;
+    _savedSubscriptionCodes[index] = SavedSubscriptionCode(code: normalizedCode, name: normalizedName);
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteSavedSubscriptionCode(String code) async {
+    final normalizedCode = code.trim();
+    if (normalizedCode.isEmpty || normalizedCode == _activationCode) return false;
+    final exists = _savedSubscriptionCodes.any((item) => item.code == normalizedCode);
+    if (!exists) return false;
+    _savedSubscriptionCodes.removeWhere((item) => item.code == normalizedCode);
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    return true;
   }
 
   String _normalizeMacHost(String host) {

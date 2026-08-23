@@ -27,4 +27,13 @@ void main() {
     expect(restored.host, profile.host);
     expect(restored.username, profile.username);
   });
+
+  test('saved subscription code survives JSON persistence', () {
+    const saved = SavedSubscriptionCode(code: '96827', name: 'اشتراك العائلة');
+
+    final restored = SavedSubscriptionCode.fromJson(saved.toJson());
+
+    expect(restored.code, '96827');
+    expect(restored.name, 'اشتراك العائلة');
+  });
 }

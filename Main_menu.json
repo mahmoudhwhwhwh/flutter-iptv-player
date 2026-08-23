@@ -2,17 +2,7 @@
   {
     "name": "SPORTS 1 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max1.m3u8",
-    "category_name": "Match time",
-    "category_id": "custom_pro_1",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "خاصه ب نقل مباريات برشلونة ⚡",
-    "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://a12.kora-plus.li/live/alwan1.m3u8?token=C0WWFtcRLW-TRLXuk8jDEtk_3mc&exp=1786221480",
+    "url": "http://217.60.15.177:8080/live//b0:99:d7:15:88:50/3090914536649669/325803.m3u8?token=yXzbaHc.bUdfH.X.yXUfH.yczHbdcU.X.y.EG.m3u8.56b9e98a51c94cea1f024fa598b4a3f9dd53d3339b1706028462edf79308b765.8452.VGVsZWNvbSBFZ3lwdA==.MTg1LjE5MS4xMjYuMTI3",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -22,7 +12,7 @@
   {
     "name": "SPORTS 2 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max2.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418116.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -32,7 +22,7 @@
   {
     "name": "SPORTS 3 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max3.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418119.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -42,7 +32,7 @@
   {
     "name": "SPORTS 4 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max4.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418121.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -52,7 +42,7 @@
   {
     "name": "SPORTS 5 HD⚡ ",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max5.m3u8",
+    "url": "http://185.191.126.127:8080/live//b0:99:d7:15:88:50/3090914536649669/418124.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -62,7 +52,7 @@
   {
     "name": "SPORTS 6 HD⚡ ",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max6.m3u8",
+    "url": "http://185.191.126.127:8080/live//b0:99:d7:15:88:50/3090914536649669/418127.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -70,9 +60,9 @@
     "keys": {}
   },
   {
-    "name": "beIN Sports 1 HD pro  ⚡",
+    "name": "beIN Sports 1 HD pro ⚡",
     "icon": "https://iili.io/CK75BIe.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max7.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460836.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",
@@ -80,9 +70,9 @@
     "keys": {}
   },
   {
-    "name": "beIN Sports 2 HD pro  ⚡",
+    "name": "beIN Sports 2 HD pro ⚡",
     "icon": "https://iili.io/CK75iZu.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max8.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460837.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",
@@ -92,7 +82,7 @@
   {
     "name": "beIN Sports 3 HD pro ⚡",
     "icon": "https://iili.io/CK77jSV.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max9.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460838.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",
@@ -100,9 +90,9 @@
     "keys": {}
   },
   {
-    "name": "beIN Sports 4 HD pro  ⚡",
+    "name": "beIN Sports 4 HD pro ⚡",
     "icon": "https://iili.io/CK7c6Ux.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max10.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460839.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",
@@ -110,9 +100,9 @@
     "keys": {}
   },
   {
-    "name": "beIN Sports 5 HD pro  ⚡",
+    "name": "beIN Sports 5 HD pro ⚡",
     "icon": "https://iili.io/CK7lc0b.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max11.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460840.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",
@@ -120,9 +110,9 @@
     "keys": {}
   },
   {
-    "name": "beIN Sports 6 HD pro  ⚡",
+    "name": "beIN Sports 6 HD pro ⚡",
     "icon": "https://iili.io/CK7l4LX.png",
-    "url": "https://live-football-2mf.pages.dev/index_bein%20max12.m3u8",
+    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460841.ts",
     "category_name": "بين سبورت",
     "category_id": "custom_pro_2",
     "user_agent": "",

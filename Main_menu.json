@@ -2,7 +2,7 @@
   {
     "name": "SPORTS 1 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "http://217.60.15.177:8080/live//b0:99:d7:15:88:50/3090914536649669/325803.m3u8?token=yXzbaHc.bUdfH.X.yXUfH.yczHbdcU.X.y.EG.m3u8.56b9e98a51c94cea1f024fa598b4a3f9dd53d3339b1706028462edf79308b765.8452.VGVsZWNvbSBFZ3lwdA==.MTg1LjE5MS4xMjYuMTI3",
+    "url": "Http://194.76.0.163/gshAXQ2fQa/NZP6JGIxJO//652310?token=ShJdY2ZmQQNHCmMZCDZXUh9GSHAWGFMD.ZDsGQVN.WGBFNX013GR9YV1QbGBp0QE9SWmpcXlQXXlUHWlcbRxFACmcDY1tXEVkbVAoAAQJUFxUbRFldAxdeUAdaVAFcUwcHAhwWQlpXQQMLTFhUG0FQQU1VQl4HWTsFVBQLVABGCVxEXFgeEVwNZgFcWVlZBxcDGwESHERcFxETWAxCCQgfEFNZQEBSRwYbX1dBVFtPF1pWRV5EFExGWxMmJxVJRlZKRVVaQVpcDRtfG0BLFU8XUEpvQlUVQRYEUA8HRUdeEQITHBZfUks8WgpXWl1UF1xWV0MSCkQERk0TDw1ZDBBcQG5AXVYRCQ1MCVVJ",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -254,62 +254,74 @@
   {
     "name": "Starz Play Sports 1 الدوري الايطالي ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps1.starzplayarabia.com/out/v1/eee188845e9543699fd24e5a9890c6e2/index.mpd?|drmScheme=clearkey&drmLicense=b253c726c24c7c94a3ddf9b1907e2c76:097963d6ad73c3d712a104981de0ed42",
+    "url": "https://sps1.starzplayarabia.com/out/v1/eee188845e9543699fd24e5a9890c6e2/index.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "b253c726c24c7c94a3ddf9b1907e2c76": "097963d6ad73c3d712a104981de0ed42"
+    }
   },
   {
     "name": "Starz Play Sports 2 الدوري الايطالي ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps2.starzplayarabia.com/out/v1/15e7d1ffb99746dda03f71dbbbc3c08b/index.mpd?|drmScheme=clearkey&drmLicense=ee861edcd99093153a763a94b14c2c5a:ab3991f6a7729ba1ea4bcdba0c1ae6c0",
+    "url": "https://sps2.starzplayarabia.com/out/v1/15e7d1ffb99746dda03f71dbbbc3c08b/index.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "ee861edcd99093153a763a94b14c2c5a": "ab3991f6a7729ba1ea4bcdba0c1ae6c0"
+    }
   },
   {
     "name": "Starz Play Sports 3 الدوري الايطالي ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps3.starzplayarabia.com/out/v1/95528122fa434bcd948c9ed2e7afabee/index.mpd?|drmScheme=clearkey&drmLicense=117c29396ec6fd295880013241a466e1:3dfb883251884e66d784111877c44b13",
+    "url": "https://sps3.starzplayarabia.com/out/v1/95528122fa434bcd948c9ed2e7afabee/index.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "117c29396ec6fd295880013241a466e1": "3dfb883251884e66d784111877c44b13"
+    }
   },
   {
-    "name": "دوري روشن ⚡",
+    "name": "دوري روشن 1 ⚡",
     "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT1/wv-pr/manifest.mpd174e90a58a1f2c024be4c9/cenc.mpd?|drmScheme=clearkey&drmLicense=714c789c76686632652eefc19f18c3db:962cee49ee9422b44a6c60a7999854ad",
+    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT1/wv-pr/manifest.mpd174e90a58a1f2c024be4c9/cenc.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "714c789c76686632652eefc19f18c3db": "962cee49ee9422b44a6c60a7999854ad"
+    }
   },
   {
-    "name": "دوري روشن ⚡",
+    "name": "دوري روشن 2 ⚡",
     "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT2/wv-pr/manifest.mpd5934f3a8de4358e69eab86c/cenc.mpd?|drmScheme=clearkey&drmLicense=97e293d59ed72db87f12fe7075d8bb4c:c633955e4477ed5acbae68a2b0f1d216",
+    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT2/wv-pr/manifest.mpd5934f3a8de4358e69eab86c/cenc.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "97e293d59ed72db87f12fe7075d8bb4c": "c633955e4477ed5acbae68a2b0f1d216"
+    }
   },
   {
-    "name": "دوري روشن ⚡",
+    "name": "دوري روشن 3 ⚡",
     "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT3/wv-pr/manifest.mpd?|drmScheme=clearkey&drmLicense=4bc8e4e871589a45e7c0c7d245c243c6:4c5e8108e0f3cea4b588f5727d3de482",
+    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT3/wv-pr/manifest.mpd",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {}
+    "keys": {
+      "4bc8e4e871589a45e7c0c7d245c243c6": "4c5e8108e0f3cea4b588f5727d3de482"
+    }
   },
   {
     "name": "Abu Dhabi Sport 1 ⚡",

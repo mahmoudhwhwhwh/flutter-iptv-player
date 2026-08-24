@@ -493,6 +493,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         useAsmsTracks: isAsms,
         useAsmsSubtitles: isAsms,
         useAsmsAudioTracks: isAsms,
+        bufferingConfiguration: _stream.type == 'live'
+            ? const BetterPlayerBufferingConfiguration(
+                minBufferMs: 12000,
+                maxBufferMs: 45000,
+                bufferForPlaybackMs: 2500,
+                bufferForPlaybackAfterRebufferMs: 5000,
+              )
+            : const BetterPlayerBufferingConfiguration(),
         drmConfiguration: _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
             ? BetterPlayerDrmConfiguration(
                 drmType: BetterPlayerDrmType.clearKey,

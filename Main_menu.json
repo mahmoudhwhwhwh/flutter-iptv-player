@@ -1,8 +1,8 @@
 [
   {
-    "name": "SPORTS 1 HD ⚡",
-    "icon": "https://iili.io/CKGvbzx.png",
-    "url": "Http://194.76.0.163/gshAXQ2fQa/NZP6JGIxJO//652310?token=ShJdY2ZmQQNHCmMZCDZXUh9GSHAWGFMD.ZDsGQVN.WGBFNX013GR9YV1QbGBp0QE9SWmpcXlQXXlUHWlcbRxFACmcDY1tXEVkbVAoAAQJUFxUbRFldAxdeUAdaVAFcUwcHAhwWQlpXQQMLTFhUG0FQQU1VQl4HWTsFVBQLVABGCVxEXFgeEVwNZgFcWVlZBxcDGwESHERcFxETWAxCCQgfEFNZQEBSRwYbX1dBVFtPF1pWRV5EFExGWxMmJxVJRlZKRVVaQVpcDRtfG0BLFU8XUEpvQlUVQRYEUA8HRUdeEQITHBZfUks8WgpXWl1UF1xWV0MSCkQERk0TDw1ZDBBcQG5AXVYRCQ1MCVVJ",
+    "name": "VIP SPORTS 1 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max1.m3u8",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -10,9 +10,9 @@
     "keys": {}
   },
   {
-    "name": "SPORTS 2 HD ⚡",
-    "icon": "https://iili.io/CKGvbzx.png",
-    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418116.ts",
+    "name": "VIP SPORTS 2 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max2.m3u8",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -20,9 +20,9 @@
     "keys": {}
   },
   {
-    "name": "SPORTS 3 HD ⚡",
-    "icon": "https://iili.io/CKGvbzx.png",
-    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418119.ts",
+    "name": "VIP SPORTS 3 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max3.m3u8",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -30,9 +30,9 @@
     "keys": {}
   },
   {
-    "name": "SPORTS 4 HD ⚡",
-    "icon": "https://iili.io/CKGvbzx.png",
-    "url": "http://185.191.126.127:8080/live////////////////////////////b0:99:d7:15:88:50/3090914536649669/418121.ts",
+    "name": "VIP SPORTS 4 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max4.m3u8",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -40,7 +40,57 @@
     "keys": {}
   },
   {
-    "name": "SPORTS 5 HD⚡ ",
+    "name": "VIP SPORTS 5 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max5.m3u8",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "VIP SPORTS 6 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max6.m3u8",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "VIP SPORTS 7 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max7.m3u8",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "VIP SPORTS 8 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max8.m3u8",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "VIP SPORTS 9 ⚡",
+    "icon": "https://iili.io/CtN2brN.png",
+    "url": "https://live-football-2mf.pages.dev/index_bein%20max9.m3u8",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 5 HD⚡",
     "icon": "https://iili.io/CKGvbzx.png",
     "url": "http://185.191.126.127:8080/live//b0:99:d7:15:88:50/3090914536649669/418124.ts",
     "category_name": "Match time",
@@ -50,71 +100,11 @@
     "keys": {}
   },
   {
-    "name": "SPORTS 6 HD⚡ ",
+    "name": "SPORTS 6 HD⚡",
     "icon": "https://iili.io/CKGvbzx.png",
     "url": "http://185.191.126.127:8080/live//b0:99:d7:15:88:50/3090914536649669/418127.ts",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 1 HD pro ⚡",
-    "icon": "https://iili.io/CK75BIe.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460836.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 2 HD pro ⚡",
-    "icon": "https://iili.io/CK75iZu.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460837.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 3 HD pro ⚡",
-    "icon": "https://iili.io/CK77jSV.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460838.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 4 HD pro ⚡",
-    "icon": "https://iili.io/CK7c6Ux.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460839.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 5 HD pro ⚡",
-    "icon": "https://iili.io/CK7lc0b.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460840.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "beIN Sports 6 HD pro ⚡",
-    "icon": "https://iili.io/CK7l4LX.png",
-    "url": "http://185.191.126.127:8080/live////////////b0:99:d7:15:88:50/3090914536649669/460841.ts",
-    "category_name": "بين سبورت",
-    "category_id": "custom_pro_2",
     "user_agent": "",
     "referer": "",
     "keys": {}
@@ -190,18 +180,6 @@
     "keys": {}
   },
   {
-    "name": "Alkass Sports 1 ⚡",
-    "icon": "https://iili.io/CKMJBjf.png",
-    "url": "https://liveeu-gcp.alkassdigital.net/alkass1-p/main.m3u8",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {
-      "47f0ab58f5a81c20b5b69dc494cbe102": "1e0719da653c2b4652f0b0bf84d96c74"
-    }
-  },
-  {
     "name": "Alkass Sports 2 ⚡",
     "icon": "https://iili.io/CKMJBjf.png",
     "url": "https://liveeu-gcp.alkassdigital.net/alkass2-p/main.m3u8",
@@ -252,76 +230,34 @@
     "keys": {}
   },
   {
-    "name": "Starz Play Sports 1 الدوري الايطالي ⚡",
+    "name": "Starz Play Sports 1 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps1.starzplayarabia.com/out/v1/eee188845e9543699fd24e5a9890c6e2/index.mpd",
+    "url": "https://live-football-2mf.pages.dev/index_starz%20play1.m3u8",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {
-      "b253c726c24c7c94a3ddf9b1907e2c76": "097963d6ad73c3d712a104981de0ed42"
-    }
+    "keys": {}
   },
   {
-    "name": "Starz Play Sports 2 الدوري الايطالي ⚡",
+    "name": "Starz Play Sports 2 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps2.starzplayarabia.com/out/v1/15e7d1ffb99746dda03f71dbbbc3c08b/index.mpd",
+    "url": "https://live-football-2mf.pages.dev/index_starz%20play2.m3u8",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {
-      "ee861edcd99093153a763a94b14c2c5a": "ab3991f6a7729ba1ea4bcdba0c1ae6c0"
-    }
+    "keys": {}
   },
   {
-    "name": "Starz Play Sports 3 الدوري الايطالي ⚡",
+    "name": "Starz Play Sports 3 ⚡",
     "icon": "https://iili.io/Cf02bDP.jpg",
-    "url": "https://sps3.starzplayarabia.com/out/v1/95528122fa434bcd948c9ed2e7afabee/index.mpd",
+    "url": "https://live-football-2mf.pages.dev/index_starz%20play3.m3u8",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",
     "referer": "",
-    "keys": {
-      "117c29396ec6fd295880013241a466e1": "3dfb883251884e66d784111877c44b13"
-    }
-  },
-  {
-    "name": "دوري روشن 1 ⚡",
-    "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT1/wv-pr/manifest.mpd174e90a58a1f2c024be4c9/cenc.mpd",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {
-      "714c789c76686632652eefc19f18c3db": "962cee49ee9422b44a6c60a7999854ad"
-    }
-  },
-  {
-    "name": "دوري روشن 2 ⚡",
-    "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT2/wv-pr/manifest.mpd5934f3a8de4358e69eab86c/cenc.mpd",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {
-      "97e293d59ed72db87f12fe7075d8bb4c": "c633955e4477ed5acbae68a2b0f1d216"
-    }
-  },
-  {
-    "name": "دوري روشن 3 ⚡",
-    "icon": "https://iili.io/CKGia0x.png",
-    "url": "https://scccrwb-live.cdn.intigral-ott.net/bpk-tv/STCT3/wv-pr/manifest.mpd",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {
-      "4bc8e4e871589a45e7c0c7d245c243c6": "4c5e8108e0f3cea4b588f5727d3de482"
-    }
+    "keys": {}
   },
   {
     "name": "Abu Dhabi Sport 1 ⚡",
@@ -337,26 +273,6 @@
     "name": "Abu Dhabi Sport 2 ⚡",
     "icon": "https://iili.io/CBe6i8X.jpg",
     "url": "https://live-football-2mf.pages.dev/index_AD%20sports2.m3u8",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "Sharjah SPORTS HD⚡",
-    "icon": "https://iili.io/CgrMtWX.jpg",
-    "url": "http://marveliptv.life/01112727740kh/khiary7740/261524",
-    "category_name": "الرياضة العربية",
-    "category_id": "custom_pro_4",
-    "user_agent": "",
-    "referer": "",
-    "keys": {}
-  },
-  {
-    "name": "IRAQI SPORTS HD⚡",
-    "icon": "https://iili.io/CgrexDv.jpg",
-    "url": "http://marveliptv.life/01112727740kh/khiary7740/154339",
     "category_name": "الرياضة العربية",
     "category_id": "custom_pro_4",
     "user_agent": "",

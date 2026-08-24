@@ -48,6 +48,15 @@ class SavedSubscriptionCode {
   }
 }
 
+List<String> subscriptionFallbackCandidates(Iterable<SavedSubscriptionCode> savedCodes, String failedCode) {
+  final normalizedFailedCode = failedCode.trim();
+  final seen = <String>{};
+  return savedCodes
+      .map((item) => item.code.trim())
+      .where((candidate) => candidate.isNotEmpty && candidate != normalizedFailedCode && seen.add(candidate))
+      .toList();
+}
+
 class IPTVProvider with ChangeNotifier {
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
@@ -331,7 +340,7 @@ class IPTVProvider with ChangeNotifier {
   static const String _workerBase = 'https://iptv-subscription-api.tvkora56.workers.dev';
   static const String _configUrl = '$_workerBase/v1/config';
   static const String _loginUrl = '$_workerBase/v1/login';
-  static const String _menuUrl = 'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json';
+  static const String _menuUrl = '$_workerBase/v1/custom/menu';
 
   Future<void> init() async {
     _isLoading = true;
@@ -422,9 +431,42 @@ class IPTVProvider with ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<bool> loginWithCode(String code) async {
+  Future<bool> loginWithCode(String code, {bool allowAutomaticFallback = true}) async {
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final previousActiveCode = prefs.getString('active_code');
+    final previousLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    final previousIsLoggedIn = _isLoggedIn;
+    final previousActivationCode = _activationCode;
+    final previousSavedPlaylists = List<UserPlaylist>.from(_savedPlaylists);
+    final previousActivePlaylistId = _activePlaylistId;
+    final previousAllStreams = List<PlaylistItem>.from(_allStreams);
+    final previousFilteredStreams = List<PlaylistItem>.from(_filteredStreams);
+    final previousLiveCategories = List<Map<String, String>>.from(_liveCategories);
+    final previousSubscriptionType = _subscriptionType;
+    final previousExpirationAt = _expirationAt;
+    final previousLastError = _lastError;
+
+    Future<void> restorePreviousLoginState() async {
+      _isLoggedIn = previousIsLoggedIn;
+      _activationCode = previousActivationCode;
+      _savedPlaylists = previousSavedPlaylists;
+      _activePlaylistId = previousActivePlaylistId;
+      _allStreams = previousAllStreams;
+      _filteredStreams = previousFilteredStreams;
+      _liveCategories = previousLiveCategories;
+      _subscriptionType = previousSubscriptionType;
+      _expirationAt = previousExpirationAt;
+      _lastError = previousLastError;
+      if ((previousActiveCode ?? '').isEmpty) {
+        await prefs.remove('active_code');
+      } else {
+        await prefs.setString('active_code', previousActiveCode ?? '');
+      }
+      await prefs.setBool('is_logged_in', previousLoggedIn);
+    }
+
     _isLoading = true;
     _lastError = null;
     notifyListeners();
@@ -439,7 +481,6 @@ class IPTVProvider with ChangeNotifier {
         if (data is Map && data['ok'] == true && data['server'] is Map) {
           final server = Map<String, dynamic>.from(data['server'] as Map);
           final subscription = data['subscription'] is Map ? Map<String, dynamic>.from(data['subscription'] as Map) : <String, dynamic>{};
-          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('active_code', cleanCode);
           await prefs.setBool('is_logged_in', true);
           _isLoggedIn = true;
@@ -462,14 +503,9 @@ class IPTVProvider with ChangeNotifier {
             await loadPlaylistStreams(list.id);
           }
           if (_allStreams.isEmpty) {
-            _lastError = 'تم قبول الكود، لكن مصدر القنوات لم يُرجع قائمة حالياً. حاول التحديث بعد لحظات.';
-            _isLoggedIn = false;
-            _activationCode = '';
-            _savedPlaylists = List<UserPlaylist>.from(_macProfiles);
-            _activePlaylistId = null;
-            await prefs.remove('active_code');
-            await _persistSavedPlaylists();
-            await prefs.setBool('is_logged_in', false);
+            await restorePreviousLoginState();
+            if (allowAutomaticFallback && await _tryAutomaticSavedSubscriptionFallback(cleanCode)) return true;
+            _lastError = 'تم قبول الكود، لكن مصدر القنوات لم يُرجع قائمة حالياً.';
             _isLoading = false;
             notifyListeners();
             return false;
@@ -482,8 +518,22 @@ class IPTVProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Login Error: $e');
     }
+    await restorePreviousLoginState();
+    if (allowAutomaticFallback && await _tryAutomaticSavedSubscriptionFallback(cleanCode)) return true;
     _isLoading = false;
     notifyListeners();
+    return false;
+  }
+
+  Future<bool> _tryAutomaticSavedSubscriptionFallback(String failedCode) async {
+    final candidates = subscriptionFallbackCandidates(_savedSubscriptionCodes, failedCode);
+    for (final candidate in candidates) {
+      if (await loginWithCode(candidate, allowAutomaticFallback: false)) {
+        _lastError = 'تعذر تحميل الاشتراك الحالي، فتم التبديل تلقائياً إلى اشتراك محفوظ يعمل.';
+        notifyListeners();
+        return true;
+      }
+    }
     return false;
   }
 

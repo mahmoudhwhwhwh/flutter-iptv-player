@@ -36,4 +36,15 @@ void main() {
     expect(restored.code, '96827');
     expect(restored.name, 'اشتراك العائلة');
   });
+
+  test('automatic fallback candidates exclude failed code and duplicates', () {
+    final candidates = subscriptionFallbackCandidates(const [
+      SavedSubscriptionCode(code: '02389', name: 'الأول'),
+      SavedSubscriptionCode(code: ' 96827 ', name: 'الثاني'),
+      SavedSubscriptionCode(code: '96827', name: 'مكرر'),
+      SavedSubscriptionCode(code: '', name: 'فارغ'),
+    ], '02389');
+
+    expect(candidates, ['96827']);
+  });
 }

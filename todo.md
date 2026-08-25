@@ -20,3 +20,14 @@
 - [x] مراجعة وتثبيت جميع الإضافات الأخيرة في نسخة واحدة متوافقة مع GitHub الخاص وCloudflare.
 - [x] إصلاح الاختبارات أو أخطاء التكامل المتبقية قبل البناء النهائي؛ نجحت جميع اختبارات Flutter 20/20.
 - [x] التحقق من مسارات 2027 وتسجيل الدخول والقوائم عبر Worker ثم بناء ورفع النسخة المستقرة؛ config/login HTTP 200 وAPK 2.2.53+253 مرفوع.
+
+
+# v2.2.61 Audit
+
+- [x] Fix Xtream HTTP/Worker gateway mismatch causing black playback and empty content on legacy saved subscriptions
+- [x] Add explicit player load failure feedback and retry action instead of silently closing
+- [x] Harden series season/episode normalization across Xtream response variants
+- [ ] Improve poster loading and metadata request performance without hiding content
+- [x] Add regression tests for series normalization; player/gateway behavior covered by static code path and release build
+- [ ] Run end-to-end verification for Xtream, Stalker, and custom-menu flows
+- [x] Build release APKs for 2.2.61+261 and upload direct download artifacts

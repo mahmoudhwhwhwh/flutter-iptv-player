@@ -2078,13 +2078,38 @@ class FavoritesScreen extends StatelessWidget {
 
 Map<String, List<dynamic>> normalizeSeriesEpisodes(dynamic rawEpisodes) {
   final result = <String, List<dynamic>>{};
+
+  void addSeason(String season, dynamic value) {
+    final items = <dynamic>[];
+    if (value is List) {
+      items.addAll(value);
+    } else if (value is Map) {
+      final nested = value['episodes'] ?? value['items'] ?? value['data'];
+      if (nested is List) {
+        items.addAll(nested);
+      } else {
+        // Some Xtream/Stalker variants return {episode_id: episodeObject}.
+        for (final item in value.values) {
+          if (item is Map) items.add(Map<String, dynamic>.from(item));
+        }
+      }
+    }
+    if (items.isNotEmpty || !result.containsKey(season)) {
+      result[season.isEmpty ? '1' : season] = items;
+    }
+  }
+
   if (rawEpisodes is Map) {
-    rawEpisodes.forEach((key, value) {
-      result[key.toString()] =
-          value is List ? List<dynamic>.from(value) : <dynamic>[];
-    });
+    rawEpisodes.forEach((key, value) => addSeason(key.toString(), value));
   } else if (rawEpisodes is List) {
-    result['1'] = List<dynamic>.from(rawEpisodes);
+    // Flat responses may carry the season on every episode.
+    final grouped = <String, List<dynamic>>{};
+    for (final item in rawEpisodes) {
+      final map = item is Map ? Map<String, dynamic>.from(item) : null;
+      final season = map?['season'] ?? map?['season_number'] ?? '1';
+      grouped.putIfAbsent(season.toString(), () => <dynamic>[]).add(item);
+    }
+    grouped.forEach((key, value) => addSeason(key, value));
   }
   return result;
 }
@@ -2095,14 +2120,37 @@ List<Map<String, dynamic>> normalizeSeriesSeasons(
   String cover,
 ) {
   final result = <Map<String, dynamic>>[];
+
+  void addSeason(String fallbackNumber, dynamic item) {
+    if (item is Map) {
+      final map = Map<String, dynamic>.from(item);
+      final rawNumber = map['season_number'] ??
+          map['season_num'] ??
+          map['season'] ??
+          map['id'] ??
+          fallbackNumber;
+      final number = rawNumber.toString();
+      if (number.isNotEmpty) {
+        map['season_number'] = rawNumber;
+        map.putIfAbsent('cover', () => cover);
+        map.putIfAbsent('episode_count', () => episodes[number]?.length ?? 0);
+        result.add(map);
+      }
+    } else if (item is List) {
+      final number = fallbackNumber.isEmpty ? '1' : fallbackNumber;
+      result.add({
+        'season_number': number,
+        'name': 'الموسم $number',
+        'cover': cover,
+        'episode_count': item.length,
+      });
+    }
+  }
+
   if (rawSeasons is List) {
-    for (final item in rawSeasons) {
-      if (item is Map) result.add(Map<String, dynamic>.from(item));
-    }
+    for (final item in rawSeasons) addSeason('', item);
   } else if (rawSeasons is Map) {
-    for (final item in rawSeasons.values) {
-      if (item is Map) result.add(Map<String, dynamic>.from(item));
-    }
+    rawSeasons.forEach((key, item) => addSeason(key.toString(), item));
   }
   if (result.isEmpty) {
     for (final entry in episodes.entries) {
@@ -2142,10 +2190,42 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _seriesData;
   String _selectedSeason = "";
+  Map<String, dynamic>? _resumeProgress;
+
+  String get _progressKey => 'series_progress_${widget.series.streamId}';
+
+  Future<void> _loadSavedProgress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_progressKey);
+      if (!mounted || raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        setState(() => _resumeProgress = Map<String, dynamic>.from(decoded));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveEpisodeProgress(dynamic ep, String seasonNumber) async {
+    final episodeId =
+        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (episodeId == null) return;
+    final progress = <String, dynamic>{
+      'season': seasonNumber,
+      'episode_id': episodeId.toString(),
+      'episode_number': ep['episode_num'] ?? ep['episode_number'] ?? '',
+      'title': (ep['title'] ?? ep['name'] ?? 'الحلقة').toString(),
+      'saved_at': DateTime.now().millisecondsSinceEpoch,
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_progressKey, jsonEncode(progress));
+    if (mounted) setState(() => _resumeProgress = progress);
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadSavedProgress();
     _fetchSeriesInfo();
   }
 
@@ -2225,8 +2305,31 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  void _playEpisode(dynamic ep) async {
+  Future<void> _resumeSavedEpisode() async {
+    final progress = _resumeProgress;
+    final data = _seriesData;
+    if (progress == null || data == null) return;
+    final season = progress['season']?.toString() ?? '';
+    final episodes = (data['episodes'] as Map<String, dynamic>)[season];
+    if (episodes is! List) return;
+    final wantedId = progress['episode_id']?.toString();
+    for (final item in episodes) {
+      if (item is! Map) continue;
+      final id = item['id'] ??
+          item['episode_id'] ??
+          item['stream_id'] ??
+          item['media_id'];
+      if (id?.toString() == wantedId) {
+        _selectedSeason = season;
+        await _playEpisode(item, seasonNumber: season);
+        return;
+      }
+    }
+  }
+
+  Future<void> _playEpisode(dynamic ep, {String? seasonNumber}) async {
     final provider = Provider.of<IPTVProvider>(context, listen: false);
+    await _saveEpisodeProgress(ep, seasonNumber ?? _selectedSeason);
     final categoryName = widget.series.categoryName;
     if (provider.isCategoryLocked(categoryName)) {
       bool ok = await showPinDialog(context, provider);
@@ -2426,6 +2529,29 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                         SizedBox(height: isMobile ? 16 : 24),
                         Row(
                           children: [
+                            if (_resumeProgress != null) ...[
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(
+                                      color: Color(0xFF46D9D9)),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 12 : 18,
+                                      vertical: isMobile ? 8 : 12),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4)),
+                                ),
+                                icon: Icon(Icons.play_circle_outline,
+                                    size: isMobile ? 18 : 22),
+                                label: Text(
+                                  'متابعة: م${_resumeProgress!['season']} - ${_resumeProgress!['title'] ?? 'الحلقة'}',
+                                  style:
+                                      TextStyle(fontSize: isMobile ? 12 : 14),
+                                ),
+                                onPressed: _resumeSavedEpisode,
+                              ),
+                              SizedBox(width: isMobile ? 8 : 12),
+                            ],
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: PremiumPalette.violet,
@@ -2444,7 +2570,8 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                       fontWeight: FontWeight.bold)),
                               onPressed: () {
                                 if (currentEpisodes.isNotEmpty)
-                                  _playEpisode(currentEpisodes.first);
+                                  _playEpisode(currentEpisodes.first,
+                                      seasonNumber: _selectedSeason);
                               },
                             ),
                             SizedBox(width: isMobile ? 8 : 12),

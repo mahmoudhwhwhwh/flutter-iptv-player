@@ -122,6 +122,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
+  String? _errorMessage;
   bool _isBuffering = false;
   late PlaylistItem _stream;
   bool _showHUD = true;
@@ -457,6 +458,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!isRetry) {
       _initialized = false;
       _hasError = false;
+      _errorMessage = null;
+    } else if (mounted) {
+      setState(() {
+        _initialized = false;
+        _hasError = false;
+        _errorMessage = null;
+        _isBuffering = true;
+      });
     }
     _currentPosition = Duration.zero;
     _totalDuration = Duration.zero;
@@ -739,15 +748,26 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _handlePlaybackError(dynamic error, int generation) {
     if (!_channelSwitchGuard.isCurrent(generation)) return;
-    debugPrint("IPTV Playback failed: $error - Auto retrying");
-    if (mounted) {
-      _reconnectTimer?.cancel();
-      _reconnectTimer = Timer(const Duration(milliseconds: 500), () {
-        if (mounted && _channelSwitchGuard.isCurrent(generation)) {
-          _initializeController(isRetry: true, generation: generation);
-        }
+    final message = error.toString().trim();
+    debugPrint("IPTV Playback failed: $message");
+    if (!mounted) return;
+    _reconnectTimer?.cancel();
+    if (_retryCount >= _maxRetries) {
+      setState(() {
+        _initialized = false;
+        _isBuffering = false;
+        _hasError = true;
+        _errorMessage = message.isEmpty ? null : message;
       });
+      return;
     }
+    _retryCount += 1;
+    setState(() => _isBuffering = true);
+    _reconnectTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted && _channelSwitchGuard.isCurrent(generation)) {
+        _initializeController(isRetry: true, generation: generation);
+      }
+    });
   }
 
   void _startSeekTracker() {
@@ -2253,12 +2273,34 @@ class _PlayerScreenState extends State<PlayerScreen>
           const Icon(Icons.error_outline_rounded,
               color: Colors.orangeAccent, size: 55),
           const SizedBox(height: 12),
-          const Text(
-            "عذراً، فشل تشغيل البث المباشر للقناة.",
+          Text(
+            _stream.type == 'movie'
+                ? "تعذر تشغيل الفيلم حالياً."
+                : _stream.type == 'series'
+                    ? "تعذر تشغيل الحلقة حالياً."
+                    : "تعذر تشغيل القناة حالياً.",
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
           ),
+          const SizedBox(height: 8),
+          const Text(
+            "قد يكون المصدر مشغولاً أو انتهت جلسة الاشتراك. حاول مرة أخرى.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!.length > 140
+                  ? _errorMessage!.substring(0, 140)
+                  : _errorMessage!,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.orangeAccent, fontSize: 11),
+            ),
+          ],
           const SizedBox(height: 18),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -2274,8 +2316,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                 label: const Text("إعادة المحاولة / RETRY"),
                 onPressed: () {
                   setState(() {
-                    _initializeController();
+                    _retryCount = 0;
+                    _hasError = false;
+                    _errorMessage = null;
+                    _initialized = false;
                   });
+                  _initializeController();
                 },
               ),
               const SizedBox(width: 12),

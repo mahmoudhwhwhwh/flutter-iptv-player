@@ -39,5 +39,29 @@ void main() {
     expect(seasons.single['season_number'], '3');
     expect(seasons.single['episode_count'], 1);
   });
-}
 
+  test('normalizes episode maps keyed by episode id', () {
+    final episodes = normalizeSeriesEpisodes({
+      '2': {
+        '201': {'id': 201, 'title': 'الحلقة 1'},
+        '202': {'episode_id': 202, 'title': 'الحلقة 2'},
+      },
+    });
+    expect(episodes['2'], hasLength(2));
+    expect(episodes['2']!.first['id'], 201);
+  });
+
+  test('derives seasons from a map whose values are episode lists', () {
+    final episodes = normalizeSeriesEpisodes({
+      '4': [
+        {'id': 401},
+        {'id': 402},
+      ],
+    });
+    final seasons = normalizeSeriesSeasons({
+      '4': episodes['4'],
+    }, episodes, 'cover');
+    expect(seasons.single['season_number'], '4');
+    expect(seasons.single['episode_count'], 2);
+  });
+}

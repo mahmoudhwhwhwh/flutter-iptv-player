@@ -675,6 +675,43 @@ class IPTVProvider with ChangeNotifier {
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
+
+    // Migrate legacy saved origins to the HTTPS Worker gateway. Older APKs
+    // persisted raw HTTP Xtream/Stalker hosts; Android 9+ blocks those URLs.
+    // Xtream sessions also need the managed code/password expected by Worker.
+    var playlistsMigrated = false;
+    _savedPlaylists = _savedPlaylists.map((playlist) {
+      final host = (playlist.host ?? '').trim();
+      final isXtream = playlist.type.toLowerCase() == 'xtream';
+      final isStalker = playlist.type.toLowerCase() == 'stalker';
+      if (!isXtream && !isStalker) return playlist;
+      final gateway =
+          isStalker ? '$_workerBase/v1/stalker' : '$_workerBase/v1/xtream';
+      final isWorkerHost = host.startsWith(_workerBase);
+      if (isWorkerHost &&
+          (!isXtream ||
+              (playlist.username == _activationCode &&
+                  playlist.password == 'managed'))) {
+        return playlist;
+      }
+      playlistsMigrated = true;
+      return UserPlaylist(
+        id: playlist.id,
+        name: playlist.name,
+        type: playlist.type,
+        url: playlist.url,
+        host: gateway,
+        username: isXtream && _activationCode.isNotEmpty
+            ? _activationCode
+            : playlist.username,
+        password: isXtream ? 'managed' : playlist.password,
+      );
+    }).toList();
+    if (playlistsMigrated) {
+      await prefs.setString('saved_playlists',
+          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+    }
+
     final savedCodesJson = prefs.getString(_savedSubscriptionCodesKey);
     if (savedCodesJson != null) {
       try {

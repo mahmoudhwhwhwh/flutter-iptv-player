@@ -1,5 +1,65 @@
 [
   {
+    "name": "SPORTS 1 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=0",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 2 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=1",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 3 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=2",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 4 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=3",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 5 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=4",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
+    "name": "SPORTS 6 HD ⚡",
+    "icon": "https://iili.io/CKGvbzx.png",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=5",
+    "category_name": "Match time",
+    "category_id": "custom_pro_1",
+    "user_agent": "",
+    "referer": "",
+    "keys": {}
+  },
+  {
     "name": "VIP SPORTS 1 ⚡",
     "icon": "https://iili.io/CtN2brN.png",
     "url": "https://live-football-2mf.pages.dev/index_bein%20max1.m3u8",

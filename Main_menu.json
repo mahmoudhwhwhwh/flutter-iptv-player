@@ -2,7 +2,7 @@
   {
     "name": "SPORTS 1 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=0",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/0.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -12,7 +12,7 @@
   {
     "name": "SPORTS 2 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=1",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/1.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -22,7 +22,7 @@
   {
     "name": "SPORTS 3 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=2",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/2.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -32,7 +32,7 @@
   {
     "name": "SPORTS 4 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=3",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/3.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -42,7 +42,7 @@
   {
     "name": "SPORTS 5 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=4",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/4.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",
@@ -52,7 +52,7 @@
   {
     "name": "SPORTS 6 HD ⚡",
     "icon": "https://iili.io/CKGvbzx.png",
-    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream?code=2027&id=5",
+    "url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/5.ts?code=2027",
     "category_name": "Match time",
     "category_id": "custom_pro_1",
     "user_agent": "",

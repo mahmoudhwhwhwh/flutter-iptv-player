@@ -481,6 +481,13 @@ class IPTVProvider with ChangeNotifier {
     return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
   }
 
+  static const String _workerBase = 'https://iptv-subscription-api.tvkora56.workers.dev';
+  static const String _configUrl = '$_workerBase/v1/config';
+  static const String _loginUrl = '$_workerBase/v1/login';
+  // The app menu has one public source of truth: this Flutter repository.
+  // Playback URLs inside the menu still point to the authenticated Worker proxy.
+  static const String _menuUrl = 'https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json';
+
   Future<void> init() async {
     _isLoading = true;
     notifyListeners();
@@ -1047,6 +1054,10 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _loadCuratedGitHubContent() async {
+    // القائمة المخصصة مستقلة عن فلاتر Xtream السابقة؛ لا نسمح بحالة قديمة بإخفاء القنوات.
+    _selectedCategory = 'all';
+    _searchQuery = '';
+    _channelFilter = 'الكل';
     _isFetchingData = true;
     _allStreams = [];
     _liveCategories = [];

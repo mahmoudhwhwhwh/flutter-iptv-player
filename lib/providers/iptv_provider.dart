@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/playlist_item.dart';
+import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
 import '../services/subscription_profile.dart';
 
@@ -72,6 +73,7 @@ class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
   static const String _loginUrl = '$_workerBase/v1/login';
+  static const String _savedSubscriptionCodesKey = 'saved_subscription_codes';
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
 
@@ -227,6 +229,9 @@ class IPTVProvider with ChangeNotifier {
   List<PlaylistItem> _filteredStreams = [];
   List<UserPlaylist> _savedPlaylists = [];
   List<UserPlaylist> get savedPlaylists => _savedPlaylists;
+  List<SavedSubscriptionCode> _savedSubscriptionCodes = [];
+  List<SavedSubscriptionCode> get savedSubscriptionCodes =>
+      List.unmodifiable(_savedSubscriptionCodes);
   String? _activePlaylistId;
   PlaylistItem? _currentStream;
   List<String> _favorites = [];
@@ -419,6 +424,114 @@ class IPTVProvider with ChangeNotifier {
 
   String? get activePlaylistId => _activePlaylistId;
 
+  SavedSubscriptionCode? savedSubscriptionCode(String code) {
+    final cleanCode = code.trim();
+    for (final saved in _savedSubscriptionCodes) {
+      if (saved.code == cleanCode) return saved;
+    }
+    return null;
+  }
+
+  Future<void> _persistSavedSubscriptionCodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _savedSubscriptionCodesKey,
+      jsonEncode(_savedSubscriptionCodes.map((item) => item.toJson()).toList()),
+    );
+  }
+
+  void _upsertSavedSubscriptionCode(
+    String code, {
+    String? label,
+    String status = 'unknown',
+    String? message,
+  }) {
+    final cleanCode = code.trim();
+    if (cleanCode.isEmpty) return;
+    final index =
+        _savedSubscriptionCodes.indexWhere((item) => item.code == cleanCode);
+    final old = index >= 0 ? _savedSubscriptionCodes[index] : null;
+    final next = SavedSubscriptionCode(
+      code: cleanCode,
+      label:
+          label?.trim().isNotEmpty == true ? label!.trim() : old?.label ?? '',
+      status: status,
+      lastCheckedAt: DateTime.now().millisecondsSinceEpoch,
+      message: message,
+    );
+    if (index >= 0) {
+      _savedSubscriptionCodes[index] = next;
+    } else {
+      _savedSubscriptionCodes.add(next);
+    }
+  }
+
+  Future<bool> addSavedSubscriptionCode(String code,
+      {String label = ''}) async {
+    final cleanCode = code.trim();
+    if (cleanCode.isEmpty) {
+      lastError = 'أدخل كود الاشتراك أولاً';
+      notifyListeners();
+      return false;
+    }
+    _upsertSavedSubscriptionCode(cleanCode, label: label, status: 'checking');
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    final success = await loginWithCode(cleanCode);
+    _upsertSavedSubscriptionCode(
+      cleanCode,
+      label: label,
+      status: success ? 'active' : 'invalid',
+      message: success ? null : lastError,
+    );
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    return success;
+  }
+
+  Future<bool> switchToSavedSubscription(String code) async {
+    final cleanCode = code.trim();
+    if (cleanCode.isEmpty) return false;
+    if (_isLoggedIn && _activationCode == cleanCode) return true;
+    final saved = savedSubscriptionCode(cleanCode);
+    _upsertSavedSubscriptionCode(cleanCode,
+        label: saved?.label, status: 'checking');
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    final success = await loginWithCode(cleanCode);
+    _upsertSavedSubscriptionCode(
+      cleanCode,
+      label: saved?.label,
+      status: success ? 'active' : 'invalid',
+      message: success ? null : lastError,
+    );
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+    return success;
+  }
+
+  Future<void> renameSavedSubscriptionCode(String code, String label) async {
+    final index =
+        _savedSubscriptionCodes.indexWhere((item) => item.code == code.trim());
+    if (index < 0) return;
+    _savedSubscriptionCodes[index] =
+        _savedSubscriptionCodes[index].copyWith(label: label.trim());
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+  }
+
+  Future<void> removeSavedSubscriptionCode(String code) async {
+    final cleanCode = code.trim();
+    if (cleanCode == _activationCode.trim() && _isLoggedIn) {
+      lastError = 'بدّل إلى اشتراك آخر قبل حذف الكود الحالي';
+      notifyListeners();
+      return;
+    }
+    _savedSubscriptionCodes.removeWhere((item) => item.code == cleanCode);
+    await _persistSavedSubscriptionCodes();
+    notifyListeners();
+  }
+
   List<Map<String, String>> get liveCategories => _liveCategories;
   List<Map<String, String>> get movieCategories => _movieCategories;
   List<Map<String, String>> get seriesCategories => _seriesCategories;
@@ -537,6 +650,26 @@ class IPTVProvider with ChangeNotifier {
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
+    final savedCodesJson = prefs.getString(_savedSubscriptionCodesKey);
+    if (savedCodesJson != null) {
+      try {
+        final decodedCodes = jsonDecode(savedCodesJson);
+        if (decodedCodes is List) {
+          _savedSubscriptionCodes = decodedCodes
+              .whereType<Map>()
+              .map((item) => SavedSubscriptionCode.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ))
+              .where((item) => item.code.isNotEmpty)
+              .toList();
+        }
+      } catch (_) {}
+    }
+    if (_activationCode.isNotEmpty &&
+        savedSubscriptionCode(_activationCode) == null) {
+      _upsertSavedSubscriptionCode(_activationCode, status: 'active');
+      await _persistSavedSubscriptionCodes();
+    }
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
@@ -657,7 +790,8 @@ class IPTVProvider with ChangeNotifier {
       if (response.statusCode == 401 || response.statusCode == 403) {
         return <String, dynamic>{
           '_invalid': true,
-          'message': data['message']?.toString() ?? 'رمز الاشتراك غير صالح أو منتهي',
+          'message':
+              data['message']?.toString() ?? 'رمز الاشتراك غير صالح أو منتهي',
         };
       }
     } catch (e) {
@@ -684,7 +818,8 @@ class IPTVProvider with ChangeNotifier {
     if (subscription is Map) {
       final expiry =
           DateTime.tryParse(subscription['expires_at']?.toString() ?? '');
-      if (expiry != null) durationHours = expiry.difference(DateTime.now()).inHours;
+      if (expiry != null)
+        durationHours = expiry.difference(DateTime.now()).inHours;
     }
     final id = 'subscription_${_activationCode.trim()}';
     final refreshed = UserPlaylist(
@@ -721,7 +856,8 @@ class IPTVProvider with ChangeNotifier {
     _isValidatingSubscription = true;
     try {
       final configRes = await http
-          .get(Uri.parse('$_workerBase/v1/config?t=${DateTime.now().millisecondsSinceEpoch}'))
+          .get(Uri.parse(
+              '$_workerBase/v1/config?t=${DateTime.now().millisecondsSinceEpoch}'))
           .timeout(const Duration(seconds: 8));
       if (configRes.statusCode == 200) {
         final decoded = json.decode(configRes.body);
@@ -738,14 +874,19 @@ class IPTVProvider with ChangeNotifier {
             }
           }
           final isBlocked = (blockData['blocked_version_codes'] is List &&
-                  (blockData['blocked_version_codes'] as List).contains(_currentVersionCode)) ||
+                  (blockData['blocked_version_codes'] as List)
+                      .contains(_currentVersionCode)) ||
               (_currentVersionCode <
-                  (int.tryParse(blockData['min_version_code']?.toString() ?? '0') ?? 0)) ||
+                  (int.tryParse(
+                          blockData['min_version_code']?.toString() ?? '0') ??
+                      0)) ||
               isOutdatedVersion(_currentVersionStr, _currentVersionCode);
           if (_isVersionBlocked != isBlocked) {
             _isVersionBlocked = isBlocked;
-            if (isBlocked && isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
-              _remoteBlockMessage = 'يرجى تحديث التطبيق إلى أحدث إصدار للاستمرار.';
+            if (isBlocked &&
+                isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
+              _remoteBlockMessage =
+                  'يرجى تحديث التطبيق إلى أحدث إصدار للاستمرار.';
             } else if (blockData['block_message'] != null) {
               _remoteBlockMessage = blockData['block_message'].toString();
             }
@@ -757,7 +898,8 @@ class IPTVProvider with ChangeNotifier {
       if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
         final validation = await _validateSubscriptionWithWorker();
         if (validation?['_invalid'] == true) {
-          lastError = validation?['message']?.toString() ?? 'رمز الاشتراك غير صالح أو منتهي';
+          lastError = validation?['message']?.toString() ??
+              'رمز الاشتراك غير صالح أو منتهي';
           await logout();
           notifyListeners();
         } else if (validation != null) {
@@ -996,6 +1138,8 @@ class IPTVProvider with ChangeNotifier {
       await prefs.setString('saved_playlists',
           json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
       await prefs.setBool('is_logged_in', true);
+      _upsertSavedSubscriptionCode(cleanCode, status: 'active');
+      await _persistSavedSubscriptionCodes();
       if (type == 'stalker') {
         _globalUserAgent =
             'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
@@ -1586,14 +1730,30 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    for (final key in <String>[
+      'active_code',
+      'active_code_activated_at',
+      'active_code_duration_hours',
+      'active_code_sub_name',
+      'saved_playlists',
+      'is_logged_in',
+    ]) {
+      await prefs.remove(key);
+    }
     _isLoggedIn = false;
+    _activationCode = '';
+    _activationTime = 0;
+    _activationDurationHours = -1;
+    _subscriptionType = '';
     _savedPlaylists.clear();
     _allStreams.clear();
+    _filteredStreams.clear();
     _liveCategories.clear();
     _movieCategories.clear();
     _seriesCategories.clear();
     _activePlaylistId = null;
+    _selectedCategory = 'all';
+    _searchQuery = '';
     notifyListeners();
   }
 }

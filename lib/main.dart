@@ -2243,16 +2243,29 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       String username = '';
       String password = '';
       if (streamUri.queryParameters['action'] == 'get_series_info') {
-        host =
-            '${streamUri.scheme}://${streamUri.host}${streamUri.hasPort ? ':${streamUri.port}' : ''}';
+        final segments = streamUri.pathSegments;
+        final apiIndex = segments.indexOf('player_api.php');
+        final baseSegments =
+            apiIndex > 0 ? segments.take(apiIndex).toList() : <String>[];
+        host = Uri(
+          scheme: streamUri.scheme,
+          host: streamUri.host,
+          port: streamUri.hasPort ? streamUri.port : null,
+          path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
+        ).toString().replaceFirst(RegExp(r'/$'), '');
         username = streamUri.queryParameters['username'] ?? '';
         password = streamUri.queryParameters['password'] ?? '';
       } else {
         final segments = streamUri.pathSegments;
         final seriesIndex = segments.indexOf('series');
         if (seriesIndex >= 0 && segments.length > seriesIndex + 3) {
-          host =
-              '${streamUri.scheme}://${streamUri.host}${streamUri.hasPort ? ':${streamUri.port}' : ''}';
+          final baseSegments = segments.take(seriesIndex).toList();
+          host = Uri(
+            scheme: streamUri.scheme,
+            host: streamUri.host,
+            port: streamUri.hasPort ? streamUri.port : null,
+            path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
+          ).toString().replaceFirst(RegExp(r'/$'), '');
           username = Uri.decodeComponent(segments[seriesIndex + 1]);
           password = Uri.decodeComponent(segments[seriesIndex + 2]);
         }
@@ -2342,11 +2355,18 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     String pass = "";
     try {
       final uri = Uri.parse(widget.series.url);
-      host =
-          "${uri.scheme}://${uri.host}:${uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80)}";
-      if (uri.pathSegments.length >= 4) {
-        user = uri.pathSegments[1];
-        pass = uri.pathSegments[2];
+      final segments = uri.pathSegments;
+      final seriesIndex = segments.indexOf('series');
+      if (seriesIndex >= 0 && segments.length >= seriesIndex + 4) {
+        final baseSegments = segments.take(seriesIndex).toList();
+        host = Uri(
+          scheme: uri.scheme,
+          host: uri.host,
+          port: uri.hasPort ? uri.port : null,
+          path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
+        ).toString().replaceFirst(RegExp(r'/$'), '');
+        user = Uri.decodeComponent(segments[seriesIndex + 1]);
+        pass = Uri.decodeComponent(segments[seriesIndex + 2]);
       }
     } catch (e) {}
     final epId =

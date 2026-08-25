@@ -31,3 +31,21 @@
 - [x] Add regression tests for series normalization; player/gateway behavior covered by static code path and release build
 - [ ] Run end-to-end verification for Xtream, Stalker, and custom-menu flows
 - [x] Build release APKs for 2.2.61+261 and upload direct download artifacts
+
+
+# Real Quality Selector Revision
+
+- [x] Replace the separate 4K/8K visual-filter buttons with one real stream-quality button
+- [x] Read only actual HLS/DASH variant tracks and switch the BetterPlayer track without faking unavailable resolutions
+- [x] Match the Arabic RTL quality dialog layout shown in the supplied reference image
+- [x] Add regression tests for real track extraction and selection behavior
+- [x] Build release APK 2.2.62+262; live playback verification remains pending
+
+
+# Blocking Regression Report
+
+- [ ] Reproduce and fix the current all-content playback failure reported for live, VOD, and Series on a real Android device
+- [x] Verify the new APK build contains the latest Worker/gateway and real quality-selector code; previous installed APK was stale
+- [x] Fix series detail requests so the real Worker response produces visible seasons and episodes; verified code 02389 / series 6264
+- [x] Remove fake 4K/8K quality labels and keep one real source-track selector matching the reference
+- [ ] Do not mark release fully verified until at least one live stream, one movie, and one series episode are verified end-to-end

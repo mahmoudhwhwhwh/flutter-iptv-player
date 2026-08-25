@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter_iptv_player/screens/player_screen.dart';
 import 'package:flutter_iptv_player/main.dart';
 
@@ -30,5 +31,18 @@ void main() {
       isNot(equals(liveImageFilterMatrix(LiveImageFilter.k4))),
     );
     expect(liveImageFilterMatrix(LiveImageFilter.none), hasLength(20));
+  });
+
+  test('real quality label reflects the announced source track', () {
+    final track = BetterPlayerAsmsTrack(
+        'v1080', 1920, 1080, 4500000, 25, 'avc1', 'video/mp4');
+    expect(realQualityTrackKey(track), 'v1080|1920|1080|4500000');
+    expect(realQualityTrackLabel(track), contains('1080p'));
+    expect(realQualityTrackLabel(track), contains('4.5 Mbps'));
+  });
+
+  test('real quality label does not claim a resolution for auto track', () {
+    final track = BetterPlayerAsmsTrack.defaultTrack();
+    expect(realQualityTrackLabel(track), 'تلقائي');
   });
 }

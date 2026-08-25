@@ -1566,11 +1566,11 @@ class IPTVProvider with ChangeNotifier {
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_live_categories$refreshQuery"))
-              .timeout(const Duration(seconds: 15)),
+              .timeout(const Duration(seconds: 60)),
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_live_streams$refreshQuery"))
-              .timeout(const Duration(seconds: 25)),
+              .timeout(const Duration(seconds: 90)),
         ]);
         final liveCatsRes = liveResponses[0];
         final liveStreamsRes = liveResponses[1];
@@ -1638,6 +1638,7 @@ class IPTVProvider with ChangeNotifier {
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams$refreshQuery"))
+              .timeout(const Duration(seconds: 120))
               .then((vodStreamsRes) {
             if (vodStreamsRes.statusCode == 200) {
               final List decoded = json.decode(vodStreamsRes.body);
@@ -1678,6 +1679,7 @@ class IPTVProvider with ChangeNotifier {
         http
             .get(Uri.parse(
                 "$host/player_api.php?username=$user&password=$pass&action=get_series_categories$refreshQuery"))
+            .timeout(const Duration(seconds: 60))
             .then((seriesCatsRes) {
           if (seriesCatsRes.statusCode == 200) {
             final List decoded = json.decode(seriesCatsRes.body);
@@ -1695,6 +1697,7 @@ class IPTVProvider with ChangeNotifier {
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_series$refreshQuery"))
+              .timeout(const Duration(seconds: 120))
               .then((seriesRes) {
             if (seriesRes.statusCode == 200) {
               final List decoded = json.decode(seriesRes.body);

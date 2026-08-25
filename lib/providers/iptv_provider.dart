@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,7 +70,6 @@ class MyHttpOverrides extends HttpOverrides {
 class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
-  static const String _configUrl = '$_workerBase/v1/config';
   static const String _loginUrl = '$_workerBase/v1/login';
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
@@ -481,9 +479,6 @@ class IPTVProvider with ChangeNotifier {
     return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
   }
 
-  static const String _workerBase = 'https://iptv-subscription-api.tvkora56.workers.dev';
-  static const String _configUrl = '$_workerBase/v1/config';
-  static const String _loginUrl = '$_workerBase/v1/login';
   // The app menu has one public source of truth: this Flutter repository.
   // Playback URLs inside the menu still point to the authenticated Worker proxy.
   static const String _menuUrl = 'https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json';
@@ -1064,7 +1059,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final response = await http
           .get(Uri.parse(
-            'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}',
+            '$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}',
           ))
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {

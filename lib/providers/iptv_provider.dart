@@ -479,9 +479,9 @@ class IPTVProvider with ChangeNotifier {
     return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
   }
 
-  // The app menu has one public source of truth: this Flutter repository.
+  // The repository stays private; production menu delivery goes through Worker/D1.
   // Playback URLs inside the menu still point to the authenticated Worker proxy.
-  static const String _menuUrl = 'https://raw.githubusercontent.com/mahmoudhwhwhwh/flutter-iptv-player/main/Main_menu.json';
+  static const String _menuUrl = '$_workerBase/v1/custom/menu';
 
   Future<void> init() async {
     _isLoading = true;

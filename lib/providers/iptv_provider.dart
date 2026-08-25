@@ -40,6 +40,59 @@ class IPTVProvider with ChangeNotifier {
   static const String _savedSubscriptionCodesKey = 'saved_subscription_codes';
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
+  bool _liteMode = false;
+  bool get liteMode => _liteMode;
+  bool _liteModeUserSet = false;
+  bool _autoLiteModeNoticePending = false;
+  bool get autoLiteModeNoticePending => _autoLiteModeNoticePending;
+
+  Future<void> consumeAutoLiteModeNotice() async {
+    if (!_autoLiteModeNoticePending) return;
+    _autoLiteModeNoticePending = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lite_mode_auto_notice_shown', true);
+    notifyListeners();
+  }
+
+  Future<void> setLiteMode(bool value) async {
+    if (_liteMode == value && _liteModeUserSet) return;
+    _liteMode = value;
+    _liteModeUserSet = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lite_mode', value);
+    await prefs.setBool('lite_mode_user_set', true);
+  }
+
+  static bool shouldShowAutoLiteModeNotice({
+    required bool autoEnabled,
+    required bool noticeShown,
+  }) {
+    return autoEnabled && !noticeShown;
+  }
+
+  static bool shouldAutoEnableLiteMode({
+    required bool isLowRamDevice,
+    required int sdkInt,
+    required bool has64BitAbi,
+  }) {
+    // Conservative detection: only low-RAM devices or very old 32-bit Android.
+    return isLowRamDevice || (sdkInt <= 25 && !has64BitAbi);
+  }
+
+  Future<bool> _detectWeakDevice() async {
+    if (!Platform.isAndroid) return false;
+    try {
+      final info = await DeviceInfoPlugin().androidInfo;
+      return shouldAutoEnableLiteMode(
+        isLowRamDevice: info.isLowRamDevice,
+        sdkInt: info.version.sdkInt,
+        has64BitAbi: info.supported64BitAbis.isNotEmpty,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
 
   void toggleTheme() async {
     _isDarkMode = !_isDarkMode;
@@ -565,17 +618,22 @@ class IPTVProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // تشغيل نظام الحماية بشكل دوري لضمان عدم تشغيل VPN في الخلفية لاحقاً
+    // فحص الحماية مرة واحدة عند بدء الجلسة؛ المؤقت الدوري أزيل لتقليل الثقل وإعادة البناء
     _checkVpnAndProxyStatus();
     checkSecurity();
     checkRemoteBlocking();
-    Timer.periodic(const Duration(seconds: 15), (_) {
-      _checkVpnAndProxyStatus();
-      checkSecurity();
-      checkRemoteBlocking();
-    });
 
     final prefs = await SharedPreferences.getInstance();
+    _liteModeUserSet = prefs.getBool('lite_mode_user_set') ?? false;
+    if (_liteModeUserSet) {
+      _liteMode = prefs.getBool('lite_mode') ?? false;
+    } else {
+      _liteMode = await _detectWeakDevice();
+      _autoLiteModeNoticePending = shouldShowAutoLiteModeNotice(
+        autoEnabled: _liteMode,
+        noticeShown: prefs.getBool('lite_mode_auto_notice_shown') ?? false,
+      );
+    }
 
     // التحقق من تلاعب أو تغيير اسم الحزمة / التطبيق
     try {
@@ -1220,11 +1278,21 @@ class IPTVProvider with ChangeNotifier {
           : raw is Map && raw['data'] is List
               ? raw['data']
               : const [];
-      return items.whereType<Map>().map((item) {
-        final id = (item['id'] ?? item['category_id'] ?? item['genre_id'] ?? '').toString();
-        final name = (item['title'] ?? item['category_name'] ?? item['name'] ?? 'غير مصنف').toString();
-        return {'category_id': id, 'category_name': name};
-      }).where((item) => item['category_id']!.isNotEmpty).toList();
+      return items
+          .whereType<Map>()
+          .map((item) {
+            final id =
+                (item['id'] ?? item['category_id'] ?? item['genre_id'] ?? '')
+                    .toString();
+            final name = (item['title'] ??
+                    item['category_name'] ??
+                    item['name'] ??
+                    'غير مصنف')
+                .toString();
+            return {'category_id': id, 'category_name': name};
+          })
+          .where((item) => item['category_id']!.isNotEmpty)
+          .toList();
     } catch (e) {
       debugPrint('Stalker $type categories unavailable: $e');
       return [];
@@ -1240,7 +1308,13 @@ class IPTVProvider with ChangeNotifier {
     })));
   }
 
-  Future<void> loadPlaylistStreams(String id) async {
+  Future<void> refreshCurrentPlaylist() async {
+    if (_isFetchingData || _activePlaylistId == null) return;
+    await loadPlaylistStreams(_activePlaylistId!, forceRefresh: true);
+  }
+
+  Future<void> loadPlaylistStreams(String id,
+      {bool forceRefresh = false}) async {
     _isFetchingData = true;
     notifyListeners();
 
@@ -1252,6 +1326,8 @@ class IPTVProvider with ChangeNotifier {
       return;
     }
     _activePlaylistId = id;
+    final refreshQuery =
+        forceRefresh ? '&refresh=${DateTime.now().millisecondsSinceEpoch}' : '';
 
     if (playlist.type == 'custom') {
       await _loadCuratedGitHubContent();
@@ -1272,18 +1348,22 @@ class IPTVProvider with ChangeNotifier {
           "User-Agent":
               "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
         };
-        final liveCatsRes = await http
-            .get(
-                Uri.parse(
-                    "$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml"),
-                headers: headers)
-            .timeout(const Duration(seconds: 15));
-        final liveStreamsRes = await http
-            .get(
-                Uri.parse(
-                    "$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"),
-                headers: headers)
-            .timeout(const Duration(seconds: 25));
+        final liveResponses = await Future.wait([
+          http
+              .get(
+                  Uri.parse(
+                      "$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml"),
+                  headers: headers)
+              .timeout(const Duration(seconds: 15)),
+          http
+              .get(
+                  Uri.parse(
+                      "$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"),
+                  headers: headers)
+              .timeout(const Duration(seconds: 25)),
+        ]);
+        final liveCatsRes = liveResponses[0];
+        final liveStreamsRes = liveResponses[1];
 
         List<Map<String, String>> tempLiveCats = [];
         if (liveCatsRes.statusCode == 200) {
@@ -1337,24 +1417,39 @@ class IPTVProvider with ChangeNotifier {
         _liveCategories = tempLiveCats;
 
         final vodCats = await _fetchStalkerCategories(host, headers, 'vod');
-        final seriesCats = await _fetchStalkerCategories(host, headers, 'series');
-        _movieCategories = FilterService.interceptAndFilterCategories(
-            vodCats, blockAdult: _blockAdultContent);
+        final seriesCats =
+            await _fetchStalkerCategories(host, headers, 'series');
+        _movieCategories = FilterService.interceptAndFilterCategories(vodCats,
+            blockAdult: _blockAdultContent);
         _seriesCategories = FilterService.interceptAndFilterCategories(
-            seriesCats, blockAdult: _blockAdultContent);
+            seriesCats,
+            blockAdult: _blockAdultContent);
 
         final vodItems = await _fetchStalkerOrderedList(host, headers, 'vod');
-        final seriesItems = await _fetchStalkerOrderedList(host, headers, 'series');
+        final seriesItems =
+            await _fetchStalkerOrderedList(host, headers, 'series');
         final movieStreams = <PlaylistItem>[];
         for (final item in vodItems) {
-          final streamId = (item['id'] ?? item['movie_id'] ?? item['stream_id'] ?? '').toString();
+          final streamId =
+              (item['id'] ?? item['movie_id'] ?? item['stream_id'] ?? '')
+                  .toString();
           if (streamId.isEmpty) continue;
-          final categoryId = (item['category_id'] ?? item['genre_id'] ?? item['tv_genre_id'] ?? '').toString();
+          final categoryId = (item['category_id'] ??
+                  item['genre_id'] ??
+                  item['tv_genre_id'] ??
+                  '')
+              .toString();
           final category = _movieCategories.firstWhere(
             (entry) => entry['category_id'] == categoryId,
             orElse: () => {'category_id': categoryId, 'category_name': 'أفلام'},
           );
-          final command = (item['cmd'] ?? item['stream_url'] ?? item['streamUrl'] ?? item['url'] ?? '').toString().trim();
+          final command = (item['cmd'] ??
+                  item['stream_url'] ??
+                  item['streamUrl'] ??
+                  item['url'] ??
+                  '')
+              .toString()
+              .trim();
           movieStreams.add(PlaylistItem(
             num: int.tryParse(item['number']?.toString() ?? ''),
             streamId: 'stalker_movie_$streamId',
@@ -1362,7 +1457,9 @@ class IPTVProvider with ChangeNotifier {
             streamIcon: (item['pic'] ?? '').toString(),
             categoryId: categoryId,
             categoryName: category['category_name'] ?? 'أفلام',
-            url: command.isNotEmpty ? command : _stalkerCommandFallback('movie', streamId),
+            url: command.isNotEmpty
+                ? command
+                : _stalkerCommandFallback('movie', streamId),
             type: 'stalker_movie',
             year: item['year']?.toString(),
             plot: item['description']?.toString(),
@@ -1371,14 +1468,27 @@ class IPTVProvider with ChangeNotifier {
         }
         final seriesStreams = <PlaylistItem>[];
         for (final item in seriesItems) {
-          final streamId = (item['id'] ?? item['series_id'] ?? item['stream_id'] ?? '').toString();
+          final streamId =
+              (item['id'] ?? item['series_id'] ?? item['stream_id'] ?? '')
+                  .toString();
           if (streamId.isEmpty) continue;
-          final categoryId = (item['category_id'] ?? item['genre_id'] ?? item['tv_genre_id'] ?? '').toString();
+          final categoryId = (item['category_id'] ??
+                  item['genre_id'] ??
+                  item['tv_genre_id'] ??
+                  '')
+              .toString();
           final category = _seriesCategories.firstWhere(
             (entry) => entry['category_id'] == categoryId,
-            orElse: () => {'category_id': categoryId, 'category_name': 'مسلسلات'},
+            orElse: () =>
+                {'category_id': categoryId, 'category_name': 'مسلسلات'},
           );
-          final command = (item['cmd'] ?? item['stream_url'] ?? item['streamUrl'] ?? item['url'] ?? '').toString().trim();
+          final command = (item['cmd'] ??
+                  item['stream_url'] ??
+                  item['streamUrl'] ??
+                  item['url'] ??
+                  '')
+              .toString()
+              .trim();
           seriesStreams.add(PlaylistItem(
             num: int.tryParse(item['number']?.toString() ?? ''),
             streamId: 'stalker_series_$streamId',
@@ -1386,7 +1496,9 @@ class IPTVProvider with ChangeNotifier {
             streamIcon: (item['pic'] ?? '').toString(),
             categoryId: categoryId,
             categoryName: category['category_name'] ?? 'مسلسلات',
-            url: command.isNotEmpty ? command : _stalkerCommandFallback('series', streamId),
+            url: command.isNotEmpty
+                ? command
+                : _stalkerCommandFallback('series', streamId),
             type: 'stalker_series',
             year: item['year']?.toString(),
             plot: item['description']?.toString(),
@@ -1408,14 +1520,18 @@ class IPTVProvider with ChangeNotifier {
         notifyListeners();
         return;
       } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
-        final liveCatsRes = await http
-            .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_live_categories"))
-            .timeout(const Duration(seconds: 15));
-        final liveStreamsRes = await http
-            .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_live_streams"))
-            .timeout(const Duration(seconds: 25));
+        final liveResponses = await Future.wait([
+          http
+              .get(Uri.parse(
+                  "$host/player_api.php?username=$user&password=$pass&action=get_live_categories$refreshQuery"))
+              .timeout(const Duration(seconds: 15)),
+          http
+              .get(Uri.parse(
+                  "$host/player_api.php?username=$user&password=$pass&action=get_live_streams$refreshQuery"))
+              .timeout(const Duration(seconds: 25)),
+        ]);
+        final liveCatsRes = liveResponses[0];
+        final liveStreamsRes = liveResponses[1];
 
         List<Map<String, String>> tempLiveCats = [];
         if (liveCatsRes.statusCode == 200) {
@@ -1462,7 +1578,7 @@ class IPTVProvider with ChangeNotifier {
         // Fetch VOD and Series
         http
             .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_vod_categories"))
+                "$host/player_api.php?username=$user&password=$pass&action=get_vod_categories$refreshQuery"))
             .then((vodCatsRes) {
           if (vodCatsRes.statusCode == 200) {
             final List decoded = json.decode(vodCatsRes.body);
@@ -1479,7 +1595,7 @@ class IPTVProvider with ChangeNotifier {
           }
           http
               .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams"))
+                  "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams$refreshQuery"))
               .then((vodStreamsRes) {
             if (vodStreamsRes.statusCode == 200) {
               final List decoded = json.decode(vodStreamsRes.body);
@@ -1519,7 +1635,7 @@ class IPTVProvider with ChangeNotifier {
 
         http
             .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_series_categories"))
+                "$host/player_api.php?username=$user&password=$pass&action=get_series_categories$refreshQuery"))
             .then((seriesCatsRes) {
           if (seriesCatsRes.statusCode == 200) {
             final List decoded = json.decode(seriesCatsRes.body);
@@ -1536,7 +1652,7 @@ class IPTVProvider with ChangeNotifier {
           }
           http
               .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_series"))
+                  "$host/player_api.php?username=$user&password=$pass&action=get_series$refreshQuery"))
               .then((seriesRes) {
             if (seriesRes.statusCode == 200) {
               final List decoded = json.decode(seriesRes.body);
@@ -1668,9 +1784,11 @@ class IPTVProvider with ChangeNotifier {
         if (_activeTab == "live") {
           if (stream.type != "live" && stream.type != "stalker") return false;
         } else if (_activeTab == "movie") {
-          if (stream.type != "movie" && stream.type != "stalker_movie") return false;
+          if (stream.type != "movie" && stream.type != "stalker_movie")
+            return false;
         } else if (_activeTab == "series") {
-          if (stream.type != "series" && stream.type != "stalker_series") return false;
+          if (stream.type != "series" && stream.type != "stalker_series")
+            return false;
         } else if (stream.type != _activeTab) {
           return false;
         }

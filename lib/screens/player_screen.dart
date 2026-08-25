@@ -25,6 +25,13 @@ enum RotationMode {
   portraitOnly,
 }
 
+int? bestAvailableQualityHeight(Iterable<int> heights, int targetHeight) {
+  final available =
+      heights.where((height) => height > 0 && height <= targetHeight);
+  if (available.isEmpty) return null;
+  return available.reduce((a, b) => a > b ? a : b);
+}
+
 class PlayerScreen extends StatefulWidget {
   final PlaylistItem stream;
   const PlayerScreen({super.key, required this.stream});
@@ -401,7 +408,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     final isStalkerContent = _stream.type == "stalker" ||
         _stream.type == "stalker_movie" ||
         _stream.type == "stalker_series" ||
-        (isStalkerPlaylist && (_stream.type == "movie" || _stream.type == "series"));
+        (isStalkerPlaylist &&
+            (_stream.type == "movie" || _stream.type == "series"));
     final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(urlStr);
 
     if (isStalkerContent && !isDirectStalkerPlayback) {
@@ -1364,6 +1372,36 @@ class _PlayerScreenState extends State<PlayerScreen>
         });
   }
 
+  void _applyQualityPreset(int targetHeight, BuildContext dialogContext) {
+    final controller = _betterController;
+    if (controller == null) return;
+    final tracks = controller.betterPlayerAsmsTracks;
+    final target = bestAvailableQualityHeight(
+      tracks.map((track) => track.height ?? 0),
+      targetHeight,
+    );
+    if (target == null) {
+      Navigator.pop(dialogContext);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('المصدر لا يحتوي على مسار فيديو مناسب لهذه الجودة')),
+      );
+      return;
+    }
+    final selected = tracks.firstWhere((track) => track.height == target);
+    controller.setTrack(selected);
+    Navigator.pop(dialogContext);
+    if (target < targetHeight && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'المصدر لا يوفر ${targetHeight == 2160 ? '4K' : '8K'} حقيقية؛ تم اختيار أعلى دقة أصلية متاحة (${target}p)',
+          ),
+        ),
+      );
+    }
+  }
+
   void _showQualitySelector() {
     if (_betterController == null || !_initialized) return;
     showDialog(
@@ -1427,63 +1465,91 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                       const Divider(color: Colors.white12, height: 1),
                       Expanded(
-                        child: (uniqueTracks.isEmpty)
-                            ? const Center(
-                                child: Text("لا توجد جودات متعددة",
-                                    style: TextStyle(color: Colors.white54)))
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                itemCount: uniqueTracks.length + 1,
-                                itemBuilder: (context, index) {
-                                  bool isAuto = index == 0;
-                                  bool isSelected = false;
-                                  String title = "";
-                                  BetterPlayerAsmsTrack? track;
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: uniqueTracks.length + 3,
+                          itemBuilder: (context, index) {
+                            if (index == 1 || index == 2) {
+                              final targetHeight = index == 1 ? 2160 : 4320;
+                              final targetLabel = index == 1 ? '4K' : '8K';
+                              final matching = bestAvailableQualityHeight(
+                                uniqueTracks.map((track) => track.height ?? 0),
+                                targetHeight,
+                              );
+                              final isSelected = matching != null &&
+                                  selectedTrack?.height == matching;
+                              return ListTile(
+                                leading: Icon(
+                                  Icons.hd_rounded,
+                                  color: isSelected
+                                      ? Colors.cyanAccent
+                                      : Colors.amberAccent,
+                                ),
+                                title: Text(
+                                    '$targetLabel — أعلى دقة أصلية متاحة',
+                                    style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.cyanAccent
+                                            : Colors.white)),
+                                subtitle: Text(
+                                  matching == null
+                                      ? 'غير متاح في المصدر'
+                                      : 'حتى ${matching}p من المصدر',
+                                  style: const TextStyle(color: Colors.white54),
+                                ),
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle,
+                                        color: Colors.cyanAccent)
+                                    : null,
+                                onTap: () =>
+                                    _applyQualityPreset(targetHeight, bContext),
+                              );
+                            }
 
-                                  if (isAuto) {
-                                    isSelected = selectedTrack == null ||
-                                        (selectedTrack.width == 0 &&
-                                            selectedTrack.height == 0);
-                                    title = "تلقائي (Auto)";
-                                  } else {
-                                    track = uniqueTracks[index - 1];
-                                    isSelected = selectedTrack != null &&
-                                        selectedTrack.width == track.width &&
-                                        selectedTrack.height == track.height;
-                                    title = "${track.height}p";
-                                    if (track.bitrate != null &&
-                                        track.bitrate! > 0) {
-                                      double mbps = track.bitrate! / 1000000;
-                                      title +=
-                                          " (${mbps.toStringAsFixed(1)} Mbps)";
-                                    }
-                                  }
+                            final isAuto = index == 0;
+                            BetterPlayerAsmsTrack? track;
+                            bool isSelected = false;
+                            String title = "";
+                            if (isAuto) {
+                              isSelected = selectedTrack == null ||
+                                  (selectedTrack.width == 0 &&
+                                      selectedTrack.height == 0);
+                              title = "تلقائي (Auto)";
+                            } else {
+                              track = uniqueTracks[index - 3];
+                              isSelected = selectedTrack != null &&
+                                  selectedTrack.width == track.width &&
+                                  selectedTrack.height == track.height;
+                              title = "${track.height}p";
+                              if (track.bitrate != null && track.bitrate! > 0) {
+                                title +=
+                                    " (${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps)";
+                              }
+                            }
 
-                                  return ListTile(
-                                    title: Text(title,
-                                        style: TextStyle(
-                                            color: isSelected
-                                                ? Colors.cyanAccent
-                                                : Colors.white)),
-                                    trailing: isSelected
-                                        ? const Icon(Icons.check_circle,
-                                            color: Colors.cyanAccent)
-                                        : null,
-                                    onTap: () {
-                                      if (isAuto) {
-                                        _betterController!.setTrack(
-                                            BetterPlayerAsmsTrack
-                                                .defaultTrack());
-                                      } else {
-                                        _betterController!.setTrack(track!);
-                                      }
-                                      setModalState(() {});
-                                      Navigator.pop(bContext);
-                                    },
-                                  );
-                                },
-                              ),
+                            return ListTile(
+                              title: Text(title,
+                                  style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.cyanAccent
+                                          : Colors.white)),
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle,
+                                      color: Colors.cyanAccent)
+                                  : null,
+                              onTap: () {
+                                if (isAuto) {
+                                  _betterController!.setTrack(
+                                      BetterPlayerAsmsTrack.defaultTrack());
+                                } else {
+                                  _betterController!.setTrack(track!);
+                                }
+                                setModalState(() {});
+                                Navigator.pop(bContext);
+                              },
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -2712,9 +2778,12 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     final activeStreams = provider.allStreams.where((s) {
       final matchesTab = provider.activeTab == "favorites" ||
-          (provider.activeTab == "live" && (s.type == "live" || s.type == "stalker")) ||
-          (provider.activeTab == "movie" && (s.type == "movie" || s.type == "stalker_movie")) ||
-          (provider.activeTab == "series" && (s.type == "series" || s.type == "stalker_series"));
+          (provider.activeTab == "live" &&
+              (s.type == "live" || s.type == "stalker")) ||
+          (provider.activeTab == "movie" &&
+              (s.type == "movie" || s.type == "stalker_movie")) ||
+          (provider.activeTab == "series" &&
+              (s.type == "series" || s.type == "stalker_series"));
       if (!matchesTab) return false;
       if (_sidebarSelectedCategory != "all" &&
           s.categoryName != _sidebarSelectedCategory) return false;
@@ -2765,15 +2834,46 @@ class _PlayerScreenState extends State<PlayerScreen>
                         fontSize: 13,
                         fontWeight: FontWeight.bold),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: Colors.white70, size: 20),
-                    onPressed: () {
-                      setState(() {
-                        _showSidebar = false;
-                        _sidebarSearchQuery = "";
-                      });
-                    },
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: "تحديث القنوات الآن",
+                        icon: provider.isFetchingData
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.cyanAccent,
+                                ),
+                              )
+                            : const Icon(Icons.refresh_rounded,
+                                color: Colors.cyanAccent, size: 20),
+                        onPressed: provider.isFetchingData
+                            ? null
+                            : () async {
+                                await provider.refreshCurrentPlaylist();
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("تم تحديث قائمة القنوات"),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            color: Colors.white70, size: 20),
+                        onPressed: () {
+                          setState(() {
+                            _showSidebar = false;
+                            _sidebarSearchQuery = "";
+                          });
+                        },
+                      ),
+                    ],
                   )
                 ],
               ),

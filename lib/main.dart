@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
@@ -165,16 +166,50 @@ class LiveFootballApp extends StatelessWidget {
                       ),
                     );
                   }
-                  return child!;
+                  if (provider.autoLiteModeNoticePending) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!context.mounted) return;
+                      _showAutoLiteModeNotice(context, provider);
+                    });
+                  }
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      disableAnimations: provider.liteMode,
+                    ),
+                    child: child!,
+                  );
                 },
               ),
             );
           },
-          home: const AuthWrapper(),
+          home: const StartupGate(child: AuthWrapper()),
         );
       },
     );
   }
+}
+
+Future<void> _showAutoLiteModeNotice(
+    BuildContext context, IPTVProvider provider) async {
+  await provider.consumeAutoLiteModeNotice();
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('تم تفعيل الوضع الخفيف تلقائياً'),
+      content: const Text(
+        'اكتشف التطبيق أن هذا الجهاز قد يملك ذاكرة أو مواصفات محدودة، لذلك فعّل الوضع الخفيف لتحسين السلاسة وتقليل استهلاك الذاكرة وتعطيل الحركات الثقيلة.\n\nيمكنك تغيير هذا الخيار لاحقاً من الإعدادات.',
+        textAlign: TextAlign.right,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('حسناً'),
+        ),
+      ],
+    ),
+  );
 }
 
 class AuthWrapper extends StatelessWidget {
@@ -195,6 +230,153 @@ class AuthWrapper extends StatelessWidget {
         }
         return const LoginScreen();
       },
+    );
+  }
+}
+
+class StartupGate extends StatefulWidget {
+  final Widget child;
+
+  const StartupGate({super.key, required this.child});
+
+  @override
+  State<StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<StartupGate> {
+  VideoPlayerController? _controller;
+  bool _showIntro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prepareIntro();
+  }
+
+  Future<void> _prepareIntro() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadySeen = prefs.getBool('premium_intro_seen') ?? false;
+    if (alreadySeen) return;
+    await prefs.setBool('premium_intro_seen', true);
+
+    final controller = VideoPlayerController.asset('assets/intro_premium.mp4');
+    try {
+      await controller.initialize();
+      controller.addListener(_onVideoTick);
+      await controller.play();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _controller = controller;
+        _showIntro = true;
+      });
+    } catch (_) {
+      await controller.dispose();
+    }
+  }
+
+  void _onVideoTick() {
+    final value = _controller?.value;
+    if (value == null || !value.isInitialized || value.isPlaying) return;
+    if (value.position >= value.duration - const Duration(milliseconds: 150)) {
+      _finishIntro();
+    }
+  }
+
+  Future<void> _finishIntro() async {
+    final controller = _controller;
+    _controller = null;
+    if (mounted) setState(() => _showIntro = false);
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      await controller.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showIntro || _controller == null) return widget.child;
+    final controller = _controller!;
+    return Scaffold(
+      backgroundColor: const Color(0xFF070610),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: controller.value.size.width,
+              height: controller.value.size.height,
+              child: VideoPlayer(controller),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.15),
+                  const Color(0xFF070610).withOpacity(0.88),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 44, 24, 26),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'أهلاً بك في\nLIVE STREAM PREMIUM',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      height: 1.25,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'تجربة مشاهدة فاخرة، سريعة، ومصممة لعشاق الرياضة',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+                  const SizedBox(height: 28),
+                  OutlinedButton(
+                    onPressed: _finishIntro,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('تخطي المقدمة'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

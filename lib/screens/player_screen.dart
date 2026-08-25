@@ -1533,160 +1533,236 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _showQualitySelector() {
     if (_betterController == null || !_initialized) return;
+
+    String? pendingSelection;
     showDialog(
-        context: context,
-        builder: (BuildContext bContext) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: StatefulBuilder(builder: (context, setModalState) {
-              final List<BetterPlayerAsmsTrack> tracks =
-                  _betterController!.betterPlayerAsmsTracks;
-              final selectedTrack = _betterController!.betterPlayerAsmsTrack;
-
-              // Filter and format tracks
-              List<BetterPlayerAsmsTrack> uniqueTracks = [];
-              Set<String> seenResolutions = {};
-              for (var t in tracks) {
-                String resKey = "${t.width}x${t.height}";
-                if (t.width != null &&
-                    t.height != null &&
-                    !seenResolutions.contains(resKey)) {
-                  seenResolutions.add(resKey);
-                  uniqueTracks.add(t);
-                }
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.72),
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final tracks = _betterController!.betterPlayerAsmsTracks;
+            final selectedTrack = _betterController!.betterPlayerAsmsTrack;
+            final uniqueTracks = <BetterPlayerAsmsTrack>[];
+            final seen = <String>{};
+            for (final track in tracks) {
+              final key = '${track.width}x${track.height}';
+              if (track.width != null &&
+                  track.height != null &&
+                  seen.add(key)) {
+                uniqueTracks.add(track);
               }
-              uniqueTracks
-                  .sort((a, b) => (b.height ?? 0).compareTo(a.height ?? 0));
+            }
 
-              return Directionality(
-                textDirection: TextDirection.rtl,
-                child: Container(
-                  width: 500,
-                  constraints: const BoxConstraints(maxHeight: 500),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E20),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
+            final best4K = bestAvailableQualityHeight(
+              uniqueTracks.map((track) => track.height ?? 0),
+              2160,
+            );
+            final best8K = bestAvailableQualityHeight(
+              uniqueTracks.map((track) => track.height ?? 0),
+              4320,
+            );
+            pendingSelection ??= selectedTrack == null ||
+                    (selectedTrack.width == 0 && selectedTrack.height == 0)
+                ? 'auto'
+                : selectedTrack.height == best4K
+                    ? '4k'
+                    : selectedTrack.height == best8K
+                        ? '8k'
+                        : 'auto';
+            final pending = pendingSelection!;
+
+            void choose(String value) =>
+                setModalState(() => pendingSelection = value);
+
+            Widget qualityRow({
+              required String value,
+              required String title,
+              String? subtitle,
+              required IconData icon,
+              bool enabled = true,
+            }) {
+              final selected = pending == value;
+              return InkWell(
+                onTap: enabled ? () => choose(value) : null,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+                  child: Row(
+                    textDirection: TextDirection.rtl,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Icon(Icons.high_quality_rounded,
-                                color: Colors.cyanAccent),
-                            const SizedBox(width: 8),
-                            const Text("جودة البث",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold)),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close,
-                                  color: Colors.white54),
-                              onPressed: () => Navigator.pop(bContext),
-                            )
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(title,
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      color: enabled
+                                          ? (selected
+                                              ? const Color(0xFF16E0E8)
+                                              : Colors.white)
+                                          : Colors.white30,
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w700,
+                                    )),
+                                const SizedBox(width: 10),
+                                Icon(icon,
+                                    color: selected
+                                        ? const Color(0xFF16E0E8)
+                                        : const Color(0xFFFFC928),
+                                    size: 30),
+                              ],
+                            ),
+                            if (subtitle != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(subtitle,
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      color: enabled
+                                          ? Colors.white54
+                                          : Colors.white30,
+                                      fontSize: 15,
+                                    )),
+                              ),
                           ],
                         ),
                       ),
-                      const Divider(color: Colors.white12, height: 1),
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: uniqueTracks.length + 3,
-                          itemBuilder: (context, index) {
-                            if (index == 1 || index == 2) {
-                              final targetHeight = index == 1 ? 2160 : 4320;
-                              final targetLabel = index == 1 ? '4K' : '8K';
-                              final matching = bestAvailableQualityHeight(
-                                uniqueTracks.map((track) => track.height ?? 0),
-                                targetHeight,
-                              );
-                              final isSelected = matching != null &&
-                                  selectedTrack?.height == matching;
-                              return ListTile(
-                                leading: Icon(
-                                  Icons.hd_rounded,
-                                  color: isSelected
-                                      ? Colors.cyanAccent
-                                      : Colors.amberAccent,
-                                ),
-                                title: Text(
-                                    '$targetLabel — أعلى دقة أصلية متاحة',
-                                    style: TextStyle(
-                                        color: isSelected
-                                            ? Colors.cyanAccent
-                                            : Colors.white)),
-                                subtitle: Text(
-                                  matching == null
-                                      ? 'غير متاح في المصدر'
-                                      : 'حتى ${matching}p من المصدر',
-                                  style: const TextStyle(color: Colors.white54),
-                                ),
-                                trailing: isSelected
-                                    ? const Icon(Icons.check_circle,
-                                        color: Colors.cyanAccent)
-                                    : null,
-                                onTap: () =>
-                                    _applyQualityPreset(targetHeight, bContext),
-                              );
-                            }
-
-                            final isAuto = index == 0;
-                            BetterPlayerAsmsTrack? track;
-                            bool isSelected = false;
-                            String title = "";
-                            if (isAuto) {
-                              isSelected = selectedTrack == null ||
-                                  (selectedTrack.width == 0 &&
-                                      selectedTrack.height == 0);
-                              title = "تلقائي (Auto)";
-                            } else {
-                              track = uniqueTracks[index - 3];
-                              isSelected = selectedTrack != null &&
-                                  selectedTrack.width == track.width &&
-                                  selectedTrack.height == track.height;
-                              title = "${track.height}p";
-                              if (track.bitrate != null && track.bitrate! > 0) {
-                                title +=
-                                    " (${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps)";
-                              }
-                            }
-
-                            return ListTile(
-                              title: Text(title,
-                                  style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.cyanAccent
-                                          : Colors.white)),
-                              trailing: isSelected
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.cyanAccent)
-                                  : null,
-                              onTap: () {
-                                if (isAuto) {
-                                  _betterController!.setTrack(
-                                      BetterPlayerAsmsTrack.defaultTrack());
-                                } else {
-                                  _betterController!.setTrack(track!);
-                                }
-                                setModalState(() {});
-                                Navigator.pop(bContext);
-                              },
-                            );
-                          },
-                        ),
+                      const SizedBox(width: 18),
+                      Icon(
+                        selected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color:
+                            selected ? const Color(0xFF16E0E8) : Colors.white30,
+                        size: 29,
                       ),
                     ],
                   ),
                 ),
               );
-            }),
-          );
-        });
+            }
+
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Dialog(
+                backgroundColor: const Color(0xFF201F21),
+                insetPadding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22)),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
+                        child: Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            const Icon(Icons.hd_rounded,
+                                color: Color(0xFF16E0E8), size: 28),
+                            const SizedBox(width: 10),
+                            const Text('جودة البث',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 23,
+                                    fontWeight: FontWeight.w800)),
+                            const Spacer(),
+                            IconButton(
+                              tooltip: 'إغلاق',
+                              onPressed: () => Navigator.pop(dialogContext),
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white60, size: 30),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              qualityRow(
+                                value: 'auto',
+                                title: 'تلقائي (Auto)',
+                                icon: Icons.hd_rounded,
+                              ),
+                              qualityRow(
+                                value: '4k',
+                                title: '4K — أعلى دقة أصلية متاحة',
+                                subtitle: best4K == null
+                                    ? 'غير متاح في المصدر'
+                                    : 'متاح حتى ${best4K}p من المصدر',
+                                icon: Icons.hd_rounded,
+                                enabled: best4K != null,
+                              ),
+                              qualityRow(
+                                value: '8k',
+                                title: '8K — أعلى دقة أصلية متاحة',
+                                subtitle: best8K == null
+                                    ? 'غير متاح في المصدر'
+                                    : 'متاح حتى ${best8K}p من المصدر',
+                                icon: Icons.hd_rounded,
+                                enabled: best8K != null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: const Text('إلغاء',
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 16)),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16E0E8),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                if (pending == 'auto') {
+                                  _betterController!.setTrack(
+                                      BetterPlayerAsmsTrack.defaultTrack());
+                                } else if (pending == '4k') {
+                                  _applyQualityPreset(2160, dialogContext);
+                                  return;
+                                } else {
+                                  _applyQualityPreset(4320, dialogContext);
+                                  return;
+                                }
+                                Navigator.pop(dialogContext);
+                              },
+                              child: const Text('موافق',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w800)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   String _formatDuration(Duration d) {

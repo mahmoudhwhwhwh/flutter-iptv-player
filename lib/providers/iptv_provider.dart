@@ -12,42 +12,6 @@ import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
 import '../services/subscription_profile.dart';
 
-class UserPlaylist {
-  final String id;
-  final String name;
-  final String type;
-  final String? host;
-  final String? username;
-  final String? password;
-
-  UserPlaylist({
-    required this.id,
-    required this.name,
-    required this.type,
-    this.host,
-    this.username,
-    this.password,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type,
-        'host': host,
-        'username': username,
-        'password': password,
-      };
-
-  factory UserPlaylist.fromJson(Map<String, dynamic> json) => UserPlaylist(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
-        type: json['type'] ?? '',
-        host: json['host'],
-        username: json['username'],
-        password: json['password'],
-      );
-}
-
 // تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
 class MyHttpOverrides extends HttpOverrides {
   final String proxyAddress;
@@ -1208,6 +1172,74 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<Map<String, dynamic>>> _fetchStalkerOrderedList(
+      String host, Map<String, String> headers, String type) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse(
+              '$host/server/load.php?type=$type&action=get_ordered_list&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml',
+            ),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 25));
+      if (response.statusCode != 200) return [];
+      final decoded = json.decode(response.body);
+      final raw = decoded is Map ? decoded['js'] : null;
+      final items = raw is List
+          ? raw
+          : raw is Map && raw['data'] is List
+              ? raw['data']
+              : const [];
+      return items
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (e) {
+      debugPrint('Stalker $type list unavailable: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, String>>> _fetchStalkerCategories(
+      String host, Map<String, String> headers, String type) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse(
+              '$host/server/load.php?type=$type&action=get_categories&JsHttpRequest=1-xml',
+            ),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return [];
+      final decoded = json.decode(response.body);
+      final raw = decoded is Map ? decoded['js'] : null;
+      final items = raw is List
+          ? raw
+          : raw is Map && raw['data'] is List
+              ? raw['data']
+              : const [];
+      return items.whereType<Map>().map((item) {
+        final id = (item['id'] ?? item['category_id'] ?? item['genre_id'] ?? '').toString();
+        final name = (item['title'] ?? item['category_name'] ?? item['name'] ?? 'غير مصنف').toString();
+        return {'category_id': id, 'category_name': name};
+      }).where((item) => item['category_id']!.isNotEmpty).toList();
+    } catch (e) {
+      debugPrint('Stalker $type categories unavailable: $e');
+      return [];
+    }
+  }
+
+  String _stalkerCommandFallback(String type, String streamId) {
+    return base64Encode(utf8.encode(jsonEncode({
+      'type': type,
+      'stream_id': streamId,
+      'stream_source': null,
+      'target_container': ['mp4'],
+    })));
+  }
+
   Future<void> loadPlaylistStreams(String id) async {
     _isFetchingData = true;
     notifyListeners();
@@ -1221,69 +1253,8 @@ class IPTVProvider with ChangeNotifier {
     }
     _activePlaylistId = id;
 
-    if (_activationCode == "2027") {
-      try {
-        final url = Uri.parse(
-            "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
-        final res = await http.get(url);
-        if (res.statusCode == 200) {
-          final List<dynamic> data = json.decode(res.body);
-          List<Map<String, String>> tempCats = [];
-          List<PlaylistItem> tempStreams = [];
-          Set<String> catNames = {};
-
-          for (int i = 0; i < data.length; i++) {
-            final item = data[i];
-            final catName = item['category_name']?.toString() ?? 'Other';
-            final catId = item['category_id']?.toString() ?? catName;
-            if (!catNames.contains(catId)) {
-              catNames.add(catId);
-              tempCats.add({
-                'category_id': catId,
-                'category_name': catName,
-                'parent_id': '0'
-              });
-            }
-
-            Map<String, String>? clearKeys;
-            if (item['keys'] != null && item['keys'] is Map) {
-              clearKeys = (item['keys'] as Map)
-                  .map((k, v) => MapEntry(k.toString(), v.toString()));
-            } else if (item['clearKeys'] != null && item['clearKeys'] is Map) {
-              clearKeys = (item['clearKeys'] as Map)
-                  .map((k, v) => MapEntry(k.toString(), v.toString()));
-            }
-
-            tempStreams.add(PlaylistItem(
-              num: i,
-              streamId: "custom_$i",
-              name: item['name']?.toString() ?? '',
-              streamIcon: item['icon']?.toString() ?? '',
-              categoryId: catId,
-              categoryName: catName,
-              url: item['url']?.toString() ?? '',
-              type: 'live',
-              customUserAgent: item['user_agent']?.toString() ??
-                  item['customUserAgent']?.toString(),
-              customReferer: item['referer']?.toString() ??
-                  item['customReferer']?.toString(),
-              clearKeys: clearKeys,
-            ));
-          }
-
-          // اعتراض وتصفية من المصدر المركزي
-          _liveCategories = FilterService.interceptAndFilterCategories(tempCats,
-              blockAdult: _blockAdultContent);
-          _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
-              blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-          _movieCategories = [];
-          _seriesCategories = [];
-
-          _applyFilters();
-        }
-      } catch (e) {
-        debugPrint("Configured streams could not be loaded");
-      }
+    if (playlist.type == 'custom') {
+      await _loadCuratedGitHubContent();
       _isFetchingData = false;
       notifyListeners();
       return;
@@ -1364,6 +1335,75 @@ class IPTVProvider with ChangeNotifier {
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
             blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
+
+        final vodCats = await _fetchStalkerCategories(host, headers, 'vod');
+        final seriesCats = await _fetchStalkerCategories(host, headers, 'series');
+        _movieCategories = FilterService.interceptAndFilterCategories(
+            vodCats, blockAdult: _blockAdultContent);
+        _seriesCategories = FilterService.interceptAndFilterCategories(
+            seriesCats, blockAdult: _blockAdultContent);
+
+        final vodItems = await _fetchStalkerOrderedList(host, headers, 'vod');
+        final seriesItems = await _fetchStalkerOrderedList(host, headers, 'series');
+        final movieStreams = <PlaylistItem>[];
+        for (final item in vodItems) {
+          final streamId = (item['id'] ?? item['movie_id'] ?? item['stream_id'] ?? '').toString();
+          if (streamId.isEmpty) continue;
+          final categoryId = (item['category_id'] ?? item['genre_id'] ?? item['tv_genre_id'] ?? '').toString();
+          final category = _movieCategories.firstWhere(
+            (entry) => entry['category_id'] == categoryId,
+            orElse: () => {'category_id': categoryId, 'category_name': 'أفلام'},
+          );
+          final command = (item['cmd'] ?? item['stream_url'] ?? item['streamUrl'] ?? item['url'] ?? '').toString().trim();
+          movieStreams.add(PlaylistItem(
+            num: int.tryParse(item['number']?.toString() ?? ''),
+            streamId: 'stalker_movie_$streamId',
+            name: (item['name'] ?? item['o_name'] ?? 'فيلم').toString(),
+            streamIcon: (item['pic'] ?? '').toString(),
+            categoryId: categoryId,
+            categoryName: category['category_name'] ?? 'أفلام',
+            url: command.isNotEmpty ? command : _stalkerCommandFallback('movie', streamId),
+            type: 'stalker_movie',
+            year: item['year']?.toString(),
+            plot: item['description']?.toString(),
+            rating: item['rating_imdb']?.toString() ?? item['rate']?.toString(),
+          ));
+        }
+        final seriesStreams = <PlaylistItem>[];
+        for (final item in seriesItems) {
+          final streamId = (item['id'] ?? item['series_id'] ?? item['stream_id'] ?? '').toString();
+          if (streamId.isEmpty) continue;
+          final categoryId = (item['category_id'] ?? item['genre_id'] ?? item['tv_genre_id'] ?? '').toString();
+          final category = _seriesCategories.firstWhere(
+            (entry) => entry['category_id'] == categoryId,
+            orElse: () => {'category_id': categoryId, 'category_name': 'مسلسلات'},
+          );
+          final command = (item['cmd'] ?? item['stream_url'] ?? item['streamUrl'] ?? item['url'] ?? '').toString().trim();
+          seriesStreams.add(PlaylistItem(
+            num: int.tryParse(item['number']?.toString() ?? ''),
+            streamId: 'stalker_series_$streamId',
+            name: (item['name'] ?? item['o_name'] ?? 'مسلسل').toString(),
+            streamIcon: (item['pic'] ?? '').toString(),
+            categoryId: categoryId,
+            categoryName: category['category_name'] ?? 'مسلسلات',
+            url: command.isNotEmpty ? command : _stalkerCommandFallback('series', streamId),
+            type: 'stalker_series',
+            year: item['year']?.toString(),
+            plot: item['description']?.toString(),
+            rating: item['rating_imdb']?.toString() ?? item['rate']?.toString(),
+          ));
+        }
+        _allStreams.addAll(FilterService.interceptAndFilterStreams(
+          movieStreams,
+          blockAdult: _blockAdultContent,
+          channelFilter: _channelFilter,
+        ));
+        _allStreams.addAll(FilterService.interceptAndFilterStreams(
+          seriesStreams,
+          blockAdult: _blockAdultContent,
+          channelFilter: _channelFilter,
+        ));
+        _applyFilters();
         _isFetchingData = false;
         notifyListeners();
         return;
@@ -1627,8 +1667,12 @@ class IPTVProvider with ChangeNotifier {
       if (_activeTab != "favorites") {
         if (_activeTab == "live") {
           if (stream.type != "live" && stream.type != "stalker") return false;
-        } else {
-          if (stream.type != _activeTab) return false;
+        } else if (_activeTab == "movie") {
+          if (stream.type != "movie" && stream.type != "stalker_movie") return false;
+        } else if (_activeTab == "series") {
+          if (stream.type != "series" && stream.type != "stalker_series") return false;
+        } else if (stream.type != _activeTab) {
+          return false;
         }
       }
       if (_activeTab == "favorites" && !_favorites.contains(stream.streamId))

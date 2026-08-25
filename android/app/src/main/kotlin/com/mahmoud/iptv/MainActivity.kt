@@ -16,8 +16,8 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // تفعيل حماية FLAG_SECURE القصوى لمنع التصوير والتقاط لقطات الشاشة
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        // السماح الصريح بالتقاط الشاشة وتسجيل الفيديو.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
     private fun checkSnifferOrProxy(): Boolean {

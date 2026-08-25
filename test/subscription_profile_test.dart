@@ -38,6 +38,21 @@ void main() {
         isFalse);
   });
 
+  test('accepts a custom menu profile without source credentials', () {
+    expect(
+      hasCompleteWorkerSubscriptionProfile({
+        'server': {
+          'type': 'custom',
+          'content_mode': 'custom_menu',
+          'host': '',
+          'username': '',
+          'password': '',
+        },
+      }),
+      isTrue,
+    );
+  });
+
   test('rejects a missing or incomplete server payload', () {
     expect(hasCompleteWorkerSubscriptionProfile({}), isFalse);
     expect(

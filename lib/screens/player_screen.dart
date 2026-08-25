@@ -389,22 +389,27 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     String urlStr = stripFfmpegPrefix(_stream.url.trim());
+    final activePlaylist = provider.savedPlaylists.firstWhere(
+      (p) => p.id == provider.activePlaylistId,
+      orElse: () => UserPlaylist(id: '', name: '', type: ''),
+    );
+    final isStalkerPlaylist = activePlaylist.type == 'stalker';
+    final isStalkerContent = _stream.type == "stalker" ||
+        _stream.type == "stalker_movie" ||
+        _stream.type == "stalker_series" ||
+        (isStalkerPlaylist && (_stream.type == "movie" || _stream.type == "series"));
     final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(urlStr);
 
-    if ((_stream.type == "stalker" ||
-        _stream.type == "stalker_movie" ||
-        _stream.type == "stalker_series") &&
-        !isDirectStalkerPlayback) {
+    if (isStalkerContent && !isDirectStalkerPlayback) {
       try {
-        final host = provider.savedPlaylists
-            .firstWhere((p) => p.id == provider.activePlaylistId)
-            .host;
-        final mac = provider.savedPlaylists
-            .firstWhere((p) => p.id == provider.activePlaylistId)
-            .username;
+        final host = activePlaylist.host;
+        final mac = activePlaylist.username;
         String sType = "itv";
-        if (_stream.type == "stalker_movie" || _stream.type == "stalker_series")
+        if (_stream.type == "stalker_movie" ||
+            _stream.type == "stalker_series" ||
+            (isStalkerPlaylist && (_stream.type == "movie" || _stream.type == "series"))) {
           sType = "vod";
+        }
         final linkUrl = Uri.parse(
             "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(urlStr)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml");
         final reqHeaders = {
@@ -441,7 +446,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       'Connection': 'keep-alive',
     };
 
-    if (_stream.type == "stalker" ||
+    if (isStalkerContent ||
         urlStr.contains("mac=") ||
         urlStr.contains("play/live.php")) {
       headers['User-Agent'] =
@@ -2696,8 +2701,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     List<String> currentCategories = provider.categories;
 
     final activeStreams = provider.allStreams.where((s) {
-      if (s.type != provider.activeTab && provider.activeTab != "favorites")
-        return false;
+      final matchesTab = provider.activeTab == "favorites" ||
+          (provider.activeTab == "live" && (s.type == "live" || s.type == "stalker")) ||
+          (provider.activeTab == "movie" && (s.type == "movie" || s.type == "stalker_movie")) ||
+          (provider.activeTab == "series" && (s.type == "series" || s.type == "stalker_series"));
+      if (!matchesTab) return false;
       if (_sidebarSelectedCategory != "all" &&
           s.categoryName != _sidebarSelectedCategory) return false;
       if (_sidebarSearchQuery.isNotEmpty &&

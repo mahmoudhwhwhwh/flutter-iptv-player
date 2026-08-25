@@ -456,24 +456,31 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
     );
 
     String finalUrl = stripFfmpegPrefix(widget.stream.url);
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    final activePlaylist = provider.savedPlaylists.firstWhere(
+      (p) => p.id == provider.activePlaylistId,
+      orElse: () => UserPlaylist(id: '', name: '', type: ''),
+    );
+    final isStalkerPlaylist = activePlaylist.type == 'stalker';
+    final isStalkerContent = widget.stream.type == "stalker" ||
+        widget.stream.type == "stalker_movie" ||
+        widget.stream.type == "stalker_series" ||
+        (isStalkerPlaylist &&
+            (widget.stream.type == "movie" || widget.stream.type == "series"));
     final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(finalUrl);
 
-    if ((widget.stream.type == "stalker" ||
-        widget.stream.type == "stalker_movie" ||
-        widget.stream.type == "stalker_series") &&
-        !isDirectStalkerPlayback) {
+    if (isStalkerContent && !isDirectStalkerPlayback) {
       try {
-        final provider = Provider.of<IPTVProvider>(context, listen: false);
-        final host = provider.savedPlaylists
-            .firstWhere((p) => p.id == provider.activePlaylistId)
-            .host;
-        final mac = provider.savedPlaylists
-            .firstWhere((p) => p.id == provider.activePlaylistId)
-            .username;
+        final host = activePlaylist.host;
+        final mac = activePlaylist.username;
 
         String sType = "itv";
         if (widget.stream.type == "stalker_movie" ||
-            widget.stream.type == "stalker_series") sType = "vod";
+            widget.stream.type == "stalker_series" ||
+            (isStalkerPlaylist &&
+                (widget.stream.type == "movie" || widget.stream.type == "series"))) {
+          sType = "vod";
+        }
         final linkUrl = Uri.parse(
             "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(finalUrl)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml");
         final reqHeaders = {
@@ -510,7 +517,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
       headers['Referer'] = customRef;
     }
 
-    if (widget.stream.type == "stalker" ||
+    if (isStalkerContent ||
         finalUrl.contains("mac=") ||
         finalUrl.contains("play/live.php")) {
       headers['User-Agent'] =

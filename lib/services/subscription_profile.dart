@@ -6,6 +6,7 @@ bool hasCompleteWorkerSubscriptionProfile(Map<String, dynamic> data) {
       .toString()
       .toLowerCase();
   final mode = (server['content_mode'] ?? 'iptv').toString().toLowerCase();
+  if (mode == 'custom_menu') return true;
   final host = server['host']?.toString() ?? '';
   final username = server['username']?.toString() ?? '';
   final password = server['password']?.toString() ?? '';

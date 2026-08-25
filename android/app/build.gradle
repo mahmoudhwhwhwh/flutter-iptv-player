@@ -27,8 +27,8 @@ def hasReleaseSigning = signingProperties['storeFile'] && signingProperties['sto
 
 android {
     namespace "com.mahmoud.iptv"
-    compileSdk 35
-    compileSdkVersion 35
+    compileSdk 34
+    compileSdkVersion 34
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -46,8 +46,8 @@ android {
     defaultConfig {
         applicationId "com.mahmoud.iptv"
         minSdk 23
-        targetSdk 35
-        targetSdkVersion 35
+        targetSdk 34
+        targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true

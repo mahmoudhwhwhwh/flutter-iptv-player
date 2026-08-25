@@ -46,6 +46,7 @@ bool isDirectStalkerPlaybackUrl(String url) {
   final normalized = stripFfmpegPrefix(url);
   final lower = _formatSearchText(normalized);
   return isWorkerStalkerStreamUrl(normalized) ||
+      lower.contains('/v1/stalker/play') ||
       lower.contains('/play/live.php') ||
       isHlsPlaybackUrl(normalized) ||
       isDashPlaybackUrl(normalized) ||

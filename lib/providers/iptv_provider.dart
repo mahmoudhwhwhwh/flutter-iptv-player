@@ -1,284 +1,1622 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/playlist_item.dart';
+import '../services/filter_service.dart';
 
 class UserPlaylist {
-  final String id, name, type;
-  final String? host, username, password;
-  UserPlaylist({required this.id, required this.name, required this.type, this.host, this.username, this.password});
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'type': type, 'host': host, 'username': username, 'password': password};
+  final String id;
+  final String name;
+  final String type;
+  final String? host;
+  final String? username;
+  final String? password;
+
+  UserPlaylist({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.host,
+    this.username,
+    this.password,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': type,
+        'host': host,
+        'username': username,
+        'password': password,
+      };
+
   factory UserPlaylist.fromJson(Map<String, dynamic> json) => UserPlaylist(
-    id: json['id']?.toString() ?? '', name: json['name']?.toString() ?? '', type: json['type']?.toString() ?? '',
-    host: json['host']?.toString(), username: json['username']?.toString(), password: json['password']?.toString(),
-  );
+        id: json['id'] ?? '',
+        name: json['name'] ?? '',
+        type: json['type'] ?? '',
+        host: json['host'],
+        username: json['username'],
+        password: json['password'],
+      );
+}
+
+// تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
+class MyHttpOverrides extends HttpOverrides {
+  final String proxyAddress;
+  MyHttpOverrides(this.proxyAddress);
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..findProxy = (uri) {
+        if (proxyAddress.isNotEmpty) {
+          return "PROXY $proxyAddress;";
+        }
+        return "DIRECT";
+      }
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // نرفض كافة الشهادات غير الموثوقة لمنع هجمات التقاط الحزم والتجسس فورا
+        return false;
+      };
+  }
 }
 
 class IPTVProvider with ChangeNotifier {
+  static const String _workerBase =
+      'https://iptv-subscription-api.tvkora56.workers.dev';
+  static const String _configUrl = '$_workerBase/v1/config';
+  static const String _loginUrl = '$_workerBase/v1/login';
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
-  void toggleTheme() async { _isDarkMode = !_isDarkMode; notifyListeners(); (await SharedPreferences.getInstance()).setBool('isDarkMode', _isDarkMode); }
-  
+
+  void toggleTheme() async {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', _isDarkMode);
+  }
+
   String _appLanguage = 'العربية';
   String get appLanguage => _appLanguage;
-  Future<void> setAppLanguage(String lang) async { _appLanguage = lang; notifyListeners(); (await SharedPreferences.getInstance()).setString('app_language', lang); }
-  
-  Color get accentColor => const Color(0xFFA855F7);
-  Color get themeBackground => const Color(0xFF09091A);
-  Color get themeSurface => const Color(0xFF14112B);
-  
-  bool _isLoading = false, _isFetchingData = false, _isLoggedIn = false;
-  bool get isLoading => _isLoading;
-  bool get isFetchingData => _isFetchingData;
-  bool get isLoggedIn => _isLoggedIn;
-  
-  String _activationCode = "";
-  String get activationCode => _activationCode;
-  
-  List<PlaylistItem> _allStreams = [], _filteredStreams = [], _recentlyPlayed = [];
-  List<PlaylistItem> get allStreams => _allStreams;
-  List<PlaylistItem> get streams => _filteredStreams;
-  List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
-  
+  String _premiumTheme = 'البنفسجي الملكي';
+  String get premiumTheme => _premiumTheme;
+  Color get accentColor {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي':
+        return const Color(0xFF38BDF8);
+      case 'الذهبي الفاخر':
+        return const Color(0xFFFFC857);
+      case 'الزمردي الداكن':
+        return const Color(0xFF34D399);
+      case 'الروبي السينمائي':
+        return const Color(0xFFFF5C77);
+      case 'السماوي الكهربائي':
+        return const Color(0xFF22D3EE);
+      case 'الغروب البرتقالي':
+        return const Color(0xFFFB923C);
+      default:
+        return const Color(0xFFA855F7);
+    }
+  }
+
+  Color get themeBackground {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي':
+        return const Color(0xFF07131F);
+      case 'الذهبي الفاخر':
+        return const Color(0xFF171107);
+      case 'الزمردي الداكن':
+        return const Color(0xFF071914);
+      case 'الروبي السينمائي':
+        return const Color(0xFF1B0A10);
+      case 'السماوي الكهربائي':
+        return const Color(0xFF06171D);
+      case 'الغروب البرتقالي':
+        return const Color(0xFF1B0E07);
+      default:
+        return const Color(0xFF09091A);
+    }
+  }
+
+  Color get themeSurface {
+    switch (_premiumTheme) {
+      case 'الأزرق الليلي':
+        return const Color(0xFF10253A);
+      case 'الذهبي الفاخر':
+        return const Color(0xFF28200F);
+      case 'الزمردي الداكن':
+        return const Color(0xFF102A22);
+      case 'الروبي السينمائي':
+        return const Color(0xFF30111B);
+      case 'السماوي الكهربائي':
+        return const Color(0xFF0D2933);
+      case 'الغروب البرتقالي':
+        return const Color(0xFF30170C);
+      default:
+        return const Color(0xFF14112B);
+    }
+  }
+
+  String _profileName = 'Premium User';
+  String get profileName => _profileName;
+  String _profileLogo = 'play';
+  String get profileLogo => _profileLogo;
+  String _profileImagePath = '';
+  String get profileImagePath => _profileImagePath;
+
+  Future<void> setAppLanguage(String language) async {
+    _appLanguage = language;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_language', language);
+  }
+
+  Future<void> setPremiumTheme(String theme) async {
+    _premiumTheme = theme;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('premium_theme', theme);
+  }
+
+  Future<void> setProfileName(String value) async {
+    final cleanName = value.trim();
+    if (cleanName.isEmpty) return;
+    _profileName = cleanName;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_name', cleanName);
+  }
+
+  Future<void> setProfileLogo(String value) async {
+    _profileLogo = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_logo', value);
+  }
+
+  Future<void> setProfileImagePath(String value) async {
+    _profileImagePath = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_image_path', value);
+  }
+
+  int _playerSettingsVersion = 0;
+  int get playerSettingsVersion => _playerSettingsVersion;
+  bool _tvBoxFocusEnabled = true;
+  bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
+
+  Future<void> setTvBoxFocusEnabled(bool value) async {
+    _tvBoxFocusEnabled = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tv_box_focus_enabled', value);
+  }
+
+  Future<void> setPlayerStringPreference(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+    _playerSettingsVersion++;
+    notifyListeners();
+  }
+
+  bool _isSecured = true;
+  bool get isSecured => _isSecured;
+  String _securityMessage = "";
+  String get securityMessage => _securityMessage;
+
+  bool _blockAdultContent = true;
+  bool get blockAdultContent => _blockAdultContent;
+
+  void setBlockAdultContent(bool value) async {
+    _blockAdultContent = value;
+    _applyFilters();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('block_adult_content', value);
+  }
+
+  String? lastError;
+  List<PlaylistItem> _allStreams = [];
+  List<PlaylistItem> _filteredStreams = [];
   List<UserPlaylist> _savedPlaylists = [];
   List<UserPlaylist> get savedPlaylists => _savedPlaylists;
-  
   String? _activePlaylistId;
+  PlaylistItem? _currentStream;
+  List<String> _favorites = [];
+  bool _isLoading = false;
+  bool _isFetchingData = false;
+  bool get isFetchingData => _isFetchingData;
+  String _activeTab = "live";
+  String _selectedCategory = "all";
+  String _searchQuery = "";
+  Timer? _searchDebounce;
+  bool _isLoggedIn = false;
+
+  List<Map<String, String>> _liveCategories = [];
+  List<Map<String, String>> _movieCategories = [];
+  List<Map<String, String>> _seriesCategories = [];
+
+  String _activationCode = "";
+  String _stalkerToken = "";
+  String get stalkerToken => _stalkerToken;
+  int _activationTime = 0;
+  int _activationDurationHours = -1;
+  String _subscriptionType = "";
+
+  bool _showMoviesSeries = true;
+  bool get showMoviesSeries => _showMoviesSeries;
+
+  String _channelFilter =
+      "الكل"; // "الكل", "القنوات العربية فقط", "القنوات الأجنبية فقط"
+  String get channelFilter => _channelFilter;
+
+  String _parentalPin = "";
+  String get parentalPin => _parentalPin;
+  bool get isParentalEnabled => _parentalPin.isNotEmpty;
+
+  List<String> _lockedCategories = [];
+  List<String> get lockedCategories => _lockedCategories;
+
+  final List<String> _sessionUnlockedCategories = [];
+
+  Future<void> setParentalPin(String newPin) async {
+    _parentalPin = newPin;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('parental_pin', newPin);
+    notifyListeners();
+  }
+
+  Future<void> toggleCategoryLock(String categoryName) async {
+    if (_lockedCategories.contains(categoryName)) {
+      _lockedCategories.remove(categoryName);
+    } else {
+      _lockedCategories.add(categoryName);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('locked_categories', _lockedCategories);
+    notifyListeners();
+  }
+
+  bool isCategoryLocked(String categoryName) {
+    if (_sessionUnlockedCategories.contains(categoryName)) {
+      return false;
+    }
+    return isParentalEnabled && _lockedCategories.contains(categoryName);
+  }
+
+  void unlockCategorySession(String categoryName) {
+    if (!_sessionUnlockedCategories.contains(categoryName)) {
+      _sessionUnlockedCategories.add(categoryName);
+      notifyListeners();
+    }
+  }
+
+  Future<void> clearParentalSettings() async {
+    _parentalPin = "";
+    _lockedCategories.clear();
+    _sessionUnlockedCategories.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('parental_pin');
+    await prefs.remove('locked_categories');
+    notifyListeners();
+  }
+
+  void setShowMoviesSeries(bool value) async {
+    _showMoviesSeries = value;
+    _applyFilters();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('filter_show_movies_series', value);
+  }
+
+  void setChannelFilter(String value) async {
+    _channelFilter = value;
+    _applyFilters();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('channel_filter', value);
+  }
+
+  String get activeTab => _activeTab;
+  String _globalUserAgent = '';
+  String get globalUserAgent => _globalUserAgent;
+  void setGlobalUserAgent(String value) {
+    _globalUserAgent = value;
+    notifyListeners();
+  }
+
+  String _globalReferer = '';
+  String get globalReferer => _globalReferer;
+  void setGlobalReferer(String value) {
+    _globalReferer = value;
+    notifyListeners();
+  }
+
+  // ==========================================
+  // أنظمة الحماية المتطورة (Security & Anti-Sniffing)
+  // ==========================================
+  static const _securityChannel = MethodChannel('com.mahmoud.iptv/security');
+  bool _snifferDetected = false;
+  bool get snifferDetected => _snifferDetected;
+
+  static const int APP_VERSION_CODE = 212;
+  String _currentVersionStr = "2.2.12";
+  int _currentVersionCode = 212;
+
+  bool _isVersionBlocked = false;
+  String _remoteBlockMessage =
+      "🚨 تحديث إجباري مطلوب فوراً 🚨\n\nلقد تم إيقاف هذا الإصدار القديم نهائياً لدواعي صيانة وتحديث الأمان. يرجى تنزيل الإصدار الأخير للاستمرار في مشاهدة القنوات والاشتراكات. شكراً لكم!";
+  String get remoteBlockMessage => _remoteBlockMessage;
+  bool get isVersionBlocked => _isVersionBlocked;
+
+  bool _vpnDetected = false;
+  bool get vpnDetected => _vpnDetected;
+
+  String _globalProxy = "";
+  String get globalProxy => _globalProxy;
+
+  // New additions: Announcement & Security remote override controls
+  String _announcementText = "";
+  String get announcementText => _announcementText;
+  bool _disableVpnCheck = false;
+  bool _disableSnifferCheck = false;
+
+  // New addition: Recently Played/Continue Watching
+  List<PlaylistItem> _recentlyPlayed = [];
+  List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
+
+  void addToRecentlyPlayed(PlaylistItem stream) async {
+    _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
+    _recentlyPlayed.insert(0, stream);
+    if (_recentlyPlayed.length > 10) {
+      _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
+    }
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> jsonList =
+          _recentlyPlayed.map((item) => item.toJson()).toList();
+      await prefs.setString('recently_played_streams', jsonEncode(jsonList));
+    } catch (_) {}
+  }
+
+  void loadRecentlyPlayed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedStr = prefs.getString('recently_played_streams');
+      if (savedStr != null) {
+        final List decoded = jsonDecode(savedStr);
+        _recentlyPlayed =
+            decoded.map((item) => PlaylistItem.fromJson(item)).toList();
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  // ==========================================
+
+  String get selectedCategory => _selectedCategory;
+  String get searchQuery => _searchQuery;
+  bool get isLoggedIn => _isLoggedIn;
+  bool get isLoading => _isLoading;
+
+  List<PlaylistItem> get streams => _filteredStreams;
+  List<PlaylistItem> get allStreams => _allStreams;
+  PlaylistItem? get currentStream => _currentStream;
+  List<String> get favorites => _favorites;
+
+  String get activationCode => _activationCode;
+  int get activationTime => _activationTime;
+  int get activationDurationHours => _activationDurationHours;
+  String get subscriptionType => _subscriptionType;
+
   String? get activePlaylistId => _activePlaylistId;
-  
-  List<Map<String, String>> _liveCategories = [], _movieCategories = [], _seriesCategories = [];
+
   List<Map<String, String>> get liveCategories => _liveCategories;
   List<Map<String, String>> get movieCategories => _movieCategories;
   List<Map<String, String>> get seriesCategories => _seriesCategories;
-  
-  String _activeTab = "live", _selectedCategory = "all", _searchQuery = "";
-  String get activeTab => _activeTab;
-  String get selectedCategory => _selectedCategory;
-  
-  int _currentVersionCode = 240;
-  bool _isVersionBlocked = false;
-  bool get isVersionBlocked => _isVersionBlocked;
-  
-  String _stalkerToken;
-  String get globalUserAgent => "MAG250 stbapp ver: 2 rev: 250";
+  List<String> get categories {
+    List<String> cats = [];
+    if (_activeTab == "live") {
+      cats = _liveCategories.map((c) => c['category_name'] ?? '').toList();
+    } else if (_activeTab == "movie") {
+      cats = _movieCategories.map((c) => c['category_name'] ?? '').toList();
+    } else if (_activeTab == "series") {
+      cats = _seriesCategories.map((c) => c['category_name'] ?? '').toList();
+    }
 
-  // Cloudflare Worker URLs for Security and Automatic Updates
-  static const String _workerBase = 'https://iptv-subscription-api.tvkora56.workers.dev';
-  static const String _configUrl = '$_workerBase/v1/config';
-  static const String _loginUrl = '$_workerBase/v1/login';
-  
-  // GitHub URLs for Public Assets
-  static const String _menuUrl = 'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json';
+    if (_blockAdultContent) {
+      final List<String> adultKeywords = [
+        "+18",
+        "18+",
+        "ADULT",
+        "XXX",
+        "PORN",
+        "SEX",
+        "REDLIGHT",
+        "FORBIDDEN",
+        "ع للكبار",
+        "للكبار",
+        "X-RATED",
+        "BLUE",
+        "PENTHOUSE",
+        "PLAYBOY",
+        "HUSTLER",
+        "EGOIST",
+        "VENUS",
+        "CANDY",
+        "NIGHT",
+        "EROTIC"
+      ];
+      cats = cats.where((c) {
+        final String upper = c.toUpperCase();
+        for (final kw in adultKeywords) {
+          if (upper.contains(kw)) return false;
+        }
+        return true;
+      }).toList();
+    }
+    return cats;
+  }
 
-  void init() async {
-    _isLoading = true; notifyListeners();
+  bool get isExpired {
+    if (_activationDurationHours < 0) return false;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final expiresAt = _activationTime + (_activationDurationHours * 3600000);
+    return now > expiresAt;
+  }
+
+  String get expirationDateFormatted {
+    if (_activationDurationHours < 0) return "مدى الحياة";
+    final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+        _activationTime + (_activationDurationHours * 3600000));
+    return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
+  }
+
+  Future<void> init() async {
+    _isLoading = true;
+    notifyListeners();
+
+    // تشغيل نظام الحماية بشكل دوري لضمان عدم تشغيل VPN في الخلفية لاحقاً
+    _checkVpnAndProxyStatus();
+    checkSecurity();
+    checkRemoteBlocking();
+    Timer.periodic(const Duration(seconds: 15), (_) {
+      _checkVpnAndProxyStatus();
+      checkSecurity();
+      checkRemoteBlocking();
+    });
+
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool('isDarkMode') ?? true;
-    _appLanguage = prefs.getString('app_language') ?? 'العربية';
+
+    // التحقق من تلاعب أو تغيير اسم الحزمة / التطبيق
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      _currentVersionStr = packageInfo.version;
+      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 212;
+      final nameClean = packageInfo.appName.toLowerCase().replaceAll(' ', '');
+      if (!nameClean.contains("livefootball") &&
+          !nameClean.contains("livestrempro")) {
+        // في حال تغيير اسم التطبيق يمكن إيقافه
+        // _isVersionBlocked = true;
+      }
+    } catch (_) {}
+
+    final savedFavs = prefs.getStringList('favorites');
+    if (savedFavs != null) {
+      _favorites = savedFavs;
+    }
+    loadRecentlyPlayed();
+
+    final playlistsJson = prefs.getString('saved_playlists');
+    if (playlistsJson != null) {
+      try {
+        final List decoded = json.decode(playlistsJson);
+        _savedPlaylists =
+            decoded.map((item) => UserPlaylist.fromJson(item)).toList();
+      } catch (_) {}
+    }
+
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    _showMoviesSeries = prefs.getBool('filter_show_movies_series') ?? true;
+    _channelFilter = prefs.getString('channel_filter') ?? "الكل";
+    _parentalPin = prefs.getString('parental_pin') ?? "";
+    _lockedCategories = prefs.getStringList('locked_categories') ?? [];
     _activationCode = prefs.getString('active_code') ?? "";
-    
-    final savedPlaylistsStr = prefs.getString('saved_playlists');
-    if (savedPlaylistsStr != null) { try { _savedPlaylists = (json.decode(savedPlaylistsStr) as List).map((e) => UserPlaylist.fromJson(e)).toList(); } catch(e) {} }
-    
-    final packageInfo = await PackageInfo.fromPlatform();
-    _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 240;
-    
-    await checkRemoteBlocking();
-    if (_isLoggedIn && _activationCode.isNotEmpty) await loginWithCode(_activationCode);
-    
-    _isLoading = false; notifyListeners();
+    _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
+    _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
+    _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
+    _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
+    _appLanguage = prefs.getString('app_language') ?? 'العربية';
+    _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
+    _profileName = prefs.getString('profile_name') ?? 'Premium User';
+    _profileLogo = prefs.getString('profile_logo') ?? 'play';
+    _profileImagePath = prefs.getString('profile_image_path') ?? '';
+    _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
+
+    // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
+    await runActiveSecurityChecks();
+
+    if (_activationCode.trim() == "69743190") {
+      _isVersionBlocked = true;
+    }
+
+    if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
+      _activePlaylistId = _savedPlaylists.first.id;
+      loadPlaylistStreams(_activePlaylistId!);
+    }
+
+    // تفعيل إعدادات بروكسي الحماية الصارمة
+    HttpOverrides.global = MyHttpOverrides("");
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> runActiveSecurityChecks() async {
+    try {
+      // 1. فحص اتصال مصحح الأخطاء (Debugger attachment) - حماية قوية ضد الهندسة العكسية وتحليل القيم أثناء التشغيل
+
+      // 2. فحص كسر الحماية (Root detection) - أجهزة الروت تستخدم بشكل رئيسي لتخطي بروتوكولات الأمان وكسر الشهادات
+      if (Platform.isAndroid) {
+        final List<String> rootPaths = [
+          "/system/app/Superuser.apk",
+          "/sbin/su",
+          "/system/bin/su",
+          "/system/xbin/su",
+          "/data/local/xbin/su",
+          "/data/local/bin/su",
+          "/system/sd/xbin/su",
+          "/system/bin/failsafe/su",
+          "/data/local/su",
+          "/su/bin/su",
+          "/system/xbin/daemonsu"
+        ];
+
+        for (final path in rootPaths) {
+          if (File(path).existsSync()) {
+            _isSecured = false;
+            _securityMessage =
+                "تم كشف صلاحيات الروت أو كسر حماية نظام الهاتف (Root Access Detected). كإجراء أمان، تم إيقاف عمل التطبيق.";
+            _allStreams.clear();
+            _filteredStreams.clear();
+            notifyListeners();
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // ==========================================
+  // دوال الحماية وفحص الشبكة (Anti-Proxy, VPN, Canary)
+  // ==========================================
+
+  static bool isVersionLowerThan(String versionA, String versionB) {
+    try {
+      final cleanA = versionA.toLowerCase().replaceAll('v', '').trim();
+      final cleanB = versionB.toLowerCase().replaceAll('v', '').trim();
+
+      final partsA =
+          cleanA.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final partsB =
+          cleanB.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+
+      final maxLength =
+          partsA.length > partsB.length ? partsA.length : partsB.length;
+      for (int i = 0; i < maxLength; i++) {
+        final valA = i < partsA.length ? partsA[i] : 0;
+        final valB = i < partsB.length ? partsB[i] : 0;
+        if (valA < valB) return true;
+        if (valA > valB) return false;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  bool isOutdatedVersion(String versionStr, int versionCode) {
+    if (versionCode > 0) {
+      if (versionCode < 211) {
+        return true;
+      } else if (versionCode >= 211) {
+        return false;
+      }
+    }
+    return isVersionLowerThan(versionStr, "2.2.11");
   }
 
   Future<void> checkRemoteBlocking() async {
     try {
-      final res = await http.get(Uri.parse("$_configUrl?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        if (data['blocking'] != null && data['blocking']['min_version_code'] != null && _currentVersionCode < data['blocking']['min_version_code']) { 
-          _isVersionBlocked = true; notifyListeners(); 
+      final configRes = await http
+          .get(Uri.parse(
+              "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"))
+          .timeout(const Duration(seconds: 5));
+      if (configRes.statusCode == 200) {
+        final Map<String, dynamic> configData = json.decode(configRes.body);
+        Map<String, dynamic>? blockData;
+        if (configData.containsKey('blocking')) {
+          blockData = Map<String, dynamic>.from(configData['blocking']);
+        }
+
+        // Parse remote announcements & security overrides dynamically
+        if (configData.containsKey('announcement')) {
+          final String newAnn = configData['announcement'].toString();
+          if (_announcementText != newAnn) {
+            _announcementText = newAnn;
+            notifyListeners();
+          }
+        }
+
+        final newDisableVpn = configData['disable_vpn_check'] == true;
+        final newDisableSniffer = configData['disable_sniffer_check'] == true;
+        if (_disableVpnCheck != newDisableVpn ||
+            _disableSnifferCheck != newDisableSniffer) {
+          _disableVpnCheck = newDisableVpn;
+          _disableSnifferCheck = newDisableSniffer;
+          if (_disableVpnCheck) _vpnDetected = false;
+          if (_disableSnifferCheck) _snifferDetected = false;
+          notifyListeners();
+        }
+
+        if (blockData != null) {
+          bool isBlocked = false;
+
+          if (blockData.containsKey('blocked_version_codes')) {
+            final List codes = blockData['blocked_version_codes'] as List;
+            if (codes.contains(_currentVersionCode)) {
+              isBlocked = true;
+            }
+          }
+          if (blockData.containsKey('min_version_code')) {
+            final int minVer =
+                int.tryParse(blockData['min_version_code'].toString()) ?? 0;
+            if (_currentVersionCode < minVer) {
+              isBlocked = true;
+            }
+          }
+
+          // Force block any version lower than 2.2.11 (outdated versions)
+          if (isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
+            isBlocked = true;
+            _remoteBlockMessage =
+                "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث إلى الإصدار 2.2.11 أو أعلى للاستمرار.";
+          }
+
+          if (blockData.containsKey('block_message') &&
+              !isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
+            _remoteBlockMessage = blockData['block_message'].toString();
+          }
+
+          if (_isVersionBlocked != isBlocked) {
+            _isVersionBlocked = isBlocked;
+            notifyListeners();
+          }
+        }
+
+        if (_isLoggedIn &&
+            _activationCode.isNotEmpty &&
+            _activationCode != "2026" &&
+            _activationCode != "2027" &&
+            _activationCode != "69743190") {
+          final users = configData['users'] as Map<String, dynamic>? ?? {};
+          final servers = configData['servers'] as List<dynamic>? ?? [];
+          bool found = false;
+          dynamic u;
+          if (users.containsKey(_activationCode)) {
+            u = users[_activationCode];
+            found = true;
+          } else {
+            for (var s in servers) {
+              final sUsers = s['users'] as Map<String, dynamic>? ?? {};
+              if (sUsers.containsKey(_activationCode)) {
+                u = sUsers[_activationCode];
+                found = true;
+                break;
+              }
+            }
+          }
+
+          if (found && u != null) {
+            bool isBlocked = u['blocked'] == true;
+            if (isBlocked) {
+              lastError =
+                  "تم حظر الاشتراك عنك بسبب عدم الانصياغ ل القواعد والقوانين";
+              _isLoggedIn = false;
+              logout();
+              notifyListeners();
+            } else {
+              final deviceId = await _getDeviceId();
+              dynamic devices = u['devices'] ?? [];
+              if (!devices.contains(deviceId)) {
+                _registerDeviceOrBlock(_activationCode, deviceId);
+              }
+            }
+          } else {
+            lastError = "هذا الاشتراك غير صالح أو تم حذفه";
+            _isLoggedIn = false;
+            logout();
+            notifyListeners();
+          }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Remote block check failed");
+    }
   }
 
-  Future<bool> loginWithCode(String code) async {
-    String cleanCode = code.trim();
-    if (cleanCode.isEmpty) return false;
-    _isLoading = true; notifyListeners();
-    
-    try {
-      // Secure login via Cloudflare Worker and D1 Database
-      final res = await http.post(
-        Uri.parse(_loginUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'code': cleanCode, 'device_id': 'UKQ1.240624.001'}),
-      ).timeout(const Duration(seconds: 15));
+  bool _isRegisteringDevice = false;
 
+  Future<void> _registerDeviceOrBlock(String code, String deviceId) async {
+    if (_isRegisteringDevice) return;
+    _isRegisteringDevice = true;
+    try {
+      final url = Uri.parse(
+          "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      final res = await http.get(url);
       if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        if (data['ok'] == true && data['server'] != null) {
-          final server = data['server'];
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('active_code', cleanCode);
-          await prefs.setBool('is_logged_in', true);
-          _isLoggedIn = true;
-          _activationCode = cleanCode;
-          
-          final list = UserPlaylist(
-            id: "cf_$cleanCode",
-            name: "Premium Server",
-            type: server['type'] ?? 'xtream',
-            host: server['host'],
-            username: server['username'],
-            password: server['password'],
-          );
-          
-          _savedPlaylists = [list];
-          _activePlaylistId = list.id;
-          await prefs.setString('saved_playlists', json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
-          
-          if (server['content_mode'] == 'github') {
-            await _loadCuratedGitHubContent();
-          } else {
-            await loadPlaylistStreams(list.id);
+        final Map<String, dynamic> configData = json.decode(res.body);
+        final users = configData['users'] as Map<String, dynamic>? ?? {};
+        final servers = configData['servers'] as List<dynamic>? ?? [];
+        bool found = false;
+        dynamic u;
+        if (users.containsKey(code)) {
+          u = users[code];
+          found = true;
+        } else {
+          for (var s in servers) {
+            final sUsers = s['users'] as Map<String, dynamic>? ?? {};
+            if (sUsers.containsKey(code)) {
+              u = sUsers[code];
+              found = true;
+              break;
+            }
           }
-          
-          _isLoading = false; notifyListeners();
-          return true;
+        }
+
+        if (found && u != null) {
+          dynamic devices = u['devices'] ?? [];
+          if (!devices.contains(deviceId)) {
+            if (devices.length >= 2) {
+              u['blocked'] = true;
+              lastError =
+                  "تم حظر الاشتراك عنك بسبب تجاوز الحد الأقصى للأجهزة (جهازين فقط)";
+              _isLoggedIn = false;
+              logout();
+              notifyListeners();
+            }
+            // لا يحمل العميل أي صلاحية كتابة للإعدادات العامة.
+            // يبقى تحميل الاشتراك والقنوات بالقراءة فقط.
+          }
         }
       }
-    } catch(e) {
-      debugPrint("Login Error: $e");
+    } catch (e) {
+      debugPrint("Device registration failed");
     }
-    
-    _isLoading = false; notifyListeners();
+    _isRegisteringDevice = false;
+  }
+
+  Future<void> checkSecurity() async {
+    if (_disableSnifferCheck && _disableVpnCheck) {
+      if (_snifferDetected || _vpnDetected) {
+        _snifferDetected = false;
+        _vpnDetected = false;
+        notifyListeners();
+      }
+      return;
+    }
+    try {
+      // فحص أمني فائق القوة عبر الجافا (Android) لوقف التطبيق فورا إذا تم اكتشاف تعديل أو بيئة مشبوهة
+      final Map? result =
+          await _securityChannel.invokeMapMethod('checkSecurity');
+      if (result != null) {
+        final shouldBlock = _disableSnifferCheck
+            ? false
+            : (result['shouldBlock'] == true ||
+                result['snifferInstalled'] == true);
+        final vpnActive =
+            _disableVpnCheck ? false : result['vpnActive'] == true;
+        final proxyActive =
+            _disableVpnCheck ? false : result['proxyActive'] == true;
+
+        bool updated = false;
+        if (_snifferDetected != shouldBlock) {
+          _snifferDetected = shouldBlock;
+          updated = true;
+        }
+        if (_vpnDetected != (vpnActive || proxyActive)) {
+          _vpnDetected = vpnActive || proxyActive;
+          updated = true;
+        }
+        if (updated) {
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint("Security channel unavailable");
+    }
+  }
+
+  Future<void> _checkVpnAndProxyStatus() async {
+    try {
+      // فحص أمني فائق شامل لكافة القنوات (نظام أندرويد + شبكة Dart)
+      await checkSecurity();
+
+      if (_disableVpnCheck && _disableSnifferCheck) {
+        if (_vpnDetected || _snifferDetected) {
+          _vpnDetected = false;
+          _snifferDetected = false;
+          notifyListeners();
+        }
+        return;
+      }
+
+      bool detected = (_disableVpnCheck ? false : _vpnDetected) ||
+          (_disableSnifferCheck ? false : _snifferDetected);
+
+      if (!detected && !_disableVpnCheck) {
+        // 1. فحص إعدادات البروكسي (Proxy) لمنع برامج مثل Charles Proxy أو Reqable أو HttpCanary
+        try {
+          final systemProxy = HttpClient.findProxyFromEnvironment(
+              Uri.parse("https://google.com"));
+          if (systemProxy != "DIRECT" && systemProxy.trim().isNotEmpty) {
+            detected = true;
+          }
+        } catch (_) {}
+      }
+
+      if (!detected && !_disableVpnCheck) {
+        // 2. فحص واجهات الشبكة الفعالة للبحث عن VPN أو أدوات التقاط الحزم (Packet Sniffers)
+        final interfaces = await NetworkInterface.list(
+          includeLoopback: false,
+          type: InternetAddressType.any,
+        );
+        for (var interface in interfaces) {
+          final name = interface.name.toLowerCase();
+          if (name.contains('tun') ||
+              name.contains('ppp') ||
+              name.contains('vpn') ||
+              name.contains('ipsec') ||
+              name.contains('wireguard') ||
+              name.contains('wg0') ||
+              name.contains('wg1') ||
+              name.contains('tap') ||
+              name.contains('pcap')) {
+            detected = true;
+            break;
+          }
+        }
+      }
+
+      if (_vpnDetected != detected) {
+        _vpnDetected = detected;
+        notifyListeners();
+      }
+    } catch (_) {
+      _vpnDetected = false;
+    }
+  }
+
+  Future<String> _getDeviceId() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        return androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        return iosInfo.identifierForVendor ?? "ios_unknown";
+      }
+    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    String? localId = prefs.getString('persistent_client_device_id');
+    if (localId == null) {
+      localId =
+          "device_${DateTime.now().millisecondsSinceEpoch}_${(100000 + (DateTime.now().microsecond % 900000))}";
+      await prefs.setString('persistent_client_device_id', localId);
+    }
+    return localId;
+  }
+
+  // ==========================================
+
+  String _appName = "Live Football";
+  String get appName => _appName;
+
+  bool _updateAvailable = false;
+  bool get updateAvailable => _updateAvailable;
+
+  String _latestVersion = "";
+  String get latestVersion => _latestVersion;
+
+  String _updateUrl = "";
+  String get updateUrl => _updateUrl;
+
+  String _updateMessage = "";
+  String get updateMessage => _updateMessage;
+
+  Future<bool> loginWithCode(String code) async {
+    lastError = null;
+    final cleanCode = code.trim();
+    if (cleanCode.isEmpty) {
+      lastError = 'رمز الدخول فارغ';
+      return false;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final deviceId = await _getDeviceId();
+      final response = await http
+          .post(Uri.parse(_loginUrl),
+              headers: const {'Content-Type': 'application/json'},
+              body: json.encode({'code': cleanCode, 'device_id': deviceId}))
+          .timeout(const Duration(seconds: 20));
+      Map<String, dynamic> data = <String, dynamic>{};
+      try {
+        final decoded = json.decode(response.body);
+        if (decoded is Map) data = Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+      if (response.statusCode != 200 || data['ok'] != true) {
+        lastError =
+            data['message']?.toString() ?? 'رمز الدخول غير صالح أو غير مصرح به';
+        return false;
+      }
+      final rawServer = data['server'] ?? data['user'];
+      if (rawServer is! Map) {
+        lastError = 'بيانات السيرفر غير موجودة في الاستجابة';
+        return false;
+      }
+      final server = Map<String, dynamic>.from(rawServer);
+      final type = (server['type'] ?? server['server_type'] ?? 'xtream')
+          .toString()
+          .toLowerCase();
+      final mode = (server['content_mode'] ?? 'iptv').toString().toLowerCase();
+      final host = server['host']?.toString() ?? '';
+      final username = server['username']?.toString() ?? '';
+      final password = server['password']?.toString() ?? '';
+      if (host.isEmpty ||
+          username.isEmpty ||
+          (type != 'stalker' && password.isEmpty)) {
+        lastError = 'بيانات الاشتراك غير مكتملة';
+        return false;
+      }
+      var durationHours = -1;
+      final subscription = data['subscription'];
+      if (subscription is Map) {
+        final expiry =
+            DateTime.tryParse(subscription['expires_at']?.toString() ?? '');
+        if (expiry != null) {
+          durationHours = expiry.difference(DateTime.now()).inHours;
+          if (durationHours < 0) {
+            lastError = 'انتهت صلاحية الاشتراك';
+            return false;
+          }
+        }
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      _activationCode = cleanCode;
+      _activationTime = now;
+      _activationDurationHours = durationHours;
+      _subscriptionType = 'اشتراك $cleanCode';
+      _isLoggedIn = true;
+      final list = UserPlaylist(
+          id: 'subscription_$cleanCode',
+          name: _appName,
+          type: mode == 'custom_menu' ? 'custom' : type,
+          host: host,
+          username: username,
+          password: type == 'stalker' ? '' : password);
+      _savedPlaylists = [list];
+      _activePlaylistId = list.id;
+      await prefs.setString('active_code', cleanCode);
+      await prefs.setInt('active_code_activated_at', now);
+      await prefs.setInt('active_code_duration_hours', durationHours);
+      await prefs.setString('active_code_sub_name', _subscriptionType);
+      await prefs.setString('saved_playlists',
+          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+      await prefs.setBool('is_logged_in', true);
+      if (type == 'stalker') {
+        _globalUserAgent =
+            'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
+      }
+      notifyListeners();
+      if (mode == 'custom_menu') {
+        await _loadCuratedGitHubContent();
+      } else {
+        await loadPlaylistStreams(list.id);
+      }
+      return true;
+    } on TimeoutException {
+      lastError = 'انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة';
+    } catch (e) {
+      lastError = 'تعذر الاتصال. تأكد من الإنترنت وصحة الاشتراك';
+      debugPrint('Cloudflare login error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
     return false;
   }
 
   Future<void> _loadCuratedGitHubContent() async {
-    _isFetchingData = true; notifyListeners();
-    _allStreams = []; _liveCategories = [];
+    _isFetchingData = true;
+    _allStreams = [];
+    _liveCategories = [];
     try {
-      final res = await http.get(Uri.parse("$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}")).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final List decoded = json.decode(res.body);
-        final catsSeen = <String, String>{};
-        for (var item in decoded) {
-            final catId = item['category_id']?.toString() ?? '99', catName = item['category_name']?.toString() ?? 'بث مباشر';
-            if (!catsSeen.containsKey(catId)) { catsSeen[catId] = catName; _liveCategories.add({'category_id': catId, 'category_name': catName}); }
-            _allStreams.add(PlaylistItem(num: null, streamId: _allStreams.length.toString(), name: item['name']?.toString() ?? 'Unknown', streamIcon: item['icon']?.toString() ?? '', categoryId: catId, categoryName: catName, url: item['url']?.toString() ?? "", type: "live"));
+      final response = await http
+          .get(Uri.parse(
+            'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}',
+          ))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) {
+          final seen = <String>{};
+          for (final raw in decoded) {
+            if (raw is! Map) continue;
+            final categoryId = raw['category_id']?.toString() ?? '99';
+            final categoryName = raw['category_name']?.toString() ?? 'بث مباشر';
+            if (seen.add(categoryId)) {
+              _liveCategories.add(
+                  {'category_id': categoryId, 'category_name': categoryName});
+            }
+            _allStreams.add(PlaylistItem(
+              num: null,
+              streamId: _allStreams.length.toString(),
+              name: raw['name']?.toString() ?? 'قناة',
+              streamIcon: raw['icon']?.toString() ?? '',
+              categoryId: categoryId,
+              categoryName: categoryName,
+              url: raw['url']?.toString() ?? '',
+              type: 'live',
+            ));
+          }
         }
       }
-    } catch (e) {}
-    _applyFilters(); _isFetchingData = false; notifyListeners();
+    } catch (_) {}
+    _applyFilters();
+    _isFetchingData = false;
+    notifyListeners();
   }
 
   Future<void> loadPlaylistStreams(String id) async {
-    _isFetchingData = true; notifyListeners();
-    _allStreams = []; _liveCategories = [];
-    final playlist = _savedPlaylists.firstWhere((p) => p.id == id, orElse: () => UserPlaylist(id: '', name: '', type: ''));
-    if (playlist.id.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
+    _isFetchingData = true;
+    notifyListeners();
+
+    final playlist = _savedPlaylists.firstWhere((p) => p.id == id,
+        orElse: () => UserPlaylist(id: '', name: '', type: ''));
+    if (playlist.id.isEmpty) {
+      _isFetchingData = false;
+      notifyListeners();
+      return;
+    }
     _activePlaylistId = id;
-    final host = playlist.host ?? "", user = playlist.username ?? "", pass = playlist.password ?? "";
-    if (host.isEmpty || user.isEmpty) { _isFetchingData = false; notifyListeners(); return; }
-    
-    try { 
-      if (playlist.type == 'stalker') {
-        await _loadStalkerData(host, user);
-      } else {
-        await _loadCategories(host, user, pass);
-        await _loadStreams(host, user, pass);
-      }
-    } catch (e) {}
-    _applyFilters(); _isFetchingData = false; notifyListeners();
-  }
 
-  Future<void> _loadStalkerData(String host, String mac) async {
-    String baseUrl = host;
-    if (!baseUrl.contains('/portal.php')) { baseUrl = baseUrl.endsWith('/') ? '${baseUrl}portal.php' : '$baseUrl/portal.php'; }
-    final headers = {'User-Agent': globalUserAgent, 'Cookie': 'mac=$mac'};
-    try {
-      final hRes = await http.get(Uri.parse("$baseUrl?type=stb&action=handshake"), headers: headers).timeout(const Duration(seconds: 10));
-      if (hRes.statusCode == 200) {
-        try { final hData = json.decode(hRes.body); _stalkerToken = hData['js']?['token']; if (_stalkerToken != null) headers['Authorization'] = 'Bearer $_stalkerToken'; } catch(_) {}
-      }
-      await http.get(Uri.parse("$baseUrl?type=stb&action=get_profile"), headers: headers).timeout(const Duration(seconds: 10));
-      final catRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_categories"), headers: headers).timeout(const Duration(seconds: 10));
-      if (catRes.statusCode == 200) {
-        final dynamic decoded = json.decode(catRes.body);
-        List cats = [];
-        if (decoded is Map && decoded['js'] != null) { cats = decoded['js'] is List ? decoded['js'] : []; }
-        else if (decoded is List) { cats = decoded; }
-        _liveCategories = cats.map<Map<String, String>>((item) => {'category_id': item['id']?.toString() ?? '', 'category_name': item['title']?.toString() ?? 'بث مباشر'}).toList();
-      }
-      final chanRes = await http.get(Uri.parse("$baseUrl?type=itv&action=get_all_channels"), headers: headers).timeout(const Duration(seconds: 15));
-      if (chanRes.statusCode == 200) {
-        final dynamic decoded = json.decode(chanRes.body);
-        List channels = [];
-        if (decoded is Map && decoded['js'] != null) {
-          final js = decoded['js'];
-          if (js is Map && js['data'] != null) { channels = js['data'] is List ? js['data'] : []; }
-          else if (js is List) { channels = js; }
-        } else if (decoded is List) { channels = decoded; }
-        for (var item in channels) {
-          if (item is! Map) continue;
-          final catId = item['category_id']?.toString() ?? '', cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-          _allStreams.add(PlaylistItem(num: int.tryParse(item['number']?.toString() ?? ''), streamId: item['id']?.toString() ?? '', name: item['name']?.toString() ?? 'Unknown', streamIcon: item['logo']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? (cat['category_name'] ?? 'بث مباشر') : 'بث مباشر', url: "$baseUrl?type=itv&action=create_link&cmd=${Uri.encodeComponent(item['cmd']?.toString() ?? '')}", type: "live"));
+    if (_activationCode == "2027") {
+      try {
+        final url = Uri.parse(
+            "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/Main_menu.json?t=${DateTime.now().millisecondsSinceEpoch}");
+        final res = await http.get(url);
+        if (res.statusCode == 200) {
+          final List<dynamic> data = json.decode(res.body);
+          List<Map<String, String>> tempCats = [];
+          List<PlaylistItem> tempStreams = [];
+          Set<String> catNames = {};
+
+          for (int i = 0; i < data.length; i++) {
+            final item = data[i];
+            final catName = item['category_name']?.toString() ?? 'Other';
+            final catId = item['category_id']?.toString() ?? catName;
+            if (!catNames.contains(catId)) {
+              catNames.add(catId);
+              tempCats.add({
+                'category_id': catId,
+                'category_name': catName,
+                'parent_id': '0'
+              });
+            }
+
+            Map<String, String>? clearKeys;
+            if (item['keys'] != null && item['keys'] is Map) {
+              clearKeys = (item['keys'] as Map)
+                  .map((k, v) => MapEntry(k.toString(), v.toString()));
+            } else if (item['clearKeys'] != null && item['clearKeys'] is Map) {
+              clearKeys = (item['clearKeys'] as Map)
+                  .map((k, v) => MapEntry(k.toString(), v.toString()));
+            }
+
+            tempStreams.add(PlaylistItem(
+              num: i,
+              streamId: "custom_$i",
+              name: item['name']?.toString() ?? '',
+              streamIcon: item['icon']?.toString() ?? '',
+              categoryId: catId,
+              categoryName: catName,
+              url: item['url']?.toString() ?? '',
+              type: 'live',
+              customUserAgent: item['user_agent']?.toString() ??
+                  item['customUserAgent']?.toString(),
+              customReferer: item['referer']?.toString() ??
+                  item['customReferer']?.toString(),
+              clearKeys: clearKeys,
+            ));
+          }
+
+          // اعتراض وتصفية من المصدر المركزي
+          _liveCategories = FilterService.interceptAndFilterCategories(tempCats,
+              blockAdult: _blockAdultContent);
+          _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
+              blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+          _movieCategories = [];
+          _seriesCategories = [];
+
+          _applyFilters();
         }
+      } catch (e) {
+        debugPrint("Configured streams could not be loaded");
       }
-    } catch (e) {}
-  }
+      _isFetchingData = false;
+      notifyListeners();
+      return;
+    }
 
-  Future<void> _loadCategories(String host, String user, String pass) async {
     try {
-      final r1 = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_categories")).timeout(const Duration(seconds: 10));
-      if (r1.statusCode == 200) { final d = json.decode(r1.body); if (d is List) _liveCategories = d.map((i) => {'category_id': i['category_id']?.toString() ?? '', 'category_name': i['category_name']?.toString() ?? 'بث مباشر'}).toList(); }
-    } catch (e) {}
-  }
+      final host = (playlist.host ?? '').trim();
+      final user = (playlist.username ?? '').trim();
+      final pass = (playlist.password ?? '').trim();
 
-  Future<void> _loadStreams(String host, String user, String pass) async {
-    try {
-      final r = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_live_streams")).timeout(const Duration(seconds: 15));
-      if (r.statusCode == 200) {
-        final List d = json.decode(r.body);
-        for (var i in d) {
-          final catId = i['category_id']?.toString() ?? '', cat = _liveCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-          _allStreams.add(PlaylistItem(num: int.tryParse(i['num']?.toString() ?? ''), streamId: i['stream_id']?.toString() ?? '', name: i['name']?.toString() ?? 'Unknown', streamIcon: i['stream_icon']?.toString() ?? '', categoryId: catId, categoryName: cat.isNotEmpty ? (cat['category_name'] ?? 'بث مباشر') : 'بث مباشر', url: "$host/live/$user/$pass/${i['stream_id']}.ts", type: "live"));
+      if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
+        final headers = {
+          "Cookie": "mac=$user",
+          "Authorization": "Bearer $_stalkerToken",
+          "User-Agent":
+              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
+        };
+        final liveCatsRes = await http
+            .get(
+                Uri.parse(
+                    "$host/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml"),
+                headers: headers)
+            .timeout(const Duration(seconds: 15));
+        final liveStreamsRes = await http
+            .get(
+                Uri.parse(
+                    "$host/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml"),
+                headers: headers)
+            .timeout(const Duration(seconds: 25));
+
+        List<Map<String, String>> tempLiveCats = [];
+        if (liveCatsRes.statusCode == 200) {
+          final data = json.decode(liveCatsRes.body);
+          if (data['js'] is List) {
+            for (var item in data['js']) {
+              tempLiveCats.add({
+                'category_id': item['id']?.toString() ?? '',
+                'category_name': item['title']?.toString() ?? '',
+              });
+            }
+          }
         }
+
+        // اعتراض الفئات وتصفيتها فوراً
+        tempLiveCats = FilterService.interceptAndFilterCategories(tempLiveCats,
+            blockAdult: _blockAdultContent);
+
+        List<PlaylistItem> tempStreams = [];
+        if (liveStreamsRes.statusCode == 200) {
+          final data = json.decode(liveStreamsRes.body);
+          if (data['js'] != null) {
+            final items = data['js'] is List
+                ? data['js']
+                : (data['js']['data'] is List ? data['js']['data'] : []);
+            for (var item in items) {
+              final catId = item['tv_genre_id']?.toString() ?? '';
+              final cat = tempLiveCats.firstWhere(
+                  (c) => c['category_id'] == catId,
+                  orElse: () => {});
+              final catName =
+                  cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
+              final streamId = item['id']?.toString() ?? '';
+              tempStreams.add(PlaylistItem(
+                num: int.tryParse(item['number']?.toString() ?? '0'),
+                streamId: "live_$streamId",
+                name: item['name']?.toString() ?? '',
+                streamIcon: item['logo']?.toString() ?? '',
+                categoryId: catId,
+                categoryName: catName,
+                url: item['cmd']?.toString() ?? '', // URL is the CMD in Stalker
+                type: "stalker",
+              ));
+            }
+          }
+        }
+
+        // اعتراض القنوات وتصفيتها فوراً من المصدر
+        _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
+            blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+        _liveCategories = tempLiveCats;
+        _isFetchingData = false;
+        notifyListeners();
+        return;
+      } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
+        final liveCatsRes = await http
+            .get(Uri.parse(
+                "$host/player_api.php?username=$user&password=$pass&action=get_live_categories"))
+            .timeout(const Duration(seconds: 15));
+        final liveStreamsRes = await http
+            .get(Uri.parse(
+                "$host/player_api.php?username=$user&password=$pass&action=get_live_streams"))
+            .timeout(const Duration(seconds: 25));
+
+        List<Map<String, String>> tempLiveCats = [];
+        if (liveCatsRes.statusCode == 200) {
+          final List decoded = json.decode(liveCatsRes.body);
+          tempLiveCats = decoded
+              .map<Map<String, String>>((item) => {
+                    'category_id': item['category_id']?.toString() ?? '',
+                    'category_name': item['category_name']?.toString() ?? '',
+                  })
+              .toList();
+        }
+
+        // اعتراض وتصفية فئات البث المباشر
+        tempLiveCats = FilterService.interceptAndFilterCategories(tempLiveCats,
+            blockAdult: _blockAdultContent);
+
+        List<PlaylistItem> tempStreams = [];
+        if (liveStreamsRes.statusCode == 200) {
+          final List decoded = json.decode(liveStreamsRes.body);
+          for (final item in decoded) {
+            final catId = item['category_id']?.toString() ?? '';
+            final cat = tempLiveCats
+                .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+            final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
+            final streamId = item['stream_id']?.toString() ?? '';
+            tempStreams.add(PlaylistItem(
+              num: item['num'] is int ? item['num'] : null,
+              streamId: "live_$streamId",
+              name: item['name']?.toString() ?? '',
+              streamIcon: item['stream_icon']?.toString() ?? '',
+              categoryId: catId,
+              categoryName: catName,
+              url: "$host/live/$user/$pass/$streamId.ts",
+              type: "live",
+            ));
+          }
+        }
+
+        // اعتراض وتصفية قنوات البث المباشر
+        _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
+            blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+        _liveCategories = tempLiveCats;
+
+        // Fetch VOD and Series
+        http
+            .get(Uri.parse(
+                "$host/player_api.php?username=$user&password=$pass&action=get_vod_categories"))
+            .then((vodCatsRes) {
+          if (vodCatsRes.statusCode == 200) {
+            final List decoded = json.decode(vodCatsRes.body);
+            final List<Map<String, String>> parsedCats = decoded
+                .map<Map<String, String>>((item) => {
+                      'category_id': item['category_id']?.toString() ?? '',
+                      'category_name': item['category_name']?.toString() ?? '',
+                    })
+                .toList();
+            // اعتراض وتصفية فئات الأفلام
+            _movieCategories = FilterService.interceptAndFilterCategories(
+                parsedCats,
+                blockAdult: _blockAdultContent);
+          }
+          http
+              .get(Uri.parse(
+                  "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams"))
+              .then((vodStreamsRes) {
+            if (vodStreamsRes.statusCode == 200) {
+              final List decoded = json.decode(vodStreamsRes.body);
+              List<PlaylistItem> tempMovies = [];
+              for (final item in decoded) {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _movieCategories.firstWhere(
+                    (c) => c['category_id'] == catId,
+                    orElse: () => {});
+                final catName =
+                    cat.isNotEmpty ? cat['category_name']! : 'أفلام';
+                final streamId = item['stream_id']?.toString() ?? '';
+                final container =
+                    item['container_extension']?.toString() ?? 'mp4';
+                tempMovies.add(PlaylistItem(
+                  num: item['num'] is int ? item['num'] : null,
+                  streamId: "movie_$streamId",
+                  name: item['name']?.toString() ?? '',
+                  streamIcon: item['stream_icon']?.toString() ?? '',
+                  categoryId: catId,
+                  categoryName: catName,
+                  url: "$host/movie/$user/$pass/$streamId.$container",
+                  type: "movie",
+                ));
+              }
+              // اعتراض وتصفية قنوات الأفلام
+              final filteredMovies = FilterService.interceptAndFilterStreams(
+                  tempMovies,
+                  blockAdult: _blockAdultContent,
+                  channelFilter: _channelFilter);
+              _allStreams.addAll(filteredMovies);
+            }
+            _applyFilters();
+            notifyListeners();
+          });
+        });
+
+        http
+            .get(Uri.parse(
+                "$host/player_api.php?username=$user&password=$pass&action=get_series_categories"))
+            .then((seriesCatsRes) {
+          if (seriesCatsRes.statusCode == 200) {
+            final List decoded = json.decode(seriesCatsRes.body);
+            final List<Map<String, String>> parsedCats = decoded
+                .map<Map<String, String>>((item) => {
+                      'category_id': item['category_id']?.toString() ?? '',
+                      'category_name': item['category_name']?.toString() ?? '',
+                    })
+                .toList();
+            // اعتراض وتصفية فئات المسلسلات
+            _seriesCategories = FilterService.interceptAndFilterCategories(
+                parsedCats,
+                blockAdult: _blockAdultContent);
+          }
+          http
+              .get(Uri.parse(
+                  "$host/player_api.php?username=$user&password=$pass&action=get_series"))
+              .then((seriesRes) {
+            if (seriesRes.statusCode == 200) {
+              final List decoded = json.decode(seriesRes.body);
+              List<PlaylistItem> tempSeries = [];
+              for (final item in decoded) {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _seriesCategories.firstWhere(
+                    (c) => c['category_id'] == catId,
+                    orElse: () => {});
+                final catName =
+                    cat.isNotEmpty ? cat['category_name']! : 'مسلسلات';
+                final streamId = item['series_id']?.toString() ?? '';
+                tempSeries.add(PlaylistItem(
+                  num: item['num'] is int ? item['num'] : null,
+                  streamId: "series_$streamId",
+                  name: item['name']?.toString() ?? '',
+                  streamIcon: item['cover']?.toString() ?? '',
+                  categoryId: catId,
+                  categoryName: catName,
+                  url: "$host/series/$user/$pass/$streamId.mp4",
+                  type: "series",
+                ));
+              }
+              // اعتراض وتصفية قنوات المسلسلات
+              final filteredSeries = FilterService.interceptAndFilterStreams(
+                  tempSeries,
+                  blockAdult: _blockAdultContent,
+                  channelFilter: _channelFilter);
+              _allStreams.addAll(filteredSeries);
+            }
+            _applyFilters();
+            notifyListeners();
+          });
+        });
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Streams could not be loaded");
+    }
+
+    _applyFilters();
+    _isFetchingData = false;
+    notifyListeners();
+  }
+
+  void setTab(String tab) {
+    _activeTab = tab;
+    _selectedCategory = "all";
+    _applyFilters();
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      _applyFilters();
+      notifyListeners();
+      return;
+    }
+    // يمنع إعادة فلترة آلاف العناصر عند كل حرف أثناء الكتابة.
+    _searchDebounce = Timer(const Duration(milliseconds: 130), () {
+      _applyFilters();
+      notifyListeners();
+    });
+  }
+
+  bool isArabicStream(PlaylistItem stream) {
+    return FilterService.isArabicStream(stream.name, stream.categoryName);
+  }
+
+  bool isSportsStream(PlaylistItem stream) {
+    return FilterService.isSportsStream(stream.name, stream.categoryName);
+  }
+
+  bool isNewsStream(PlaylistItem stream) {
+    return FilterService.isNewsStream(stream.name, stream.categoryName);
+  }
+
+  bool isAlwanStream(PlaylistItem stream) {
+    return FilterService.isAlwanStream(stream.name, stream.categoryName);
+  }
+
+  bool isAdultStream(PlaylistItem stream) {
+    return FilterService.isAdultStream(stream.name, stream.categoryName);
   }
 
   void _applyFilters() {
-    _filteredStreams = _allStreams;
-    if (_searchQuery.isNotEmpty) {
-      _filteredStreams = _filteredStreams.where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    if (!_isSecured) {
+      _filteredStreams = [];
+      return;
     }
-    if (_selectedCategory != "all") {
-      _filteredStreams = _filteredStreams.where((s) => s.categoryId == _selectedCategory).toList();
+
+    _filteredStreams = _allStreams.where((stream) {
+      // Filter out movies and series if configured to be hidden
+      if (!_showMoviesSeries) {
+        if (stream.type == "movie" ||
+            stream.type == "series" ||
+            stream.type == "stalker_movie" ||
+            stream.type == "stalker_series") {
+          return false;
+        }
+      }
+
+      // Filter out 18+ content if enabled
+      if (_blockAdultContent && isAdultStream(stream)) {
+        return false;
+      }
+
+      // Filter Arabic / Foreign channels / Sports / News / Alwan
+      if (_channelFilter != "الكل") {
+        final isArab = isArabicStream(stream);
+        if (_channelFilter == "القنوات العربية فقط") {
+          if (!isArab) return false;
+        } else if (_channelFilter == "القنوات الأجنبية فقط") {
+          if (isArab) return false;
+        } else if (_channelFilter == "قنوات الرياضة فقط") {
+          if (!isSportsStream(stream)) return false;
+        } else if (_channelFilter == "القنوات الرياضية العربية فقط") {
+          if (!isSportsStream(stream) || !isArab) return false;
+        } else if (_channelFilter == "القنوات الإخبارية فقط") {
+          if (!isNewsStream(stream)) return false;
+        } else if (_channelFilter == "قنوات Alwan فقط") {
+          if (!isAlwanStream(stream)) return false;
+        }
+      }
+
+      if (_activeTab != "favorites") {
+        if (_activeTab == "live") {
+          if (stream.type != "live" && stream.type != "stalker") return false;
+        } else {
+          if (stream.type != _activeTab) return false;
+        }
+      }
+      if (_activeTab == "favorites" && !_favorites.contains(stream.streamId))
+        return false;
+      if (_selectedCategory != "all" &&
+          stream.categoryName != _selectedCategory) return false;
+      if (_searchQuery.isNotEmpty &&
+          !stream.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        return false;
+      return true;
+    }).toList();
+  }
+
+  void selectStream(PlaylistItem item) {
+    _currentStream = item;
+    addToRecentlyPlayed(item);
+    notifyListeners();
+  }
+
+  void zapChannel(bool next) {
+    if (_currentStream == null || _filteredStreams.isEmpty) return;
+    int currentIndex = _filteredStreams
+        .indexWhere((s) => s.streamId == _currentStream!.streamId);
+    if (currentIndex == -1) return;
+    if (next) {
+      if (currentIndex < _filteredStreams.length - 1) {
+        _currentStream = _filteredStreams[currentIndex + 1];
+      } else {
+        _currentStream = _filteredStreams[0];
+      }
+    } else {
+      if (currentIndex > 0) {
+        _currentStream = _filteredStreams[currentIndex - 1];
+      } else {
+        _currentStream = _filteredStreams[_filteredStreams.length - 1];
+      }
     }
     notifyListeners();
   }
 
-  void setSearchQuery(String query) { _searchQuery = query; _applyFilters(); }
-  void setSelectedCategory(String cat) { _selectedCategory = cat; _applyFilters(); }
-  void setActiveTab(String tab) { _activeTab = tab; _selectedCategory = "all"; _applyFilters(); }
-  
-  void logout() async {
+  void toggleFavorite(String streamId) {
+    if (_favorites.contains(streamId)) {
+      _favorites.remove(streamId);
+    } else {
+      _favorites.add(streamId);
+    }
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setStringList('favorites', _favorites);
+    });
+    if (_activeTab == "favorites") {
+      _applyFilters();
+    }
+    notifyListeners();
+  }
+
+  Future<void> setCategory(String category) async {
+    _selectedCategory = category;
+    _applyFilters();
+    notifyListeners();
+  }
+
+  Future<void> changeSubscription() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('active_code');
-    await prefs.setBool('is_logged_in', false);
+    // امسح الجلسة وبيانات المحتوى المرتبطة بالكود فقط، مع الاحتفاظ
+    // باللغة والثيم وإعدادات المشغّل وملف الحساب الخاص بالمستخدم.
+    for (final key in <String>[
+      'active_code',
+      'active_code_activated_at',
+      'active_code_duration_hours',
+      'active_code_sub_name',
+      'app_name_cached',
+      'saved_playlists',
+      'is_logged_in',
+      'show_welcome_after_login',
+      'favorites',
+      'recently_played_streams',
+    ]) {
+      await prefs.remove(key);
+    }
     _isLoggedIn = false;
-    _activationCode = "";
-    _savedPlaylists = [];
-    _allStreams = [];
-    _filteredStreams = [];
+    _activationCode = '';
+    _activationTime = 0;
+    _activationDurationHours = -1;
+    _subscriptionType = '';
+    _savedPlaylists.clear();
+    _allStreams.clear();
+    _filteredStreams.clear();
+    _liveCategories.clear();
+    _movieCategories.clear();
+    _seriesCategories.clear();
+    _favorites.clear();
+    _recentlyPlayed.clear();
+    _currentStream = null;
+    _activePlaylistId = null;
+    _selectedCategory = 'all';
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _isLoggedIn = false;
+    _savedPlaylists.clear();
+    _allStreams.clear();
+    _liveCategories.clear();
+    _movieCategories.clear();
+    _seriesCategories.clear();
+    _activePlaylistId = null;
     notifyListeners();
   }
 }

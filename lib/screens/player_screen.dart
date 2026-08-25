@@ -848,8 +848,15 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _isPipActive = false;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      // Do not allow background playback; PiP is the explicit exception.
+      if (!_isPipActive) {
+        _betterController?.pause();
+      }
+    } else if (state == AppLifecycleState.resumed) {
       _isPortrait = false;
       _rotationMode = RotationMode.landscapeOnly;
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -857,12 +864,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-      if (_betterController != null &&
-          _betterController!.videoPlayerController != null) {
-        if (!(_betterController!.isPlaying() ?? false)) {
-          _betterController!.play();
-        }
-      }
+      // Never restart playback silently after the app returns from background.
+      if (_isPipActive) _isPipActive = false;
     }
     super.didChangeAppLifecycleState(state);
   }
@@ -2758,6 +2761,50 @@ class _PlayerScreenState extends State<PlayerScreen>
                           // Right side controls
                           Row(
                             children: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFF211B2E),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                ),
+                                icon: const Icon(Icons.high_quality_rounded,
+                                    size: 18, color: Color(0xFFA855F7)),
+                                label: const Text('جودة',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  _showQualitySelector();
+                                  _resetHideHUDTimer();
+                                },
+                              ),
+                              const SizedBox(width: 6),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFF211B2E),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                ),
+                                icon: const Icon(
+                                    Icons.picture_in_picture_alt_rounded,
+                                    size: 18,
+                                    color: Color(0xFFA855F7)),
+                                label: const Text('PiP',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  _togglePictureInPicture();
+                                  _resetHideHUDTimer();
+                                },
+                              ),
+                              const SizedBox(width: 6),
                               TextButton.icon(
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.white,

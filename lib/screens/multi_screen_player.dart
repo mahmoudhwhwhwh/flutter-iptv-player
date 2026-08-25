@@ -362,13 +362,25 @@ class _MultiPlayerSlot extends StatefulWidget {
   State<_MultiPlayerSlot> createState() => _MultiPlayerSlotState();
 }
 
-class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
+class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
+    with WidgetsBindingObserver {
   BetterPlayerController? _controller;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initPlayer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _controller?.pause();
+    }
   }
 
   @override
@@ -478,7 +490,8 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
         if (widget.stream.type == "stalker_movie" ||
             widget.stream.type == "stalker_series" ||
             (isStalkerPlaylist &&
-                (widget.stream.type == "movie" || widget.stream.type == "series"))) {
+                (widget.stream.type == "movie" ||
+                    widget.stream.type == "series"))) {
           sType = "vod";
         }
         final linkUrl = Uri.parse(
@@ -638,6 +651,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
   }

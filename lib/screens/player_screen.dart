@@ -17,6 +17,7 @@ import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
 import 'package:flutter_iptv_player/services/stalker_playback.dart';
+import 'package:flutter_iptv_player/services/channel_switch_guard.dart';
 
 enum RotationMode {
   smartAuto,
@@ -82,6 +83,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
   Timer? _positionTimer;
+  final ChannelSwitchGuard _channelSwitchGuard = ChannelSwitchGuard();
 
   double _subSizeVal = 16.0;
   Color _subColorVal = Colors.white;
@@ -354,7 +356,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  void _initializeController({bool isRetry = false}) async {
+  void _initializeController({bool isRetry = false, int? generation}) async {
+    final loadGeneration = generation ?? _channelSwitchGuard.begin();
     int? savedPosition;
     if (widget.stream.type != 'live') {
       try {
@@ -365,6 +368,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     }
     await _loadSubSettings();
+    if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     if (!isRetry) {
       _initialized = false;
       _hasError = false;
@@ -405,9 +409,11 @@ class _PlayerScreenState extends State<PlayerScreen>
         final host = activePlaylist.host;
         final mac = activePlaylist.username;
         String sType = "itv";
-        if (_stream.type == "stalker_movie" ||
-            _stream.type == "stalker_series" ||
-            (isStalkerPlaylist && (_stream.type == "movie" || _stream.type == "series"))) {
+        if (_stream.type == "stalker_series" ||
+            (isStalkerPlaylist && _stream.type == "series")) {
+          sType = "series";
+        } else if (_stream.type == "stalker_movie" ||
+            (isStalkerPlaylist && _stream.type == "movie")) {
           sType = "vod";
         }
         final linkUrl = Uri.parse(
@@ -429,6 +435,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       } catch (e) {
         debugPrint("Error resolving stalker link: $e");
       }
+      if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     }
 
     String finalUrl = urlStr;
@@ -516,6 +523,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     }
 
+    if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     if (_betterController != null) {
       _betterController!.dispose();
       _betterController = null;
@@ -581,7 +589,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     newBetterController.addEventsListener((BetterPlayerEvent event) {
       if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
-        if (mounted) {
+        if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
           setState(() {
             if (_betterController != null &&
                 _betterController != newBetterController) {
@@ -628,18 +636,19 @@ class _PlayerScreenState extends State<PlayerScreen>
           BetterPlayerEventType.exception) {
         final errorMessage = event.parameters?["message"] ?? "Playback failure";
         debugPrint("BetterPlayer exception: $errorMessage");
-        _handlePlaybackError(errorMessage);
+        _handlePlaybackError(errorMessage, loadGeneration);
       }
     });
   }
 
-  void _handlePlaybackError(dynamic error) {
-    debugPrint("IPTV Playback failed: $error - Auto retrying infinitely...");
+  void _handlePlaybackError(dynamic error, int generation) {
+    if (!_channelSwitchGuard.isCurrent(generation)) return;
+    debugPrint("IPTV Playback failed: $error - Auto retrying");
     if (mounted) {
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _initializeController(isRetry: true);
+        if (mounted && _channelSwitchGuard.isCurrent(generation)) {
+          _initializeController(isRetry: true, generation: generation);
         }
       });
     }
@@ -845,6 +854,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _zapStream(IPTVProvider provider, PlaylistItem targetStream) {
+    final generation = _channelSwitchGuard.begin();
     provider.selectStream(targetStream);
     _reconnectTimer?.cancel();
 
@@ -860,7 +870,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _selectedVirtualBitrate = null; // Reset virtual quality ceiling
       _retryCount = 0; // reset counter on manual switch
     });
-    _initializeController();
+    _initializeController(generation: generation);
   }
 
   void _zapNextPrev(IPTVProvider provider, bool next) {

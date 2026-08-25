@@ -21,14 +21,14 @@ if (signingPropertiesFile.exists()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
 }
 
-def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: 'UNSET'
+def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: '4F:FF:9E:B7:13:97:0A:6D:75:72:CD:83:88:00:8A:84:81:29:BB:F8:A7:FF:BB:4C:84:BB:A4:BD:3F:02:6A:36'
 
 def hasReleaseSigning = signingProperties['storeFile'] && signingProperties['storePassword'] && signingProperties['keyAlias'] && signingProperties['keyPassword']
 
 android {
     namespace "com.mahmoud.iptv"
-    compileSdk 34
-    compileSdkVersion 34
+    compileSdk 35
+    compileSdkVersion 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -46,8 +46,8 @@ android {
     defaultConfig {
         applicationId "com.mahmoud.iptv"
         minSdk 23
-        targetSdk 34
-        targetSdkVersion 34
+        targetSdk 35
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true

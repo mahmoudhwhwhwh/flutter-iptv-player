@@ -209,6 +209,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) => _buildSettingItem(
+                  title: 'الوضع الخفيف (Lite Mode)',
+                  description:
+                      'مناسب للأجهزة الضعيفة: يعطّل الحركات الثقيلة ويقلل استهلاك الذاكرة لتحسين سلاسة التصفح.',
+                  value: provider.liteMode,
+                  activeColor: _SettingsPalette.cyan,
+                  onChanged: provider.setLiteMode,
+                ),
+              ),
+              const SizedBox(height: 12),
               _buildDropdownItem(
                 title: "حجم خط الترجمة",
                 value: _subSize,

@@ -3,6 +3,7 @@ package com.mahmoud.iptv
 import android.os.Bundle
 import android.view.WindowManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Debug
@@ -10,6 +11,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
     private val channel = "com.mahmoud.iptv/security"
@@ -48,6 +50,34 @@ class MainActivity : FlutterActivity() {
         return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
     }
 
+    private fun checkSignature(): Boolean {
+        val expected = BuildConfig.EXPECTED_CERT_SHA256
+            .replace(":", "")
+            .replace(" ", "")
+            .lowercase()
+        if (expected.isBlank() || expected == "unset") return false
+        return try {
+            val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+            }
+            val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners?.toList().orEmpty()
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures?.toList().orEmpty()
+            }
+            signatures.any { signature ->
+                val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
+                digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } == expected
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun checkRoot(): Boolean {
         val paths = arrayOf(
             "/system/app/Superuser.apk",
@@ -75,8 +105,9 @@ class MainActivity : FlutterActivity() {
                     val vpn = checkVpnActive()
                     val rooted = checkRoot()
                     val debugger = Debug.isDebuggerConnected()
+                    val signatureValid = checkSignature()
 
-                    val shouldBlock = sniffer || debugger || rooted
+                    val shouldBlock = sniffer || debugger || rooted || !signatureValid
 
                     result.success(
                         mapOf(
@@ -86,7 +117,7 @@ class MainActivity : FlutterActivity() {
                             "proxyActive" to sniffer,
                             "debuggerDetected" to debugger,
                             "compromisedDevice" to rooted,
-                            "signatureValid" to true
+                            "signatureValid" to signatureValid
                         )
                     )
                 }

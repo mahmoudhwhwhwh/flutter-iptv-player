@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/iptv_provider.dart';
+import '../services/stalker_playback.dart';
 import '../models/playlist_item.dart';
 import '../widgets/pin_dialog.dart';
 import 'multi_screen_layout.dart';
@@ -454,11 +455,13 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
       ),
     );
 
-    String finalUrl = widget.stream.url;
+    String finalUrl = stripFfmpegPrefix(widget.stream.url);
+    final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(finalUrl);
 
-    if (widget.stream.type == "stalker" ||
+    if ((widget.stream.type == "stalker" ||
         widget.stream.type == "stalker_movie" ||
-        widget.stream.type == "stalker_series") {
+        widget.stream.type == "stalker_series") &&
+        !isDirectStalkerPlayback) {
       try {
         final provider = Provider.of<IPTVProvider>(context, listen: false);
         final host = provider.savedPlaylists
@@ -545,11 +548,13 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
     }
 
     BetterPlayerVideoFormat? format;
-    final urlStr = finalUrl.toLowerCase();
-    if (urlStr.contains('.m3u8')) {
+    if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
-    } else if (urlStr.contains('.mpd')) {
+    } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
+    } else if (isProgressiveTsUrl(finalUrl)) {
+      // Worker stream endpoints are progressive MPEG-TS even without a .ts path.
+      format = BetterPlayerVideoFormat.other;
     }
 
     bool isAsms = format == BetterPlayerVideoFormat.hls ||

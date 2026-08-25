@@ -16,6 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
+import 'package:flutter_iptv_player/services/stalker_playback.dart';
 
 enum RotationMode {
   smartAuto,
@@ -387,11 +388,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    String urlStr = _stream.url.trim();
+    String urlStr = stripFfmpegPrefix(_stream.url.trim());
+    final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(urlStr);
 
     if ((_stream.type == "stalker" ||
         _stream.type == "stalker_movie" ||
-        _stream.type == "stalker_series")) {
+        _stream.type == "stalker_series") &&
+        !isDirectStalkerPlayback) {
       try {
         final host = provider.savedPlaylists
             .firstWhere((p) => p.id == provider.activePlaylistId)
@@ -508,19 +511,19 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     }
 
-    final uri = Uri.parse(finalUrl);
-    final path = uri.path.toLowerCase();
-
     if (_betterController != null) {
       _betterController!.dispose();
       _betterController = null;
     }
 
     BetterPlayerVideoFormat? format;
-    if (path.endsWith('.m3u8') || urlStr.toLowerCase().contains('.m3u8')) {
+    if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
-    } else if (path.endsWith('.mpd') || urlStr.toLowerCase().contains('.mpd')) {
+    } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
+    } else if (isProgressiveTsUrl(finalUrl)) {
+      // Worker stream endpoints are progressive MPEG-TS even without a .ts path.
+      format = BetterPlayerVideoFormat.other;
     }
 
     bool isAsms = format == BetterPlayerVideoFormat.hls ||

@@ -25,6 +25,82 @@ enum RotationMode {
   portraitOnly,
 }
 
+enum LiveImageFilter { none, k4, k8 }
+
+List<double> liveImageFilterMatrix(LiveImageFilter filter) {
+  switch (filter) {
+    case LiveImageFilter.k4:
+      return const [
+        1.10,
+        0,
+        0,
+        0,
+        -0.02,
+        0,
+        1.10,
+        0,
+        0,
+        -0.02,
+        0,
+        0,
+        1.10,
+        0,
+        -0.02,
+        0,
+        0,
+        0,
+        1,
+        0,
+      ];
+    case LiveImageFilter.k8:
+      return const [
+        1.18,
+        0,
+        0,
+        0,
+        -0.04,
+        0,
+        1.18,
+        0,
+        0,
+        -0.04,
+        0,
+        0,
+        1.18,
+        0,
+        -0.04,
+        0,
+        0,
+        0,
+        1,
+        0,
+      ];
+    case LiveImageFilter.none:
+      return const [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+      ];
+  }
+}
+
 int? bestAvailableQualityHeight(Iterable<int> heights, int targetHeight) {
   final available =
       heights.where((height) => height > 0 && height <= targetHeight);
@@ -57,6 +133,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   BoxFit _currentBoxFit = BoxFit.contain;
   String _aspectRatioLabel = "تلقائي";
   bool _showSidebar = false;
+  LiveImageFilter _liveImageFilter = LiveImageFilter.none;
 
   RotationMode _rotationMode = RotationMode.landscapeOnly;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
@@ -1402,6 +1479,44 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  Widget _buildLiveFilterButton({
+    required String label,
+    required LiveImageFilter filter,
+  }) {
+    final selected = _liveImageFilter == filter;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: OutlinedButton(
+        onPressed: () {
+          setState(() {
+            _liveImageFilter = selected ? LiveImageFilter.none : filter;
+          });
+          _showOnScreenToast(
+            _liveImageFilter == LiveImageFilter.none
+                ? 'تم إيقاف فلتر الصورة'
+                : 'تم تفعيل فلتر $label لتحسين العرض',
+            Icons.auto_awesome_rounded,
+          );
+          _resetHideHUDTimer();
+        },
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(46, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          foregroundColor: selected ? Colors.black : Colors.white,
+          backgroundColor: selected ? Colors.amberAccent : Colors.transparent,
+          side: BorderSide(
+            color: selected ? Colors.amberAccent : Colors.white54,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+
   void _showQualitySelector() {
     if (_betterController == null || !_initialized) return;
     showDialog(
@@ -1776,9 +1891,21 @@ class _PlayerScreenState extends State<PlayerScreen>
                         ? _buildErrorScreen(provider)
                         : _initialized && _betterController != null
                             ? SizedBox.expand(
-                                child: BetterPlayer(
-                                    key: _betterPlayerKey,
-                                    controller: _betterController!),
+                                child: (_totalDuration.inSeconds == 0 ||
+                                            _stream.type == 'live') &&
+                                        _liveImageFilter != LiveImageFilter.none
+                                    ? ColorFiltered(
+                                        colorFilter: ColorFilter.matrix(
+                                          liveImageFilterMatrix(
+                                              _liveImageFilter),
+                                        ),
+                                        child: BetterPlayer(
+                                            key: _betterPlayerKey,
+                                            controller: _betterController!),
+                                      )
+                                    : BetterPlayer(
+                                        key: _betterPlayerKey,
+                                        controller: _betterController!),
                               )
                             : const Center(
                                 child: CircularProgressIndicator(
@@ -2292,6 +2419,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     _resetHideHUDTimer();
                                   },
                                 ),
+                              if (isLive) ...[
+                                _buildLiveFilterButton(
+                                  label: '4K',
+                                  filter: LiveImageFilter.k4,
+                                ),
+                                _buildLiveFilterButton(
+                                  label: '8K',
+                                  filter: LiveImageFilter.k8,
+                                ),
+                              ],
                               // Quality Menu button
                               IconButton(
                                 icon: const Icon(Icons.high_quality_rounded,

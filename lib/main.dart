@@ -234,6 +234,12 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
+Duration startupIntroTransitionDuration(bool isLiteMode) {
+  return isLiteMode
+      ? const Duration(milliseconds: 120)
+      : const Duration(milliseconds: 420);
+}
+
 class StartupGate extends StatefulWidget {
   final Widget child;
 
@@ -246,6 +252,7 @@ class StartupGate extends StatefulWidget {
 class _StartupGateState extends State<StartupGate> {
   VideoPlayerController? _controller;
   bool _showIntro = false;
+  bool _isFinishing = false;
 
   @override
   void initState() {
@@ -286,6 +293,14 @@ class _StartupGateState extends State<StartupGate> {
   }
 
   Future<void> _finishIntro() async {
+    if (_isFinishing) return;
+    _isFinishing = true;
+    final isLiteMode =
+        Provider.of<IPTVProvider>(context, listen: false).liteMode;
+    final transitionDuration = startupIntroTransitionDuration(isLiteMode);
+    if (mounted) setState(() {});
+    await Future<void>.delayed(transitionDuration);
+
     final controller = _controller;
     _controller = null;
     if (mounted) setState(() => _showIntro = false);
@@ -305,10 +320,7 @@ class _StartupGateState extends State<StartupGate> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (!_showIntro || _controller == null) return widget.child;
-    final controller = _controller!;
+  Widget _buildIntroView(VideoPlayerController controller) {
     return Scaffold(
       backgroundColor: const Color(0xFF070610),
       body: Stack(
@@ -360,7 +372,7 @@ class _StartupGateState extends State<StartupGate> {
                   ),
                   const SizedBox(height: 28),
                   OutlinedButton(
-                    onPressed: _finishIntro,
+                    onPressed: _isFinishing ? null : _finishIntro,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white54),
@@ -377,6 +389,27 @@ class _StartupGateState extends State<StartupGate> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showIntro || _controller == null) return widget.child;
+    final controller = _controller!;
+    final isLiteMode =
+        Provider.of<IPTVProvider>(context, listen: false).liteMode;
+    final duration = startupIntroTransitionDuration(isLiteMode);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        widget.child,
+        AnimatedOpacity(
+          opacity: _isFinishing ? 0 : 1,
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          child: _buildIntroView(controller),
+        ),
+      ],
     );
   }
 }

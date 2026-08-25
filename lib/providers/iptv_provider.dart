@@ -1118,9 +1118,11 @@ class IPTVProvider with ChangeNotifier {
       final host = server['host']?.toString() ?? '';
       final username = server['username']?.toString() ?? '';
       final password = server['password']?.toString() ?? '';
-      if (host.isEmpty ||
-          username.isEmpty ||
-          (type != 'stalker' && password.isEmpty)) {
+      final isCustomMenu = mode == 'custom_menu';
+      if (!isCustomMenu &&
+          (host.isEmpty ||
+              username.isEmpty ||
+              (type != 'stalker' && password.isEmpty))) {
         lastError = 'بيانات الاشتراك غير مكتملة';
         return false;
       }

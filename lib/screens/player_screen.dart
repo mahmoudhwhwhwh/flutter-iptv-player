@@ -122,6 +122,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
+  bool _isBuffering = false;
   late PlaylistItem _stream;
   bool _showHUD = true;
   Timer? _hideHUDTimer;
@@ -716,6 +717,16 @@ class _PlayerScreenState extends State<PlayerScreen>
             unawaited(_prepareXtreamSubtitles(newBetterController, headers));
             _startSeekTracker();
           });
+        }
+      } else if (event.betterPlayerEventType ==
+          BetterPlayerEventType.bufferingStart) {
+        if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+          setState(() => _isBuffering = true);
+        }
+      } else if (event.betterPlayerEventType ==
+          BetterPlayerEventType.bufferingEnd) {
+        if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+          setState(() => _isBuffering = false);
         }
       } else if (event.betterPlayerEventType ==
           BetterPlayerEventType.exception) {
@@ -1918,6 +1929,36 @@ class _PlayerScreenState extends State<PlayerScreen>
                 ),
               ),
 
+              // Buffering indicator remains visible without blocking controls.
+              if (_isBuffering && !_hasError)
+                IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.72),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                                color: Colors.cyanAccent, strokeWidth: 2.5),
+                          ),
+                          SizedBox(width: 10),
+                          Text('جارِ تحميل البث…',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               // 2. Brightness shade Overlay (Simulated Dimming)
               if (_brightnessFactor > 0.0)
                 IgnorePointer(

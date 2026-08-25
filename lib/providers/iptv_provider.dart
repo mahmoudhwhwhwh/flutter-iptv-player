@@ -9,6 +9,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/playlist_item.dart';
 import '../services/filter_service.dart';
+import '../services/subscription_profile.dart';
 
 class UserPlaylist {
   final String id;
@@ -635,174 +636,144 @@ class IPTVProvider with ChangeNotifier {
     return isVersionLowerThan(versionStr, "2.2.11");
   }
 
-  Future<void> checkRemoteBlocking() async {
+  bool _isValidatingSubscription = false;
+
+  Future<Map<String, dynamic>?> _validateSubscriptionWithWorker() async {
+    final code = _activationCode.trim();
+    if (code.isEmpty) return null;
     try {
-      final configRes = await http
-          .get(Uri.parse(
-              "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}"))
-          .timeout(const Duration(seconds: 5));
-      if (configRes.statusCode == 200) {
-        final Map<String, dynamic> configData = json.decode(configRes.body);
-        Map<String, dynamic>? blockData;
-        if (configData.containsKey('blocking')) {
-          blockData = Map<String, dynamic>.from(configData['blocking']);
-        }
-
-        // Parse remote announcements & security overrides dynamically
-        if (configData.containsKey('announcement')) {
-          final String newAnn = configData['announcement'].toString();
-          if (_announcementText != newAnn) {
-            _announcementText = newAnn;
-            notifyListeners();
-          }
-        }
-
-        final newDisableVpn = configData['disable_vpn_check'] == true;
-        final newDisableSniffer = configData['disable_sniffer_check'] == true;
-        if (_disableVpnCheck != newDisableVpn ||
-            _disableSnifferCheck != newDisableSniffer) {
-          _disableVpnCheck = newDisableVpn;
-          _disableSnifferCheck = newDisableSniffer;
-          if (_disableVpnCheck) _vpnDetected = false;
-          if (_disableSnifferCheck) _snifferDetected = false;
-          notifyListeners();
-        }
-
-        if (blockData != null) {
-          bool isBlocked = false;
-
-          if (blockData.containsKey('blocked_version_codes')) {
-            final List codes = blockData['blocked_version_codes'] as List;
-            if (codes.contains(_currentVersionCode)) {
-              isBlocked = true;
-            }
-          }
-          if (blockData.containsKey('min_version_code')) {
-            final int minVer =
-                int.tryParse(blockData['min_version_code'].toString()) ?? 0;
-            if (_currentVersionCode < minVer) {
-              isBlocked = true;
-            }
-          }
-
-          // Force block any version lower than 2.2.11 (outdated versions)
-          if (isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
-            isBlocked = true;
-            _remoteBlockMessage =
-                "🚨 تم إيقاف هذا الإصدار القديم نهائياً لدواعي الأمان والتشغيل.\nيرجى التحديث إلى الإصدار 2.2.11 أو أعلى للاستمرار.";
-          }
-
-          if (blockData.containsKey('block_message') &&
-              !isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
-            _remoteBlockMessage = blockData['block_message'].toString();
-          }
-
-          if (_isVersionBlocked != isBlocked) {
-            _isVersionBlocked = isBlocked;
-            notifyListeners();
-          }
-        }
-
-        if (_isLoggedIn &&
-            _activationCode.isNotEmpty &&
-            _activationCode != "2026" &&
-            _activationCode != "2027" &&
-            _activationCode != "69743190") {
-          final users = configData['users'] as Map<String, dynamic>? ?? {};
-          final servers = configData['servers'] as List<dynamic>? ?? [];
-          bool found = false;
-          dynamic u;
-          if (users.containsKey(_activationCode)) {
-            u = users[_activationCode];
-            found = true;
-          } else {
-            for (var s in servers) {
-              final sUsers = s['users'] as Map<String, dynamic>? ?? {};
-              if (sUsers.containsKey(_activationCode)) {
-                u = sUsers[_activationCode];
-                found = true;
-                break;
-              }
-            }
-          }
-
-          if (found && u != null) {
-            bool isBlocked = u['blocked'] == true;
-            if (isBlocked) {
-              lastError =
-                  "تم حظر الاشتراك عنك بسبب عدم الانصياغ ل القواعد والقوانين";
-              _isLoggedIn = false;
-              logout();
-              notifyListeners();
-            } else {
-              final deviceId = await _getDeviceId();
-              dynamic devices = u['devices'] ?? [];
-              if (!devices.contains(deviceId)) {
-                _registerDeviceOrBlock(_activationCode, deviceId);
-              }
-            }
-          } else {
-            lastError = "هذا الاشتراك غير صالح أو تم حذفه";
-            _isLoggedIn = false;
-            logout();
-            notifyListeners();
-          }
-        }
+      final deviceId = await _getDeviceId();
+      final response = await http
+          .post(Uri.parse(_loginUrl),
+              headers: const {'Content-Type': 'application/json'},
+              body: json.encode({'code': code, 'device_id': deviceId}))
+          .timeout(const Duration(seconds: 8));
+      Map<String, dynamic> data = <String, dynamic>{};
+      try {
+        final decoded = json.decode(response.body);
+        if (decoded is Map) data = Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+      if (response.statusCode == 200 && data['ok'] == true) return data;
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        return <String, dynamic>{
+          '_invalid': true,
+          'message': data['message']?.toString() ?? 'رمز الاشتراك غير صالح أو منتهي',
+        };
       }
     } catch (e) {
-      debugPrint("Remote block check failed");
+      debugPrint('Worker subscription validation failed: $e');
     }
+    return null;
   }
 
-  bool _isRegisteringDevice = false;
+  Future<bool> _refreshSubscriptionProfile(Map<String, dynamic> data) async {
+    final rawServer = data['server'] ?? data['user'];
+    if (rawServer is! Map) return false;
+    final server = Map<String, dynamic>.from(rawServer);
+    final type = (server['type'] ?? server['server_type'] ?? 'xtream')
+        .toString()
+        .toLowerCase();
+    final mode = (server['content_mode'] ?? 'iptv').toString().toLowerCase();
+    final host = server['host']?.toString() ?? '';
+    final username = server['username']?.toString() ?? '';
+    final password = server['password']?.toString() ?? '';
+    if (!hasCompleteWorkerSubscriptionProfile(data)) return false;
 
-  Future<void> _registerDeviceOrBlock(String code, String deviceId) async {
-    if (_isRegisteringDevice) return;
-    _isRegisteringDevice = true;
+    var durationHours = -1;
+    final subscription = data['subscription'];
+    if (subscription is Map) {
+      final expiry =
+          DateTime.tryParse(subscription['expires_at']?.toString() ?? '');
+      if (expiry != null) durationHours = expiry.difference(DateTime.now()).inHours;
+    }
+    final id = 'subscription_${_activationCode.trim()}';
+    final refreshed = UserPlaylist(
+      id: id,
+      name: _appName,
+      type: mode == 'custom_menu' ? 'custom' : type,
+      host: host,
+      username: username,
+      password: type == 'stalker' ? '' : password,
+    );
+    final current = _savedPlaylists.isNotEmpty ? _savedPlaylists.first : null;
+    final changed = current == null ||
+        current.id != refreshed.id ||
+        current.type != refreshed.type ||
+        current.host != refreshed.host ||
+        current.username != refreshed.username ||
+        current.password != refreshed.password ||
+        _activePlaylistId != refreshed.id;
+    _activationDurationHours = durationHours;
+    if (changed) {
+      _savedPlaylists = [refreshed];
+      _activePlaylistId = refreshed.id;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_playlists',
+          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+      await prefs.setInt('active_code_duration_hours', durationHours);
+      notifyListeners();
+    }
+    return true;
+  }
+
+  Future<void> checkRemoteBlocking() async {
+    if (_isValidatingSubscription) return;
+    _isValidatingSubscription = true;
     try {
-      final url = Uri.parse(
-          "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_config.json?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url);
-      if (res.statusCode == 200) {
-        final Map<String, dynamic> configData = json.decode(res.body);
-        final users = configData['users'] as Map<String, dynamic>? ?? {};
-        final servers = configData['servers'] as List<dynamic>? ?? [];
-        bool found = false;
-        dynamic u;
-        if (users.containsKey(code)) {
-          u = users[code];
-          found = true;
-        } else {
-          for (var s in servers) {
-            final sUsers = s['users'] as Map<String, dynamic>? ?? {};
-            if (sUsers.containsKey(code)) {
-              u = sUsers[code];
-              found = true;
-              break;
-            }
-          }
-        }
-
-        if (found && u != null) {
-          dynamic devices = u['devices'] ?? [];
-          if (!devices.contains(deviceId)) {
-            if (devices.length >= 2) {
-              u['blocked'] = true;
-              lastError =
-                  "تم حظر الاشتراك عنك بسبب تجاوز الحد الأقصى للأجهزة (جهازين فقط)";
-              _isLoggedIn = false;
-              logout();
+      final configRes = await http
+          .get(Uri.parse('$_workerBase/v1/config?t=${DateTime.now().millisecondsSinceEpoch}'))
+          .timeout(const Duration(seconds: 8));
+      if (configRes.statusCode == 200) {
+        final decoded = json.decode(configRes.body);
+        if (decoded is Map) {
+          final configData = Map<String, dynamic>.from(decoded);
+          final blockData = configData['blocking'] is Map
+              ? Map<String, dynamic>.from(configData['blocking'])
+              : <String, dynamic>{};
+          if (configData.containsKey('announcement')) {
+            final newAnn = configData['announcement'].toString();
+            if (_announcementText != newAnn) {
+              _announcementText = newAnn;
               notifyListeners();
             }
-            // لا يحمل العميل أي صلاحية كتابة للإعدادات العامة.
-            // يبقى تحميل الاشتراك والقنوات بالقراءة فقط.
+          }
+          final isBlocked = (blockData['blocked_version_codes'] is List &&
+                  (blockData['blocked_version_codes'] as List).contains(_currentVersionCode)) ||
+              (_currentVersionCode <
+                  (int.tryParse(blockData['min_version_code']?.toString() ?? '0') ?? 0)) ||
+              isOutdatedVersion(_currentVersionStr, _currentVersionCode);
+          if (_isVersionBlocked != isBlocked) {
+            _isVersionBlocked = isBlocked;
+            if (isBlocked && isOutdatedVersion(_currentVersionStr, _currentVersionCode)) {
+              _remoteBlockMessage = 'يرجى تحديث التطبيق إلى أحدث إصدار للاستمرار.';
+            } else if (blockData['block_message'] != null) {
+              _remoteBlockMessage = blockData['block_message'].toString();
+            }
+            notifyListeners();
+          }
+        }
+      }
+
+      if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
+        final validation = await _validateSubscriptionWithWorker();
+        if (validation?['_invalid'] == true) {
+          lastError = validation?['message']?.toString() ?? 'رمز الاشتراك غير صالح أو منتهي';
+          await logout();
+          notifyListeners();
+        } else if (validation != null) {
+          final complete = await _refreshSubscriptionProfile(validation);
+          if (!complete) {
+            // Do not destroy a working session because a response is temporarily incomplete.
+            debugPrint('Worker returned an incomplete subscription profile');
           }
         }
       }
     } catch (e) {
-      debugPrint("Device registration failed");
+      // Network/config failures must never log the user out.
+      debugPrint('Remote Worker check failed: $e');
+    } finally {
+      _isValidatingSubscription = false;
     }
-    _isRegisteringDevice = false;
   }
 
   Future<void> checkSecurity() async {

@@ -664,7 +664,10 @@ class IPTVProvider with ChangeNotifier {
     }
 
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-    _showMoviesSeries = prefs.getBool('filter_show_movies_series') ?? true;
+    // إعادة تفعيل أقسام الأفلام والمسلسلات بعد الإصدارات القديمة التي كانت تخفيها.
+    // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
+    _showMoviesSeries = true;
+    await prefs.setBool('filter_show_movies_series', true);
     _channelFilter = prefs.getString('channel_filter') ?? "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];

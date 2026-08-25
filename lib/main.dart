@@ -2076,6 +2076,56 @@ class FavoritesScreen extends StatelessWidget {
   }
 }
 
+Map<String, List<dynamic>> normalizeSeriesEpisodes(dynamic rawEpisodes) {
+  final result = <String, List<dynamic>>{};
+  if (rawEpisodes is Map) {
+    rawEpisodes.forEach((key, value) {
+      result[key.toString()] =
+          value is List ? List<dynamic>.from(value) : <dynamic>[];
+    });
+  } else if (rawEpisodes is List) {
+    result['1'] = List<dynamic>.from(rawEpisodes);
+  }
+  return result;
+}
+
+List<Map<String, dynamic>> normalizeSeriesSeasons(
+  dynamic rawSeasons,
+  Map<String, List<dynamic>> episodes,
+  String cover,
+) {
+  final result = <Map<String, dynamic>>[];
+  if (rawSeasons is List) {
+    for (final item in rawSeasons) {
+      if (item is Map) result.add(Map<String, dynamic>.from(item));
+    }
+  } else if (rawSeasons is Map) {
+    for (final item in rawSeasons.values) {
+      if (item is Map) result.add(Map<String, dynamic>.from(item));
+    }
+  }
+  if (result.isEmpty) {
+    for (final entry in episodes.entries) {
+      result.add({
+        'season_number': entry.key,
+        'name': 'الموسم ${entry.key}',
+        'cover': cover,
+        'episode_count': entry.value.length,
+      });
+    }
+  }
+  result.sort((a, b) {
+    final aNum = int.tryParse(a['season_number']?.toString() ?? '') ?? 0;
+    final bNum = int.tryParse(b['season_number']?.toString() ?? '') ?? 0;
+    return aNum.compareTo(bNum);
+  });
+  for (final season in result) {
+    final number = season['season_number']?.toString() ?? '';
+    if (number.isNotEmpty) episodes.putIfAbsent(number, () => <dynamic>[]);
+  }
+  return result;
+}
+
 // -----------------------------------------------------------------------------
 // SERIES DETAILS (Responsive - Compact)
 // -----------------------------------------------------------------------------
@@ -2102,78 +2152,75 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   Future<void> _fetchSeriesInfo() async {
     try {
       final s = widget.series;
-      var seriesId = s.streamId.replaceAll('series_', '');
-      String streamUrl = s.url;
-      if (streamUrl.isNotEmpty && streamUrl.contains('/series/')) {
-        final uri = Uri.parse(streamUrl);
-        final host =
-            "${uri.scheme}://${uri.host}:${uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80)}";
-        final pathSegments = uri.pathSegments;
-        if (pathSegments.length >= 4) {
-          final username = pathSegments[1];
-          final password = pathSegments[2];
-          final url =
-              "$host/player_api.php?username=$username&password=$password&action=get_series_info&series_id=$seriesId";
-          final response = await http.get(Uri.parse(url));
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-            List<dynamic> parsedSeasons = [];
-            Map<String, dynamic> parsedEpisodes = {};
+      final rawId = s.streamId
+          .replaceFirst('stalker_series_', '')
+          .replaceFirst('series_', '');
+      final streamUri = Uri.tryParse(s.url);
+      if (streamUri == null || rawId.isEmpty)
+        throw const FormatException('Invalid series URL');
 
-            if (data['episodes'] != null) {
-              if (data['episodes'] is Map) {
-                parsedEpisodes = Map<String, dynamic>.from(data['episodes']);
-              } else if (data['episodes'] is List) {
-                parsedEpisodes["1"] = List<dynamic>.from(data['episodes']);
-              }
-            }
-
-            if (data['seasons'] != null &&
-                data['seasons'] is List &&
-                (data['seasons'] as List).isNotEmpty) {
-              parsedSeasons = List<dynamic>.from(data['seasons']);
-            } else if (data['seasons'] != null &&
-                data['seasons'] is Map &&
-                (data['seasons'] as Map).isNotEmpty) {
-              parsedSeasons = (data['seasons'] as Map).values.toList();
-            } else {
-              parsedEpisodes.keys.forEach((key) {
-                parsedSeasons.add({
-                  "season_number": key,
-                  "name": "الموسم $key",
-                  "cover": data['info']?['cover'] ?? "",
-                  "episode_count": (parsedEpisodes[key] as List).length
-                });
-              });
-            }
-
-            parsedSeasons.sort((a, b) {
-              int sA = int.tryParse(a['season_number']?.toString() ?? '0') ?? 0;
-              int sB = int.tryParse(b['season_number']?.toString() ?? '0') ?? 0;
-              return sA.compareTo(sB);
-            });
-
-            for (var season in parsedSeasons) {
-              String sNum = season['season_number'].toString();
-              if (!parsedEpisodes.containsKey(sNum)) parsedEpisodes[sNum] = [];
-            }
-
-            if (mounted) {
-              setState(() {
-                _seriesData = {
-                  "info": data['info'] ?? {},
-                  "seasons": parsedSeasons,
-                  "episodes": parsedEpisodes
-                };
-                _isLoading = false;
-              });
-            }
-            return;
-          }
+      String host = '';
+      String username = '';
+      String password = '';
+      if (streamUri.queryParameters['action'] == 'get_series_info') {
+        host =
+            '${streamUri.scheme}://${streamUri.host}${streamUri.hasPort ? ':${streamUri.port}' : ''}';
+        username = streamUri.queryParameters['username'] ?? '';
+        password = streamUri.queryParameters['password'] ?? '';
+      } else {
+        final segments = streamUri.pathSegments;
+        final seriesIndex = segments.indexOf('series');
+        if (seriesIndex >= 0 && segments.length > seriesIndex + 3) {
+          host =
+              '${streamUri.scheme}://${streamUri.host}${streamUri.hasPort ? ':${streamUri.port}' : ''}';
+          username = Uri.decodeComponent(segments[seriesIndex + 1]);
+          password = Uri.decodeComponent(segments[seriesIndex + 2]);
         }
       }
+      if (host.isEmpty || username.isEmpty || password.isEmpty) {
+        throw const FormatException('Series API credentials unavailable');
+      }
+
+      final query = Uri(queryParameters: {
+        'username': username,
+        'password': password,
+        'action': 'get_series_info',
+        'series_id': rawId,
+      });
+      final response = await http
+          .get(Uri.parse('$host/player_api.php${query.toString()}'))
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode != 200)
+        throw Exception('Series info HTTP ${response.statusCode}');
+
+      final decoded = json.decode(response.body);
+      final data = decoded is Map<String, dynamic>
+          ? decoded
+          : Map<String, dynamic>.from(decoded as Map);
+      final parsedEpisodes = normalizeSeriesEpisodes(data['episodes']);
+      final cover =
+          data['info'] is Map ? data['info']['cover']?.toString() ?? '' : '';
+      final parsedSeasons = normalizeSeriesSeasons(
+        data['seasons'],
+        parsedEpisodes,
+        cover,
+      );
+
+      if (mounted) {
+        setState(() {
+          _seriesData = {
+            'info': data['info'] is Map
+                ? Map<String, dynamic>.from(data['info'])
+                : <String, dynamic>{},
+            'seasons': parsedSeasons,
+            'episodes': parsedEpisodes,
+          };
+          _isLoading = false;
+        });
+      }
+      return;
     } catch (e) {
-      debugPrint("Error fetching series info: $e");
+      debugPrint('Error fetching series info: $e');
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -2199,12 +2246,16 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         pass = uri.pathSegments[2];
       }
     } catch (e) {}
-    final epId = ep['id'];
-    final ext = ep['container_extension'] ?? "mp4";
-    final epUrl = "$host/series/$user/$pass/$epId.$ext";
+    final epId =
+        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty || host.isEmpty) return;
+    final ext =
+        (ep['container_extension'] ?? ep['extension'] ?? 'mp4').toString();
+    final epUrl =
+        "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.$ext";
     final stream = PlaylistItem(
       streamId: epId.toString(),
-      name: "${widget.series.name} - ${ep['title'] ?? 'الحلقة'}",
+      name: "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}",
       url: epUrl,
       type: "series",
       streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,

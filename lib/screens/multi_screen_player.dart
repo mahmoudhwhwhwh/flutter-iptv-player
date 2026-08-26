@@ -446,7 +446,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       else
         subBgColorVal = Colors.transparent;
     } catch (e) {
-      debugPrint("Error loading subtitle settings in multi-player: $e");
+        debugPrint("Error loading subtitle settings in multi-player: ${redactDiagnostic(e)}");
     }
 
     BetterPlayerConfiguration betterPlayerConfiguration =

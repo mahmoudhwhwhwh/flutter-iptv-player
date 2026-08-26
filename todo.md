@@ -96,3 +96,15 @@
 - [ ] Compare the exact final media URL and headers used by the app against IPTV Smarters-compatible Xtream/Stalker contracts
 - [ ] Fix any lost redirect token, cookie, User-Agent, Referer, Range, or content-type handling
 - [ ] Verify a playable live stream, movie, and episode before marking the release stable
+
+
+# v2.2.73 MAC/VOD/Series Hardening
+
+- [x] إصلاح جلب تفاصيل Series في Stalker/MAC عبر عقد `type=series&action=get_ordered_list` مع استخراج الموسم والحلقات الفعلية.
+- [x] دعم IDs بصيغة `seriesId:seasonId` وعدم تمريرها إلى Xtream `player_api.php`.
+- [x] الحفاظ على أوامر Stalker المشفرة/المحوّلة من Worker أثناء تشغيل حلقات VOD/Series.
+- [x] إضافة اختبارات regression لمسار MAC Series وتحليل المعرّفات.
+- [x] مراجعة وتطبيق تدابير حماية واقعية لا تكسر التشغيل: redacted diagnostics، منع cleartext حيث يمكن، وفحوص سلامة غير مدمرة.
+- [ ] تشغيل اختبارات Flutter وWorker وفحص TypeScript، ثم بناء APK universal 2.2.73 بعد نجاحها.
+- [ ] مزامنة رقم الإصدار والبصمة مع Worker/D1/MySQL ولوحة الإدارة.
+- [ ] إبقاء تحقق التشغيل على جهاز Android فعلي كتحقق خارجي، وعدم وصفه بأنه ناجح دون جهاز فعلي.

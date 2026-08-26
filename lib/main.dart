@@ -17,6 +17,7 @@ import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
 import 'models/playlist_item.dart';
+import 'services/stalker_series.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -1486,12 +1487,10 @@ class _HomeTabState extends State<HomeTab> {
         .where((item) =>
             item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
         .toList();
-    final movieItems = provider.allStreams
-        .where((item) => item.type == 'movie')
-        .toList();
-    final seriesItems = provider.allStreams
-        .where((item) => item.type == 'series')
-        .toList();
+    final movieItems =
+        provider.allStreams.where((item) => item.type == 'movie').toList();
+    final seriesItems =
+        provider.allStreams.where((item) => item.type == 'series').toList();
 
     return Container(
       color: Theme.of(context).colorScheme.background,
@@ -2226,12 +2225,74 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     _fetchSeriesInfo();
   }
 
+  Future<Map<String, dynamic>> _fetchStalkerSeriesInfo(
+      String rawId, IPTVProvider provider) async {
+    final playlist = provider.savedPlaylists.firstWhere(
+      (item) => item.id == provider.activePlaylistId,
+      orElse: () => UserPlaylist(id: '', name: '', type: ''),
+    );
+    final base = (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+    final mac = (playlist.username ?? '').trim();
+    if (base.isEmpty || mac.isEmpty) {
+      throw const FormatException('Stalker session unavailable');
+    }
+    final headers = <String, String>{
+      'Cookie': 'mac=$mac',
+      'User-Agent':
+          'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 MAG200 stbapp',
+    };
+    final uri = Uri.parse('$base/server/load.php').replace(queryParameters: {
+      'type': 'series',
+      'action': 'get_ordered_list',
+      'movie_id': stalkerSeriesParentId(rawId),
+      'genre': '0',
+      'force_ch_link_check': '0',
+      'p': '1',
+      'JsHttpRequest': '1-xml',
+    });
+    final response = await http.get(uri, headers: headers).timeout(
+          const Duration(seconds: 20),
+        );
+    if (response.statusCode != 200) {
+      throw Exception('Stalker series HTTP ${response.statusCode}');
+    }
+    final decoded = json.decode(response.body);
+    final js = decoded is Map ? decoded['js'] : null;
+    final rows = js is Map && js['data'] is List
+        ? List<dynamic>.from(js['data'])
+        : js is List
+            ? List<dynamic>.from(js)
+            : <dynamic>[];
+    final episodes = stalkerRowsToEpisodes(rows);
+    final info = <String, dynamic>{
+      'name': widget.series.name,
+      'cover': widget.series.streamIcon,
+    };
+    return {
+      'info': info,
+      'episodes': episodes,
+      'seasons':
+          normalizeSeriesSeasons(null, episodes, widget.series.streamIcon),
+    };
+  }
+
   Future<void> _fetchSeriesInfo() async {
     try {
       final s = widget.series;
+      final provider = Provider.of<IPTVProvider>(context, listen: false);
       final rawId = s.streamId
           .replaceFirst('stalker_series_', '')
           .replaceFirst('series_', '');
+      if (s.type == 'stalker_series') {
+        final data = await _fetchStalkerSeriesInfo(rawId, provider);
+        if (mounted) {
+          setState(() {
+            _seriesData = data;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
       final streamUri = Uri.tryParse(s.url);
       if (streamUri == null || rawId.isEmpty)
         throw const FormatException('Invalid series URL');
@@ -2390,11 +2451,30 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         info['container_extension'] ??
         info['extension'];
     final ext = rawExt?.toString().trim().replaceFirst('.', '') ?? '';
-    final epUrl = directUrl.isNotEmpty
-        ? directUrl
-        : host.isNotEmpty
-            ? "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}"
-            : '';
+    var epUrl = directUrl;
+    if (widget.series.type == 'stalker_series' && directUrl.isNotEmpty) {
+      final isHttp =
+          directUrl.startsWith('http://') || directUrl.startsWith('https://');
+      if (!isHttp) {
+        final playlist = provider.savedPlaylists.firstWhere(
+          (item) => item.id == provider.activePlaylistId,
+          orElse: () => UserPlaylist(id: '', name: '', type: ''),
+        );
+        final base =
+            (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+        final mac = (playlist.username ?? '').trim();
+        if (base.isNotEmpty && mac.isNotEmpty) {
+          epUrl = Uri.parse('$base/play').replace(queryParameters: {
+            'cmd': directUrl,
+            'mac': mac,
+          }).toString();
+        }
+      }
+    }
+    if (epUrl.isEmpty && host.isNotEmpty) {
+      epUrl =
+          "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
+    }
     if (epUrl.isEmpty) return;
     final stream = PlaylistItem(
       streamId: epId.toString(),

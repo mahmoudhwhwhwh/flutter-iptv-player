@@ -1336,15 +1336,19 @@ class IPTVProvider with ChangeNotifier {
         final decoded = jsonDecode(cached);
         if (decoded is List && decoded.isNotEmpty) {
           _applyCuratedMenu(decoded);
+          PerformanceMetrics.mark('custom_menu.cache.hit');
           notifyListeners();
         }
       } catch (_) {}
     }
     try {
-      final response = await http
-          .get(
-              Uri.parse('$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}'))
-          .timeout(const Duration(seconds: 15));
+      final response = await PerformanceMetrics.measureAsync(
+        'custom_menu.network',
+        () => http
+            .get(Uri.parse(
+                '$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}'))
+            .timeout(const Duration(seconds: 15)),
+      );
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded is List) {

@@ -1338,15 +1338,26 @@ class IPTVProvider with ChangeNotifier {
         _liveCategories
             .add({'category_id': categoryId, 'category_name': categoryName});
       }
+      final index = _allStreams.length;
+      final sourceUrl = raw['url']?.toString() ?? '';
+      final isWorkerProxy = sourceUrl.contains('/v1/custom/stream/');
+      // Custom subscriptions, including 2027, must use the authenticated
+      // Worker route. It keeps the source mapping server-side and matches the
+      // path that returns a real streaming response instead of an empty list.
+      final playbackUrl = _activationCode.trim().isNotEmpty && !isWorkerProxy
+          ? '$_workerBase/v1/custom/stream/$index.ts?code=${Uri.encodeQueryComponent(_activationCode.trim())}'
+          : sourceUrl;
       _allStreams.add(PlaylistItem(
         num: null,
-        streamId: _allStreams.length.toString(),
+        streamId: index.toString(),
         name: raw['name']?.toString() ?? 'قناة',
         streamIcon: raw['icon']?.toString() ?? '',
         categoryId: categoryId,
         categoryName: categoryName,
-        url: raw['url']?.toString() ?? '',
+        url: playbackUrl,
         type: 'live',
+        customUserAgent: raw['user_agent']?.toString(),
+        customReferer: raw['referer']?.toString(),
       ));
     }
     _applyFilters();

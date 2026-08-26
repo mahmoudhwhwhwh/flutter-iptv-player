@@ -1169,7 +1169,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
 
   Future<void> _fetchBanners() async {
     try {
-      final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/slider?t=${DateTime.now().millisecondsSinceEpoch}");
+      final url = Uri.parse("https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
@@ -1506,17 +1506,16 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Future<void> _fetchSeriesInfo() async {
     try {
-      final provider = Provider.of<IPTVProvider>(context, listen: false);
-      final activePlaylist = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId);
       final s = widget.series;
       var seriesId = s.streamId.replaceAll('series_', '');
-      
-      String host = activePlaylist.host ?? "";
-      if (host.endsWith('/')) host = host.substring(0, host.length - 1);
-      String username = activePlaylist.username ?? "";
-      String password = activePlaylist.password ?? "";
-      
-      if (host.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
+      String streamUrl = s.url;
+      if (streamUrl.isNotEmpty && streamUrl.contains('/series/')) {
+        final uri = Uri.parse(streamUrl);
+        final host = "${uri.scheme}://${uri.host}:${uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80)}";
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length >= 4) {
+          final username = pathSegments[1];
+          final password = pathSegments[2];
           final url = "$host/player_api.php?username=$username&password=$password&action=get_series_info&series_id=$seriesId";
           final response = await http.get(Uri.parse(url));
           if (response.statusCode == 200) {
@@ -1583,13 +1582,17 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       provider.unlockCategorySession(categoryName);
     }
 
-    
-    final activePlaylist = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId);
-    String host = activePlaylist.host ?? "";
-    if (host.endsWith('/')) host = host.substring(0, host.length - 1);
-    String user = activePlaylist.username ?? "";
-    String pass = activePlaylist.password ?? "";
-
+    String host = "";
+    String user = "";
+    String pass = "";
+    try {
+      final uri = Uri.parse(widget.series.url);
+      host = "${uri.scheme}://${uri.host}:${uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80)}";
+      if (uri.pathSegments.length >= 4) {
+        user = uri.pathSegments[1];
+        pass = uri.pathSegments[2];
+      }
+    } catch (e) {}
     final epId = ep['id'];
     final ext = ep['container_extension'] ?? "mp4";
     final epUrl = "$host/series/$user/$pass/$epId.$ext";
@@ -2087,7 +2090,7 @@ class DynamicSectionsWidget extends StatelessWidget {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
 
-    if (provider.activationCode != "2027" || provider.liveCategories.isEmpty) {
+    if (provider.liveCategories.isEmpty) {
       // Default Sections
       final showMoviesSeries = provider.showMoviesSeries;
       final List<Widget> staticCards = [

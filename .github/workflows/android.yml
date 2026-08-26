@@ -32,14 +32,17 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Clean build
-        run: flutter clean
       - name: Build Android APK
         run: |
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: app-debug-apk
-          path: LIVE_STREAM_PREMIUM.apk
+          tag_name: ${{ env.TAG_VERSION }}
+          name: Release ${{ env.TAG_VERSION }}
+          files: LIVE_STREAM_PREMIUM.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

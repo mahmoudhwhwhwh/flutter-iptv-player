@@ -45,6 +45,8 @@ String normalizeXtreamMediaExtension(Object? raw) {
       return 'mpd';
     case 'mpegts':
     case 'mpeg-ts':
+    case 'live':
+    case 'raw':
       return 'ts';
     default:
       return value;

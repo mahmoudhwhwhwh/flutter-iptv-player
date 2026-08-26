@@ -1,12 +1,11 @@
 // This is a generated file; do not edit or check into version control.
 FLUTTER_ROOT=/opt/flutter
-FLUTTER_APPLICATION_PATH=/app/applet/flutter_app_new
-FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/app/applet/flutter_app_new/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework
+FLUTTER_APPLICATION_PATH=/home/ubuntu/flutter-iptv-player-merge
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=lib/main.dart
 FLUTTER_BUILD_DIR=build
-FLUTTER_BUILD_NAME=2.2.34
-FLUTTER_BUILD_NUMBER=234
+FLUTTER_BUILD_NAME=2.2.69
+FLUTTER_BUILD_NUMBER=269
 EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
 EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
 DART_OBFUSCATION=false

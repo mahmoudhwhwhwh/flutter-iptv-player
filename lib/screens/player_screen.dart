@@ -492,22 +492,27 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     await _loadSubSettings();
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
+    final preserveLiveFrame = isRetry && _stream.type == 'live';
     if (!isRetry) {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
     } else if (mounted) {
       setState(() {
-        _initialized = false;
+        // Keep the existing player and last rendered frame visible during
+        // live reconnect, matching the native IPTV-player behaviour.
+        if (!preserveLiveFrame) _initialized = false;
         _hasError = false;
         _errorMessage = null;
         _isBuffering = true;
       });
     }
-    _currentPosition = Duration.zero;
-    _totalDuration = Duration.zero;
-    _isWebFallback = false;
-    _webController = null;
+    if (!preserveLiveFrame) {
+      _currentPosition = Duration.zero;
+      _totalDuration = Duration.zero;
+      _isWebFallback = false;
+      _webController = null;
+    }
 
     try {
       FirebaseAnalytics.instance.logEvent(
@@ -701,11 +706,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
-    if (_betterController != null) {
-      _betterController!.dispose();
-      _betterController = null;
-    }
-
+    // For live reconnects, keep the current controller alive until the new
+    // source reports initialized. This preserves the last rendered frame.
+    // The old controller is disposed in the initialized callback after swap.
     BetterPlayerVideoFormat? format;
     if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
@@ -844,7 +847,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _retryCount += 1;
       final delay = _liveRetryDelay();
       setState(() {
-        _initialized = false;
+        // Keep the existing live frame visible, like a native IPTV player.
         _isBuffering = true;
         _hasError = false;
         _errorMessage = null;
@@ -2127,20 +2130,29 @@ class _PlayerScreenState extends State<PlayerScreen>
                         color: Colors.black.withOpacity(0.72),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
-                                color: Colors.cyanAccent, strokeWidth: 2.5),
+                              color: _isLiveStream
+                                  ? Colors.redAccent
+                                  : Colors.cyanAccent,
+                              strokeWidth: 2.5,
+                            ),
                           ),
-                          SizedBox(width: 10),
-                          Text('جارِ تحميل البث…',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 10),
+                          Text(
+                            _isLiveStream
+                                ? 'جارِ إعادة الاتصال بالبث…'
+                                : 'جارِ تحميل البث…',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),

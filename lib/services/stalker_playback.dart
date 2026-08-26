@@ -1,5 +1,7 @@
 String stripFfmpegPrefix(String url) {
-  return url.replaceFirst(RegExp(r'^\s*ffmpeg\s+', caseSensitive: false), '').trim();
+  return url
+      .replaceFirst(RegExp(r'^\s*ffmpeg\s+', caseSensitive: false), '')
+      .trim();
 }
 
 String _formatSearchText(String url) {
@@ -45,6 +47,14 @@ bool isWorkerStalkerStreamUrl(String url) {
   return stripFfmpegPrefix(url).toLowerCase().contains('/v1/stalker/stream');
 }
 
+/// Authenticated custom-menu streams are real MPEG-TS media. The query string
+/// follows the `.ts` suffix, so a plain endsWith check is insufficient.
+bool isWorkerCustomStreamUrl(String url) {
+  final normalized = stripFfmpegPrefix(url).toLowerCase();
+  return RegExp(r'/v1/custom/stream/[^/?]+\.ts(?:[?#&]|$)')
+      .hasMatch(normalized);
+}
+
 bool isHlsPlaybackUrl(String url) {
   final lower = _formatSearchText(url);
   return lower.contains('.m3u8') ||
@@ -67,7 +77,8 @@ bool isProgressiveTsUrl(String url) {
   return lower.endsWith('.ts') ||
       lower.contains('extension=ts') ||
       lower.contains('format=ts') ||
-      isWorkerStalkerStreamUrl(url);
+      isWorkerStalkerStreamUrl(url) ||
+      isWorkerCustomStreamUrl(url);
 }
 
 bool isProgressiveFileUrl(String url) {

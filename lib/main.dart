@@ -2371,11 +2371,34 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     } catch (e) {}
     final epId =
         ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
-    if (epId == null || epId.toString().isEmpty || host.isEmpty) return;
-    final ext =
-        (ep['container_extension'] ?? ep['extension'] ?? 'mp4').toString();
-    final epUrl =
-        "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.$ext";
+    final info = ep['info'] is Map
+        ? Map<String, dynamic>.from(ep['info'])
+        : <String, dynamic>{};
+    final directCandidates = [
+      ep['direct_source'],
+      ep['stream_url'],
+      ep['cmd'],
+      ep['url'],
+      info['direct_source'],
+      info['stream_url'],
+      info['cmd'],
+      info['url'],
+    ];
+    final directUrl = directCandidates
+        .map((value) => value?.toString().trim() ?? '')
+        .firstWhere((value) => value.isNotEmpty, orElse: () => '');
+    if (epId == null || epId.toString().isEmpty) return;
+    final rawExt = ep['container_extension'] ??
+        ep['extension'] ??
+        info['container_extension'] ??
+        info['extension'];
+    final ext = rawExt?.toString().trim().replaceFirst('.', '') ?? '';
+    final epUrl = directUrl.isNotEmpty
+        ? directUrl
+        : host.isNotEmpty
+            ? "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}"
+            : '';
+    if (epUrl.isEmpty) return;
     final stream = PlaylistItem(
       streamId: epId.toString(),
       name: "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}",

@@ -49,3 +49,43 @@
 - [x] Fix series detail requests so the real Worker response produces visible seasons and episodes; verified code 02389 / series 6264
 - [x] Remove fake 4K/8K quality labels and keep one real source-track selector matching the reference
 - [ ] Do not mark release fully verified until at least one live stream, one movie, and one series episode are verified end-to-end
+
+
+# v2.2.62 Blocking Playback Failure
+
+- [ ] Trace the exact live/VOD/episode URL passed from the provider into BetterPlayer
+- [ ] Verify Worker media routes and required auth/query parameters against the URL builder
+- [ ] Fix the common playback route without breaking Xtream, Stalker, custom, or DRM sources
+- [ ] Verify series detail and episode playback on the installed-version code path
+- [ ] Run real-source smoke tests before building another APK
+
+
+# Real Multi-Quality Regression
+
+- [ ] Reproduce missing HLS/DASH quality tracks for LSP-9I6H6H6Z9C, 02389, 96827, and 2027
+- [ ] Ensure the final media URL preserves the manifest format and BetterPlayer ASMS track discovery
+- [ ] Keep one quality button and show only source-announced variants, including bitrate and resolution
+- [ ] Test quality discovery on a real HLS/DASH manifest before issuing another APK
+
+
+# Playback Failure Investigation
+
+- [ ] Trace and fix the common media URL/redirect failure for live channels, movies, and series episodes
+- [ ] Verify source authorization and CDN redirect behavior through Worker without exposing credentials
+- [ ] Confirm at least one real live stream, one movie, and one episode return playable media responses
+- [ ] Build a new APK only after real-source smoke tests pass
+
+
+# Distribution Regression
+
+- [ ] Build and upload the universal app-release.apk referenced by the Worker update URL
+- [ ] Confirm the universal APK contains the single real quality selector and latest playback fixes
+- [ ] Verify the final APK version and artifact checksum before delivery
+
+
+# IPTV Smarters Compatibility Audit
+
+- [ ] Compare Flutter's Xtream/Stalker requests with the standard IPTV Smarters request contract
+- [ ] Preserve source-provided stream URLs, extensions, query tokens, headers, and cookies end-to-end
+- [ ] Fix common player initialization differences that block live, movie, and episode playback
+- [ ] Verify VOD/Series parsing against real Xtream response shapes used by the subscriptions

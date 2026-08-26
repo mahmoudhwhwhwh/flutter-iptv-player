@@ -891,13 +891,13 @@ class IPTVProvider with ChangeNotifier {
 
   bool isOutdatedVersion(String versionStr, int versionCode) {
     if (versionCode > 0) {
-      if (versionCode < 211) {
+      if (versionCode < 274) {
         return true;
-      } else if (versionCode >= 211) {
+      } else if (versionCode >= 274) {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.11");
+    return isVersionLowerThan(versionStr, "2.2.74");
   }
 
   bool _isValidatingSubscription = false;

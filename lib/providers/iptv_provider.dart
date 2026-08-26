@@ -33,6 +33,24 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
+String normalizeXtreamMediaExtension(Object? raw) {
+  final value =
+      raw?.toString().trim().toLowerCase().replaceFirst('.', '') ?? '';
+  switch (value) {
+    case 'hls':
+    case 'm3u8':
+      return 'm3u8';
+    case 'dash':
+    case 'mpd':
+      return 'mpd';
+    case 'mpegts':
+    case 'mpeg-ts':
+      return 'ts';
+    default:
+      return value;
+  }
+}
+
 class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
@@ -1599,6 +1617,25 @@ class IPTVProvider with ChangeNotifier {
                 .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
             final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
             final streamId = item['stream_id']?.toString() ?? '';
+            final advertisedUrl =
+                (item['stream_source'] ?? item['url'] ?? '').toString().trim();
+            final advertisedExtension = normalizeXtreamMediaExtension(
+              item['container_extension'] ??
+                  item['stream_type'] ??
+                  item['extension'] ??
+                  '',
+            );
+            final extension = advertisedExtension.isNotEmpty
+                ? advertisedExtension
+                : (advertisedUrl.toLowerCase().contains('.m3u8')
+                    ? 'm3u8'
+                    : advertisedUrl.toLowerCase().contains('.mpd')
+                        ? 'mpd'
+                        : 'ts');
+            // Keep playback behind the authenticated Worker even when the
+            // upstream advertises an absolute HTTP/CDN URL. The extension is
+            // preserved so HLS/DASH manifests remain discoverable by the player.
+            final streamUrl = "$host/live/$user/$pass/$streamId.$extension";
             tempStreams.add(PlaylistItem(
               num: item['num'] is int ? item['num'] : null,
               streamId: "live_$streamId",
@@ -1606,7 +1643,7 @@ class IPTVProvider with ChangeNotifier {
               streamIcon: item['stream_icon']?.toString() ?? '',
               categoryId: catId,
               categoryName: catName,
-              url: "$host/live/$user/$pass/$streamId.ts",
+              url: streamUrl,
               type: "live",
             ));
           }

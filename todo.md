@@ -89,3 +89,10 @@
 - [ ] Preserve source-provided stream URLs, extensions, query tokens, headers, and cookies end-to-end
 - [ ] Fix common player initialization differences that block live, movie, and episode playback
 - [ ] Verify VOD/Series parsing against real Xtream response shapes used by the subscriptions
+
+
+# Playback Compatibility Continuation
+
+- [ ] Compare the exact final media URL and headers used by the app against IPTV Smarters-compatible Xtream/Stalker contracts
+- [ ] Fix any lost redirect token, cookie, User-Agent, Referer, Range, or content-type handling
+- [ ] Verify a playable live stream, movie, and episode before marking the release stable

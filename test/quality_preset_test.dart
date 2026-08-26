@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter_iptv_player/screens/player_screen.dart';
 import 'package:flutter_iptv_player/main.dart';
+import 'package:flutter_iptv_player/providers/iptv_provider.dart';
 
 void main() {
   test('4K preset selects the highest available source track up to 2160p', () {
@@ -44,5 +45,12 @@ void main() {
   test('real quality label does not claim a resolution for auto track', () {
     final track = BetterPlayerAsmsTrack.defaultTrack();
     expect(realQualityTrackLabel(track), 'تلقائي');
+  });
+
+  test('Xtream media type preserves real HLS and DASH manifest extensions', () {
+    expect(normalizeXtreamMediaExtension('hls'), 'm3u8');
+    expect(normalizeXtreamMediaExtension('.m3u8'), 'm3u8');
+    expect(normalizeXtreamMediaExtension('dash'), 'mpd');
+    expect(normalizeXtreamMediaExtension('mp4'), 'mp4');
   });
 }

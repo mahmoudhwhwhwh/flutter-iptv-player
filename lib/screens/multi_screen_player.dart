@@ -573,8 +573,8 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
     } else if (isProgressiveTsUrl(finalUrl)) {
-      // Worker stream endpoints are progressive MPEG-TS even without a .ts path.
-      format = BetterPlayerVideoFormat.other;
+      // Let ExoPlayer infer progressive MPEG-TS from the URL/content type.
+      format = null;
     }
 
     bool isAsms = format == BetterPlayerVideoFormat.hls ||
@@ -583,7 +583,9 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
+      liveStream: widget.stream.type == 'live',
       videoFormat: format,
+      videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
       useAsmsTracks: isAsms,
       useAsmsSubtitles: isAsms,

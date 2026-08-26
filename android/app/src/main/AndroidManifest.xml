@@ -55,7 +55,7 @@
     <application
         android:label="live strem pro"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/live_stream_logo"
         android:banner="@drawable/ic_launcher"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false"

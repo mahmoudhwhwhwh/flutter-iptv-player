@@ -217,6 +217,7 @@ class FilterService {
     List<PlaylistItem> streams, {
     required bool blockAdult,
     required String channelFilter,
+    bool applyChannelFilter = true,
   }) {
     return streams.where((stream) {
       // 1. حظر المحتوى الإباحي
@@ -225,7 +226,8 @@ class FilterService {
       }
 
       // 2. تطبيق تصفية القنوات (الإقليمية والموضوعية)
-      if (channelFilter != "الكل") {
+      final isLiveStream = stream.type == 'live' || stream.type == 'stalker';
+      if (applyChannelFilter && isLiveStream && channelFilter != "الكل") {
         final isArab = isArabicStream(stream.name, stream.categoryName);
         
         if (channelFilter == "القنوات العربية فقط") {

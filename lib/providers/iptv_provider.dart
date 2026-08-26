@@ -1569,11 +1569,13 @@ class IPTVProvider with ChangeNotifier {
           movieStreams,
           blockAdult: _blockAdultContent,
           channelFilter: _channelFilter,
+          applyChannelFilter: false,
         ));
         _allStreams.addAll(FilterService.interceptAndFilterStreams(
           seriesStreams,
           blockAdult: _blockAdultContent,
           channelFilter: _channelFilter,
+          applyChannelFilter: false,
         ));
         _applyFilters();
         _isFetchingData = false;
@@ -1710,7 +1712,8 @@ class IPTVProvider with ChangeNotifier {
               final filteredMovies = FilterService.interceptAndFilterStreams(
                   tempMovies,
                   blockAdult: _blockAdultContent,
-                  channelFilter: _channelFilter);
+                  channelFilter: _channelFilter,
+                  applyChannelFilter: false);
               _allStreams.addAll(filteredMovies);
             }
             _applyFilters();
@@ -1768,7 +1771,8 @@ class IPTVProvider with ChangeNotifier {
               final filteredSeries = FilterService.interceptAndFilterStreams(
                   tempSeries,
                   blockAdult: _blockAdultContent,
-                  channelFilter: _channelFilter);
+                  channelFilter: _channelFilter,
+                  applyChannelFilter: false);
               _allStreams.addAll(filteredSeries);
             }
             _applyFilters();
@@ -1850,8 +1854,10 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
 
-      // Filter Arabic / Foreign channels / Sports / News / Alwan
-      if (_channelFilter != "الكل") {
+      // Regional/topic channel filters are for live channels only.
+      // Applying them to VOD/Series can hide an otherwise healthy catalog.
+      final isLiveStream = stream.type == "live" || stream.type == "stalker";
+      if (isLiveStream && _channelFilter != "الكل") {
         final isArab = isArabicStream(stream);
         if (_channelFilter == "القنوات العربية فقط") {
           if (!isArab) return false;

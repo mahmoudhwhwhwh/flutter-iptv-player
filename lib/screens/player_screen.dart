@@ -648,8 +648,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
     } else if (isProgressiveTsUrl(finalUrl)) {
-      // Worker stream endpoints are progressive MPEG-TS even without a .ts path.
-      format = BetterPlayerVideoFormat.other;
+      // Leave formatHint unset for progressive TS. ExoPlayer can infer MPEG-TS
+      // from the .ts URL/content type; forcing `other` bypasses that inference.
+      format = null;
     }
 
     bool isAsms = format == BetterPlayerVideoFormat.hls ||
@@ -658,7 +659,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
+      liveStream: _stream.type == 'live',
       videoFormat: format,
+      videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
       useAsmsTracks: isAsms,
       useAsmsSubtitles: isAsms,
@@ -1695,10 +1698,23 @@ class _PlayerScreenState extends State<PlayerScreen>
                       child: tracks.isEmpty
                           ? const Padding(
                               padding: EdgeInsets.all(28),
-                              child: Text('المصدر لا يعلن مسارات جودة متعددة',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: Colors.white70, fontSize: 15)),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(Icons.info_outline_rounded,
+                                      color: Color(0xFF16E0E8), size: 30),
+                                  SizedBox(height: 10),
+                                  Text('هذا البث متاح بجودة واحدة من المصدر',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white70, fontSize: 15)),
+                                  SizedBox(height: 6),
+                                  Text('يمكنك متابعة التشغيل بشكل طبيعي',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white38, fontSize: 13)),
+                                ],
+                              ),
                             )
                           : ListView(
                               shrinkWrap: true,

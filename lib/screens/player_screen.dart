@@ -363,7 +363,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     
     if ((_stream.type == "stalker" || _stream.type == "stalker_movie" || _stream.type == "stalker_series")) {
        try {
-           final host = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).host;
+           String host = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).host ?? '';
+           if (host.endsWith('/')) host = host.substring(0, host.length - 1);
            final mac = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).username;
                       String sType = "itv";
            if (_stream.type == "stalker_movie" || _stream.type == "stalker_series") sType = "vod";

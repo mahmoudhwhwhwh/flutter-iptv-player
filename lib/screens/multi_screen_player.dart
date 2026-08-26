@@ -351,7 +351,8 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot> {
     if (widget.stream.type == "stalker" || widget.stream.type == "stalker_movie" || widget.stream.type == "stalker_series") {
         try {
             final provider = Provider.of<IPTVProvider>(context, listen: false);
-            final host = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).host;
+            String host = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).host ?? '';
+           if (host.endsWith('/')) host = host.substring(0, host.length - 1);
             final mac = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId).username;
             
             String sType = "itv";

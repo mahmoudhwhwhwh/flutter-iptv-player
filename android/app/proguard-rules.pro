@@ -11,7 +11,6 @@
 # Flutter references Play Core deferred-component classes optionally; this app does not ship deferred components.
 -dontwarn com.google.android.play.core.**
 
-# Maximum Obfuscation Rules
--keep class com.mahmoud.iptv.** { *; }
+# Keep only manifest/reflection entry points; do not keep the whole app package.
 -allowaccessmodification
 -repackageclasses 'com.mahmoud.iptv.secure'

@@ -1528,6 +1528,11 @@ class IPTVProvider with ChangeNotifier {
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
             blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
+        // MAC Live is useful independently of VOD/Series capability. Publish it
+        // immediately, then continue fetching optional catalog sections.
+        _applyFilters();
+        PerformanceMetrics.mark('mac.live.ready');
+        notifyListeners();
 
         final vodCats = await _fetchStalkerCategories(host, headers, 'vod');
         final seriesCats =

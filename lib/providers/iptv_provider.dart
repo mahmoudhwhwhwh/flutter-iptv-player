@@ -1688,8 +1688,12 @@ class IPTVProvider with ChangeNotifier {
                 final catName =
                     cat.isNotEmpty ? cat['category_name']! : 'أفلام';
                 final streamId = item['stream_id']?.toString() ?? '';
-                final container =
-                    item['container_extension']?.toString() ?? 'mp4';
+                final container = normalizeXtreamMediaExtension(
+                  item['container_extension'] ??
+                      item['stream_type'] ??
+                      item['extension'] ??
+                      'mp4',
+                );
                 tempMovies.add(PlaylistItem(
                   num: item['num'] is int ? item['num'] : null,
                   streamId: "movie_$streamId",
@@ -1697,7 +1701,8 @@ class IPTVProvider with ChangeNotifier {
                   streamIcon: item['stream_icon']?.toString() ?? '',
                   categoryId: catId,
                   categoryName: catName,
-                  url: "$host/movie/$user/$pass/$streamId.$container",
+                  url:
+                      "$host/movie/$user/$pass/$streamId.${container.isEmpty ? 'mp4' : container}",
                   type: "movie",
                 ));
               }
@@ -1754,7 +1759,8 @@ class IPTVProvider with ChangeNotifier {
                   streamIcon: item['cover']?.toString() ?? '',
                   categoryId: catId,
                   categoryName: catName,
-                  url: "$host/series/$user/$pass/$streamId.mp4",
+                  url:
+                      "$host/series/$user/$pass/$streamId.${normalizeXtreamMediaExtension(item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4').isEmpty ? 'mp4' : normalizeXtreamMediaExtension(item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4')}",
                   type: "series",
                 ));
               }

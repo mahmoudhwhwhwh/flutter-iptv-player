@@ -36,12 +36,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _bioLink = false;
-  bool _quantumEntanglement = true;
-  bool _selfHealing = true;
-  bool _quantumRouting = true;
-
-  bool _hwAcceleration = true;
   bool _autoPlay = true;
   String _subSize = "متوسط";
   String _subFont = 'Cairo';
@@ -55,9 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _defaultPlayer = 'native';
   String _streamFormat = 'auto';
   bool _autoPlayer = true;
-  bool _backgroundPlayback = false;
-  bool _fullscreenPlayback = true;
-  bool _keepLastChannel = true;
   bool _animationsEnabled = true;
   String _cardSize = 'متوسط';
 
@@ -70,12 +61,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _bioLink = prefs.getBool('bio_link') ?? false;
-      _quantumEntanglement = prefs.getBool('quantum_entanglement') ?? true;
-      _selfHealing = prefs.getBool('self_healing') ?? true;
-      _quantumRouting = prefs.getBool('quantum_routing') ?? true;
-
-      _hwAcceleration = prefs.getBool('hw_acceleration') ?? true;
       _autoPlay = prefs.getBool('auto_play') ?? true;
       _subSize = prefs.getString('sub_size') ?? "متوسط";
       _subFont = prefs.getString('sub_font') ?? 'Cairo';
@@ -89,9 +74,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _defaultPlayer = prefs.getString('default_player') ?? 'native';
       _streamFormat = prefs.getString('stream_format') ?? 'auto';
       _autoPlayer = prefs.getBool('auto_player') ?? true;
-      _backgroundPlayback = prefs.getBool('background_playback') ?? false;
-      _fullscreenPlayback = prefs.getBool('fullscreen_playback') ?? true;
-      _keepLastChannel = prefs.getBool('keep_last_channel') ?? true;
       _animationsEnabled = prefs.getBool('animations_enabled') ?? true;
       _cardSize = prefs.getString('card_size') ?? 'متوسط';
     });
@@ -200,16 +182,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSavedSubscriptionCodesCard(provider),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader("المشغّل وصيغة البث", "اختيارات محفوظة وتعمل مع Auto Player"),
+              _buildSectionHeader(
+                  "المشغّل وصيغة البث", "اختيارات محفوظة وتعمل مع Auto Player"),
               const SizedBox(height: 12),
               _buildDropdownItem(
                 title: 'المشغّل الافتراضي',
                 value: _defaultPlayer,
-                items: const ['native', 'vlc', 'mx'],
+                items: const ['native', 'vlc'],
                 itemLabels: const {
                   'native': 'المشغّل الأصلي Native Player',
-                  'vlc': 'VLC Player (تطبيق خارجي)',
-                  'mx': 'MX Player (تطبيق خارجي)',
+                  'vlc': 'VLC داخلي مدمج داخل التطبيق',
                 },
                 onChanged: (value) {
                   if (value != null) {
@@ -221,7 +203,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: 'Auto Player',
-                description: 'يحلل الرابط والصيغة ويختار طريقة التشغيل المناسبة تلقائياً.',
+                description:
+                    'يختار محركاً داخلياً مناسباً للرابط: VLC المدمج لـ HLS/TS وNative للصيغ المتقدمة وDRM.',
                 value: _autoPlayer,
                 activeColor: _SettingsPalette.gold,
                 onChanged: (value) {
@@ -249,18 +232,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _buildSettingItem(
-                title: "تسريع الأجهزة (HW Acceleration)",
-                description:
-                    "استخدام أجهزة الجهاز لتشغيل الفيديو بسلاسة أكبر وتقليل استهلاك البطارية.",
-                value: _hwAcceleration,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _hwAcceleration = val);
-                  _saveSetting('hw_acceleration', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
                 title: "التشغيل التلقائي",
                 description: "تشغيل القناة أو الفيلم تلقائياً عند فتحه.",
                 value: _autoPlay,
@@ -270,39 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _saveSetting('auto_play', val);
                 },
               ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'التشغيل في الخلفية',
-                description: 'السماح باستمرار الصوت عند مغادرة المشغل إذا كان النظام يدعم ذلك.',
-                value: _backgroundPlayback,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _backgroundPlayback = val);
-                  _saveSetting('background_playback', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'ملء الشاشة تلقائياً',
-                description: 'فتح محتوى الفيديو بملء الشاشة عند بدء التشغيل.',
-                value: _fullscreenPlayback,
-                activeColor: _SettingsPalette.cyan,
-                onChanged: (val) {
-                  setState(() => _fullscreenPlayback = val);
-                  _saveSetting('fullscreen_playback', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'الاحتفاظ بآخر قناة',
-                description: 'تذكر آخر قناة تم تشغيلها للرجوع إليها لاحقاً.',
-                value: _keepLastChannel,
-                activeColor: _SettingsPalette.gold,
-                onChanged: (val) {
-                  setState(() => _keepLastChannel = val);
-                  _saveSetting('keep_last_channel', val);
-                },
-              ),
+
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildSettingItem(
@@ -408,7 +347,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: 'الرسوم المتحركة',
-                description: 'حركات خفيفة للانتقالات؛ عطّلها على الأجهزة الضعيفة.',
+                description:
+                    'حركات خفيفة للانتقالات؛ عطّلها على الأجهزة الضعيفة.',
                 value: _animationsEnabled,
                 activeColor: _SettingsPalette.purpleBright,
                 onChanged: (val) {
@@ -658,52 +598,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              _buildSettingItem(
-                title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",
-                description:
-                    "تعمل على تحسين استجابة الخادم بشكل فوري لضمان عدم تأخير البث المباشر.",
-                value: _bioLink,
-                activeColor: _SettingsPalette.purple,
-                onChanged: (val) {
-                  setState(() => _bioLink = val);
-                  _saveSetting('bio_link', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "2. التشابك الكمي للبث (Quantum Entanglement)",
-                description:
-                    "ميزة ثورية تزيد من سرعة تدفق البيانات لضمان أعلى جودة ممكنة دون انقطاع.",
-                value: _quantumEntanglement,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _quantumEntanglement = val);
-                  _saveSetting('quantum_entanglement', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "3. نواة المعالجة الذاتية (Self-Healing)",
-                description:
-                    "نظام ذكي يقوم باكتشاف وإصلاح أعطال البث تلقائياً دون أي تدخل يدوي.",
-                value: _selfHealing,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _selfHealing = val);
-                  _saveSetting('self_healing', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "4. توجيه المسارات الكمي (Quantum Routing)",
-                description:
-                    "يعيد توجيه اتصالك عبر أسرع المسارات العالمية المتاحة لفتح القنوات في أقل من ثانية.",
-                value: _quantumRouting,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _quantumRouting = val);
-                  _saveSetting('quantum_routing', val);
-                },
+              _buildSectionHeader(
+                'الحماية والاستقرار الحقيقي',
+                'إعادة الاتصال وKeystore وRemote Config تعمل من مسارات التطبيق الفعلية.',
               ),
               const SizedBox(height: 32),
               const Center(

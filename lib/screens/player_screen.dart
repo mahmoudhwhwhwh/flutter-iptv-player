@@ -210,6 +210,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   String _subLangVal = "تلقائي";
   String _streamFormatPreference = 'auto';
   String _defaultPlayerPreference = 'native';
+  bool _autoPlayerPreference = true;
+  bool _autoPlayPreference = true;
   bool _externalPlayerAttempted = false;
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
@@ -312,6 +314,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
       _streamFormatPreference = prefs.getString('stream_format') ?? 'auto';
       _defaultPlayerPreference = prefs.getString('default_player') ?? 'native';
+      _autoPlayerPreference = prefs.getBool('auto_player') ?? true;
+      _autoPlayPreference = prefs.getBool('auto_play') ?? true;
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
 
@@ -719,9 +723,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     // source reports initialized. This preserves the last rendered frame.
     // The old controller is disposed in the initialized callback after swap.
     // libVLC is embedded in this APK; no external player application is opened.
-    final canUseInternalVlc = _defaultPlayerPreference == 'vlc' &&
-        !isMpdStream &&
-        !(_isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty);
+    final supportsEmbeddedVlc = !isMpdStream &&
+        !(_isDrm &&
+            _stream.clearKeys != null &&
+            _stream.clearKeys!.isNotEmpty) &&
+        (isHlsPlaybackUrl(finalUrl) || isProgressiveTsUrl(finalUrl));
+    final canUseInternalVlc = supportsEmbeddedVlc &&
+        (_defaultPlayerPreference == 'vlc' ||
+            (_autoPlayerPreference && _defaultPlayerPreference == 'native'));
     if (!canUseInternalVlc && _usesInternalVlc) {
       await _vlcController?.stop();
       await _vlcController?.dispose();
@@ -777,7 +786,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     BetterPlayerController newBetterController = BetterPlayerController(
       BetterPlayerConfiguration(
-        autoPlay: true,
+        autoPlay: _autoPlayPreference,
         looping: false,
         fit: _currentBoxFit,
         subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(

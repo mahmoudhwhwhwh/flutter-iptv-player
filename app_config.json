@@ -12,7 +12,7 @@
     "update_message": "يتوفر آخر إصدار من LIVE STREAM PREMIUM للاستمرار بأمان."
   },
   "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/latest/app-release.apk",
-  "update_message": "يرجى استخدام إصدار LIVE STREAM PREMIUM 2.2.69 أو أحدث للاستمرار.",
+  "update_message": "يرجى استخدام إصدار LIVE STREAM PREMIUM 2.2.70 أو أحدث للاستمرار.",
   "min_version_code": 270,
-  "block_message": "يرجى استخدام إصدار LIVE STREAM PREMIUM 2.2.69 أو أحدث للاستمرار."
+  "block_message": "يرجى استخدام إصدار LIVE STREAM PREMIUM 2.2.70 أو أحدث للاستمرار."
 }

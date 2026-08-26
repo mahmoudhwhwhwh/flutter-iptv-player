@@ -241,6 +241,14 @@ class _PlayerScreenState extends State<PlayerScreen>
   final int _maxRetries = 3;
   Timer? _reconnectTimer;
 
+  bool get _isLiveStream =>
+      _stream.type == 'live' || _totalDuration.inSeconds == 0;
+
+  Duration _liveRetryDelay() {
+    final seconds = (1 << (_retryCount.clamp(0, 4))).toInt();
+    return Duration(seconds: seconds.clamp(1, 12));
+  }
+
   bool get _isDrm => _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty;
 
   String _prepareClearKeyString(Map<String, String> keys) {
@@ -466,7 +474,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         await _applyPreferredSubtitleLanguage(retries: retries - 1);
       }
     } catch (e) {
-      debugPrint("Failed to apply Xtream subtitle language: ${redactDiagnostic(e)}");
+      debugPrint(
+          "Failed to apply Xtream subtitle language: ${redactDiagnostic(e)}");
     }
   }
 
@@ -531,7 +540,8 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     if (isStalkerContent && !isDirectStalkerPlayback) {
       try {
-        final host = (activePlaylist.host ?? '').replaceFirst(RegExp(r'/+$'), '');
+        final host =
+            (activePlaylist.host ?? '').replaceFirst(RegExp(r'/+$'), '');
         final mac = activePlaylist.username;
         String sType = "itv";
         if (_stream.type == "stalker_series" ||
@@ -566,14 +576,16 @@ class _PlayerScreenState extends State<PlayerScreen>
     String finalUrl = urlStr;
     final sourceDescriptor = classifyPlaybackUrl(finalUrl);
     if (!sourceDescriptor.isDirectMedia) {
-      final isWebSource = sourceDescriptor.kind == PlaybackSourceKind.youtubePage ||
-          sourceDescriptor.kind == PlaybackSourceKind.webPage;
+      final isWebSource =
+          sourceDescriptor.kind == PlaybackSourceKind.youtubePage ||
+              sourceDescriptor.kind == PlaybackSourceKind.webPage;
       if (isWebSource && sourceDescriptor.normalizedUrl.isNotEmpty) {
         _webController = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setNavigationDelegate(NavigationDelegate(
             onWebResourceError: (error) {
-              if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
+              if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration))
+                return;
               setState(() {
                 _hasError = true;
                 _isBuffering = false;
@@ -825,6 +837,25 @@ class _PlayerScreenState extends State<PlayerScreen>
     debugPrint("IPTV Playback failed: ${redactDiagnostic(message)}");
     if (!mounted) return;
     _reconnectTimer?.cancel();
+    if (_isLiveStream) {
+      // Live is continuous: keep the player screen alive and reconnect in-place.
+      // The source may rotate tokens/segments temporarily; do not show the VOD
+      // failure screen or navigate away while the retry loop is active.
+      _retryCount += 1;
+      final delay = _liveRetryDelay();
+      setState(() {
+        _initialized = false;
+        _isBuffering = true;
+        _hasError = false;
+        _errorMessage = null;
+      });
+      _reconnectTimer = Timer(delay, () {
+        if (mounted && _channelSwitchGuard.isCurrent(generation)) {
+          _initializeController(isRetry: true, generation: generation);
+        }
+      });
+      return;
+    }
     if (_retryCount >= _maxRetries) {
       setState(() {
         _initialized = false;
@@ -1207,7 +1238,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         ]);
         await _betterController!.enablePictureInPicture(_betterPlayerKey);
       } catch (e) {
-        debugPrint("Failed to enable picture in picture: ${redactDiagnostic(e)}");
+        debugPrint(
+            "Failed to enable picture in picture: ${redactDiagnostic(e)}");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1747,33 +1779,34 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                     const Divider(color: Colors.white12, height: 1),
                     Flexible(
-                      child:                           tracks.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 22, vertical: 18),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.hd_rounded,
-                                          color: Color(0xFF16E0E8), size: 30),
-                                      const SizedBox(height: 10),
-                                      Text(realQualityAvailabilityLabel(
+                      child: tracks.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 22, vertical: 18),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.hd_rounded,
+                                      color: Color(0xFF16E0E8), size: 30),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                      realQualityAvailabilityLabel(
                                           hasTracks: false),
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w700)),
-                                      const SizedBox(height: 6),
-                                      const Text(
-                                          'لا توجد قائمة متعددة معلنة في الـmanifest؛ لا يمكن اختراع جودة أخرى.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Colors.white54, fontSize: 13)),
-                                    ],
-                                  ),
-                                )
-                              : ListView(
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                      'لا توجد قائمة متعددة معلنة في الـmanifest؛ لا يمكن اختراع جودة أخرى.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white54, fontSize: 13)),
+                                ],
+                              ),
+                            )
+                          : ListView(
                               shrinkWrap: true,
                               children: [
                                 row(
@@ -2051,32 +2084,34 @@ class _PlayerScreenState extends State<PlayerScreen>
                   child: Center(
                     child: _hasError
                         ? _buildErrorScreen(provider)
-                          : _isWebFallback && _webController != null
-                              ? SizedBox.expand(
-                                  child: WebViewWidget(controller: _webController!),
-                                )
-                            : _initialized && _betterController != null
+                        : _isWebFallback && _webController != null
                             ? SizedBox.expand(
-                                child: (_totalDuration.inSeconds == 0 ||
-                                            _stream.type == 'live') &&
-                                        _liveImageFilter != LiveImageFilter.none
-                                    ? ColorFiltered(
-                                        colorFilter: ColorFilter.matrix(
-                                          liveImageFilterMatrix(
-                                              _liveImageFilter),
-                                        ),
-                                        child: BetterPlayer(
+                                child:
+                                    WebViewWidget(controller: _webController!),
+                              )
+                            : _initialized && _betterController != null
+                                ? SizedBox.expand(
+                                    child: (_totalDuration.inSeconds == 0 ||
+                                                _stream.type == 'live') &&
+                                            _liveImageFilter !=
+                                                LiveImageFilter.none
+                                        ? ColorFiltered(
+                                            colorFilter: ColorFilter.matrix(
+                                              liveImageFilterMatrix(
+                                                  _liveImageFilter),
+                                            ),
+                                            child: BetterPlayer(
+                                                key: _betterPlayerKey,
+                                                controller: _betterController!),
+                                          )
+                                        : BetterPlayer(
                                             key: _betterPlayerKey,
                                             controller: _betterController!),
-                                      )
-                                    : BetterPlayer(
-                                        key: _betterPlayerKey,
-                                        controller: _betterController!),
-                              )
-                            : const Center(
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 3),
-                              ),
+                                  )
+                                : const Center(
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 3),
+                                  ),
                   ),
                 ),
               ),

@@ -14,6 +14,7 @@ import '../services/subscription_profile.dart';
 import '../services/redacted_diagnostics.dart';
 import '../services/secure_playlist_store.dart';
 import '../services/performance_metrics.dart';
+import '../services/remote_config_service.dart';
 
 // تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
 class MyHttpOverrides extends HttpOverrides {
@@ -62,6 +63,9 @@ class IPTVProvider with ChangeNotifier {
   static const String _loginUrl = '$_workerBase/v1/login';
   static const String _savedSubscriptionCodesKey = 'saved_subscription_codes';
   static const SecurePlaylistStore _securePlaylistStore = SecurePlaylistStore();
+  final RemoteConfigService _remoteConfigService = RemoteConfigService();
+  RemoteConfig _remoteConfig = RemoteConfig.fallback;
+  RemoteConfig get remoteConfig => _remoteConfig;
 
   Future<void> _loadSavedPlaylists(SharedPreferences prefs) async {
     final securePlaylists = await _securePlaylistStore.read();
@@ -689,6 +693,22 @@ class IPTVProvider with ChangeNotifier {
   static const String _menuUrl = '$_workerBase/v1/custom/menu';
   static const String _customMenuCacheKey = 'cached_custom_menu_v1';
 
+  Future<void> _refreshRemoteConfig({bool forceRefresh = false}) async {
+    try {
+      final next = await _remoteConfigService.load(forceRefresh: forceRefresh);
+      if (next.configVersion != _remoteConfig.configVersion || forceRefresh) {
+        _remoteConfig = next;
+        PerformanceMetrics.mark('remote_config.applied');
+        notifyListeners();
+      }
+    } catch (_) {
+      PerformanceMetrics.mark('remote_config.fallback');
+    }
+  }
+
+  Future<void> refreshRemoteConfig() =>
+      _refreshRemoteConfig(forceRefresh: true);
+
   Future<void> init() async {
     PerformanceMetrics.mark('provider.init.start');
     _isLoading = true;
@@ -731,6 +751,7 @@ class IPTVProvider with ChangeNotifier {
     loadRecentlyPlayed();
 
     await _loadSavedPlaylists(prefs);
+    unawaited(_refreshRemoteConfig());
 
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     // إعادة تفعيل أقسام الأفلام والمسلسلات بعد الإصدارات القديمة التي كانت تخفيها.

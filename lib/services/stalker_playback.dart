@@ -13,6 +13,34 @@ String _formatSearchText(String url) {
   return normalized.toLowerCase();
 }
 
+enum PlaybackSourceKind {
+  hls,
+  dash,
+  transportStream,
+  progressiveFile,
+  youtubePage,
+  webPage,
+  unknown,
+}
+
+class PlaybackSourceDescriptor {
+  final PlaybackSourceKind kind;
+  final String normalizedUrl;
+  final String? unsupportedReason;
+
+  const PlaybackSourceDescriptor({
+    required this.kind,
+    required this.normalizedUrl,
+    this.unsupportedReason,
+  });
+
+  bool get isDirectMedia =>
+      kind == PlaybackSourceKind.hls ||
+      kind == PlaybackSourceKind.dash ||
+      kind == PlaybackSourceKind.transportStream ||
+      kind == PlaybackSourceKind.progressiveFile;
+}
+
 bool isWorkerStalkerStreamUrl(String url) {
   return stripFfmpegPrefix(url).toLowerCase().contains('/v1/stalker/stream');
 }
@@ -40,6 +68,86 @@ bool isProgressiveTsUrl(String url) {
       lower.contains('extension=ts') ||
       lower.contains('format=ts') ||
       isWorkerStalkerStreamUrl(url);
+}
+
+bool isProgressiveFileUrl(String url) {
+  final lower = _formatSearchText(url);
+  return RegExp(r'\.(mp4|m4v|webm|mov|mkv|avi)(?:[?#&]|$)').hasMatch(lower);
+}
+
+bool _isDirectGoogleMediaUrl(String url) {
+  try {
+    final uri = Uri.parse(url);
+    final host = uri.host.toLowerCase();
+    return (host == 'drive.google.com' || host == 'docs.google.com') &&
+        (uri.queryParameters['export'] == 'download' ||
+            uri.queryParameters['alt'] == 'media');
+  } catch (_) {
+    return false;
+  }
+}
+
+bool _isYoutubeHost(String host) {
+  final lower = host.toLowerCase();
+  return lower == 'youtu.be' ||
+      lower == 'youtube.com' ||
+      lower.endsWith('.youtube.com') ||
+      lower == 'youtube-nocookie.com' ||
+      lower.endsWith('.youtube-nocookie.com');
+}
+
+PlaybackSourceDescriptor classifyPlaybackUrl(String rawUrl) {
+  final normalized = stripFfmpegPrefix(rawUrl);
+  if (isHlsPlaybackUrl(normalized)) {
+    return PlaybackSourceDescriptor(
+      kind: PlaybackSourceKind.hls,
+      normalizedUrl: normalized,
+    );
+  }
+  if (isDashPlaybackUrl(normalized)) {
+    return PlaybackSourceDescriptor(
+      kind: PlaybackSourceKind.dash,
+      normalizedUrl: normalized,
+    );
+  }
+  if (isProgressiveTsUrl(normalized)) {
+    return PlaybackSourceDescriptor(
+      kind: PlaybackSourceKind.transportStream,
+      normalizedUrl: normalized,
+    );
+  }
+  if (isProgressiveFileUrl(normalized) || _isDirectGoogleMediaUrl(normalized)) {
+    return PlaybackSourceDescriptor(
+      kind: PlaybackSourceKind.progressiveFile,
+      normalizedUrl: normalized,
+    );
+  }
+
+  try {
+    final uri = Uri.parse(normalized);
+    if (_isYoutubeHost(uri.host)) {
+      return PlaybackSourceDescriptor(
+        kind: PlaybackSourceKind.youtubePage,
+        normalizedUrl: normalized,
+        unsupportedReason:
+            'رابط YouTube صفحة ويب وليس ملف وسائط؛ يحتاج مشغل YouTube رسمي أو رابط manifest مصرحاً به.',
+      );
+    }
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return PlaybackSourceDescriptor(
+        kind: PlaybackSourceKind.webPage,
+        normalizedUrl: normalized,
+        unsupportedReason:
+            'رابط صفحة ويب؛ لا يمكن لـExoPlayer تشغيل HTML كرابط فيديو مباشر.',
+      );
+    }
+  } catch (_) {}
+
+  return PlaybackSourceDescriptor(
+    kind: PlaybackSourceKind.unknown,
+    normalizedUrl: normalized,
+    unsupportedReason: 'صيغة الرابط غير معروفة أو غير قابلة للتحليل.',
+  );
 }
 
 bool isDirectStalkerPlaybackUrl(String url) {

@@ -27,4 +27,33 @@ void main() {
   test('does not classify a non-playback Stalker command as a direct media URL', () {
     expect(isDirectStalkerPlaybackUrl('http://media.example/ch/1744949_'), isFalse);
   });
+
+  test('classifies direct media and page URLs without pretending pages are media', () {
+    expect(classifyPlaybackUrl('https://cdn.test/live/index.m3u8').kind,
+        PlaybackSourceKind.hls);
+    expect(classifyPlaybackUrl('https://cdn.test/live/manifest.mpd').kind,
+        PlaybackSourceKind.dash);
+    expect(classifyPlaybackUrl('https://cdn.test/live/1.ts').kind,
+        PlaybackSourceKind.transportStream);
+    expect(classifyPlaybackUrl('https://cdn.test/video.mp4').kind,
+        PlaybackSourceKind.progressiveFile);
+
+    final youtube = classifyPlaybackUrl('https://youtu.be/example');
+    expect(youtube.kind, PlaybackSourceKind.youtubePage);
+    expect(youtube.isDirectMedia, isFalse);
+    expect(youtube.unsupportedReason, isNotEmpty);
+
+    final page = classifyPlaybackUrl('https://example.com/watch/123');
+    expect(page.kind, PlaybackSourceKind.webPage);
+    expect(page.isDirectMedia, isFalse);
+
+    expect(
+      classifyPlaybackUrl('https://drive.google.com/uc?id=abc&export=download').kind,
+      PlaybackSourceKind.progressiveFile,
+    );
+    expect(
+      classifyPlaybackUrl('https://drive.google.com/file/d/abc/view').kind,
+      PlaybackSourceKind.webPage,
+    );
+  });
 }

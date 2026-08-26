@@ -34,6 +34,11 @@ void main() {
     expect(liveImageFilterMatrix(LiveImageFilter.none), hasLength(20));
   });
 
+  test('quality availability distinguishes one source track from manifest tracks', () {
+    expect(realQualityAvailabilityLabel(hasTracks: false), contains('جودة واحدة'));
+    expect(realQualityAvailabilityLabel(hasTracks: true), contains('مسارات الجودة'));
+  });
+
   test('real quality label reflects the announced source track', () {
     final track = BetterPlayerAsmsTrack(
         'v1080', 1920, 1080, 4500000, 25, 'avc1', 'video/mp4');

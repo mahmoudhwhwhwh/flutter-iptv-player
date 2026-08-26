@@ -13,6 +13,7 @@ import 'package:video_player/video_player.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
@@ -112,6 +113,12 @@ int? bestAvailableQualityHeight(Iterable<int> heights, int targetHeight) {
 String realQualityTrackKey(BetterPlayerAsmsTrack track) =>
     '${track.id}|${track.width}|${track.height}|${track.bitrate}';
 
+String realQualityAvailabilityLabel({required bool hasTracks}) {
+  return hasTracks
+      ? 'مسارات الجودة المعلنة من المصدر'
+      : 'مسار المصدر الأصلي — جودة واحدة';
+}
+
 String realQualityTrackLabel(BetterPlayerAsmsTrack track) {
   final height = track.height ?? 0;
   final width = track.width ?? 0;
@@ -138,6 +145,8 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
+  WebViewController? _webController;
+  bool _isWebFallback = false;
   GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
@@ -488,6 +497,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     _currentPosition = Duration.zero;
     _totalDuration = Duration.zero;
+    _isWebFallback = false;
+    _webController = null;
 
     try {
       FirebaseAnalytics.instance.logEvent(
@@ -553,6 +564,46 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     String finalUrl = urlStr;
+    final sourceDescriptor = classifyPlaybackUrl(finalUrl);
+    if (!sourceDescriptor.isDirectMedia) {
+      final isWebSource = sourceDescriptor.kind == PlaybackSourceKind.youtubePage ||
+          sourceDescriptor.kind == PlaybackSourceKind.webPage;
+      if (isWebSource && sourceDescriptor.normalizedUrl.isNotEmpty) {
+        _webController = WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(NavigationDelegate(
+            onWebResourceError: (error) {
+              if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
+              setState(() {
+                _hasError = true;
+                _isBuffering = false;
+                _errorMessage = 'تعذر تحميل صفحة الفيديو: ${error.errorCode}';
+              });
+            },
+          ))
+          ..loadRequest(Uri.parse(sourceDescriptor.normalizedUrl));
+        if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+          setState(() {
+            _isWebFallback = true;
+            _initialized = true;
+            _isBuffering = false;
+            _hasError = false;
+            _errorMessage = null;
+          });
+        }
+        return;
+      }
+      if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+        setState(() {
+          _initialized = false;
+          _isBuffering = false;
+          _hasError = true;
+          _errorMessage = sourceDescriptor.unsupportedReason ??
+              'هذا الرابط ليس مصدراً فيديو مباشراً قابلاً للتشغيل.';
+        });
+      }
+      return;
+    }
 
     // Obtain active provider variables
     // Setup httpHeaders map with default or global override
@@ -1696,28 +1747,33 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                     const Divider(color: Colors.white12, height: 1),
                     Flexible(
-                      child: tracks.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.all(28),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(Icons.info_outline_rounded,
-                                      color: Color(0xFF16E0E8), size: 30),
-                                  SizedBox(height: 10),
-                                  Text('هذا البث متاح بجودة واحدة من المصدر',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.white70, fontSize: 15)),
-                                  SizedBox(height: 6),
-                                  Text('يمكنك متابعة التشغيل بشكل طبيعي',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.white38, fontSize: 13)),
-                                ],
-                              ),
-                            )
-                          : ListView(
+                      child:                           tracks.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 22, vertical: 18),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.hd_rounded,
+                                          color: Color(0xFF16E0E8), size: 30),
+                                      const SizedBox(height: 10),
+                                      Text(realQualityAvailabilityLabel(
+                                          hasTracks: false),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w700)),
+                                      const SizedBox(height: 6),
+                                      const Text(
+                                          'لا توجد قائمة متعددة معلنة في الـmanifest؛ لا يمكن اختراع جودة أخرى.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              color: Colors.white54, fontSize: 13)),
+                                    ],
+                                  ),
+                                )
+                              : ListView(
                               shrinkWrap: true,
                               children: [
                                 row(
@@ -1995,7 +2051,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                   child: Center(
                     child: _hasError
                         ? _buildErrorScreen(provider)
-                        : _initialized && _betterController != null
+                          : _isWebFallback && _webController != null
+                              ? SizedBox.expand(
+                                  child: WebViewWidget(controller: _webController!),
+                                )
+                            : _initialized && _betterController != null
                             ? SizedBox.expand(
                                 child: (_totalDuration.inSeconds == 0 ||
                                             _stream.type == 'live') &&

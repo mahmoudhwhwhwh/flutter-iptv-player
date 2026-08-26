@@ -229,3 +229,21 @@
 - [ ] مقارنة رابط المصدر والـheaders وclassifier وتهيئة decoder بين 2.2.32 والحالي.
 - [ ] استعادة السلوك العامل فقط إذا ثبت سبب regression، دون حذف الاشتراك أو القنوات.
 - [ ] إضافة اختبار يمنع تكرار regression ثم بناء نسخة تحقق قبل النشر.
+
+
+# 96827 Series and VOD Regression
+
+- [ ] تحديد سجل 96827 ومسار Xtream/Worker المستخدم حالياً.
+- [ ] فحص categories وseries list وseries info وروابط episode/movie الفعلية.
+- [ ] مقارنة parser وmapping ومسار التشغيل مع 2.2.32 دون تغيير بيانات الاشتراك.
+- [ ] إصلاح أقل طبقة ممكنة وإضافة regression tests.
+- [ ] تحديد هل الإصلاح يحتاج APK أم يمكن تطبيقه من Worker/Remote Config.
+
+
+# 2027 All Channels and Three Quality Tracks
+
+- [x] التحقق من عدد عناصر 2027؛ custom menu يعيد 32 قناة، وأول 6 فقط تستخدم Worker TS بينما 6–11 روابط HLS مباشرة.
+- [x] التحقق من الجودة؛ VIP SPORTS 1 و4 يعلنان 3 مسارات 1080p/720p/480p، لكن الفروع HTTP وبعضها غير مستقر/غير قابل للوصول من البيئة.
+- [x] إصلاح index/mapping في التطبيق دون حذف القنوات أو تغيير كود 2027؛ تم الحفاظ على Worker TS وHLS manifest المباشر كلٌ بمساره الصحيح.
+- [x] ربط Auto/HD/SD بالمصدر الحقيقي لقنوات HLS ذات الـMaster متعدد المسارات عبر BetterPlayer، وإضافة regression test يمنع إعادة كتابة manifest إلى Worker index غير موجود.
+- [x] بناء نسخة تحقق بعد نجاح 41/41 اختباراً وظهور 32 عنصر القائمة وفحص manifests والجودات الثلاث.

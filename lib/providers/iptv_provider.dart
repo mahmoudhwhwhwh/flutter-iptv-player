@@ -1340,13 +1340,14 @@ class IPTVProvider with ChangeNotifier {
       }
       final index = _allStreams.length;
       final sourceUrl = raw['url']?.toString() ?? '';
-      final isWorkerProxy = sourceUrl.contains('/v1/custom/stream/');
       // Custom subscriptions, including 2027, must use the authenticated
       // Worker route. It keeps the source mapping server-side and matches the
       // path that returns a real streaming response instead of an empty list.
-      final playbackUrl = _activationCode.trim().isNotEmpty && !isWorkerProxy
-          ? '$_workerBase/v1/custom/stream/$index.ts?code=${Uri.encodeQueryComponent(_activationCode.trim())}'
-          : sourceUrl;
+      // Preserve source URLs that are already authenticated Worker media or
+      // valid HTTPS HLS manifests. The Worker custom stream index route only
+      // exists for entries explicitly mapped to it; blindly rewriting every
+      // item made entries 6+ return 404 and hid their adaptive variants.
+      final playbackUrl = sourceUrl;
       _allStreams.add(PlaylistItem(
         num: null,
         streamId: index.toString(),

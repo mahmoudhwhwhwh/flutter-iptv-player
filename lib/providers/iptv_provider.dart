@@ -1391,7 +1391,7 @@ class IPTVProvider with ChangeNotifier {
         _liveCategories = tempLiveCats;
         
         // Fetch VOD and Series
-        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).then((vodCatsRes) {
+        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).then((vodCatsRes) async {
            if (vodCatsRes.statusCode == 200) {
               final List decoded = await Isolate.run(() => json.decode(vodCatsRes.body));
               final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {
@@ -1401,7 +1401,7 @@ class IPTVProvider with ChangeNotifier {
               // اعتراض وتصفية فئات الأفلام
               _movieCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
            }
-           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).then((vodStreamsRes) {
+           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).then((vodStreamsRes) async {
               if (vodStreamsRes.statusCode == 200) {
                 final List decoded = await Isolate.run(() => json.decode(vodStreamsRes.body));
                 List<PlaylistItem> tempMovies = [];
@@ -1431,7 +1431,7 @@ class IPTVProvider with ChangeNotifier {
            });
         });
 
-        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).then((seriesCatsRes) {
+        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).then((seriesCatsRes) async {
            if (seriesCatsRes.statusCode == 200) {
               final List decoded = await Isolate.run(() => json.decode(seriesCatsRes.body));
               final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {
@@ -1441,7 +1441,7 @@ class IPTVProvider with ChangeNotifier {
               // اعتراض وتصفية فئات المسلسلات
               _seriesCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
            }
-           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).then((seriesRes) {
+           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).then((seriesRes) async {
               if (seriesRes.statusCode == 200) {
                 final List decoded = await Isolate.run(() => json.decode(seriesRes.body));
                 List<PlaylistItem> tempSeries = [];

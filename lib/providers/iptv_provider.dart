@@ -12,6 +12,8 @@ import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
 import '../services/subscription_profile.dart';
 import '../services/redacted_diagnostics.dart';
+import '../services/secure_playlist_store.dart';
+import '../services/performance_metrics.dart';
 
 // تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
 class MyHttpOverrides extends HttpOverrides {
@@ -59,6 +61,56 @@ class IPTVProvider with ChangeNotifier {
       'https://iptv-subscription-api.tvkora56.workers.dev';
   static const String _loginUrl = '$_workerBase/v1/login';
   static const String _savedSubscriptionCodesKey = 'saved_subscription_codes';
+  static const SecurePlaylistStore _securePlaylistStore = SecurePlaylistStore();
+
+  Future<void> _loadSavedPlaylists(SharedPreferences prefs) async {
+    final securePlaylists = await _securePlaylistStore.read();
+    if (securePlaylists.isNotEmpty) {
+      _savedPlaylists = securePlaylists;
+      return;
+    }
+    final legacyJson = prefs.getString('saved_playlists');
+    if (legacyJson == null || legacyJson.isEmpty) return;
+    try {
+      final decoded = jsonDecode(legacyJson);
+      if (decoded is List) {
+        _savedPlaylists = decoded
+            .whereType<Map>()
+            .map((item) =>
+                UserPlaylist.fromJson(Map<String, dynamic>.from(item)))
+            .toList(growable: true);
+        if (_savedPlaylists.isNotEmpty) {
+          await _securePlaylistStore.write(_savedPlaylists);
+          await prefs.remove('saved_playlists');
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistSavedPlaylists() async {
+    await _securePlaylistStore.write(_savedPlaylists);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_playlists');
+  }
+
+  Future<String?> _readSensitiveValue(
+      SharedPreferences prefs, String key) async {
+    final secureValue = await _securePlaylistStore.readValue(key);
+    if (secureValue != null && secureValue.isNotEmpty) return secureValue;
+    final legacyValue = prefs.getString(key);
+    if (legacyValue != null && legacyValue.isNotEmpty) {
+      await _securePlaylistStore.writeValue(key, legacyValue);
+      await prefs.remove(key);
+    }
+    return legacyValue;
+  }
+
+  Future<void> _writeSensitiveValue(String key, String value) async {
+    await _securePlaylistStore.writeValue(key, value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+
   bool _isDarkMode = true;
   bool get isDarkMode => _isDarkMode;
   bool _liteMode = false;
@@ -471,8 +523,7 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _persistSavedSubscriptionCodes() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    await _writeSensitiveValue(
       _savedSubscriptionCodesKey,
       jsonEncode(_savedSubscriptionCodes.map((item) => item.toJson()).toList()),
     );
@@ -636,6 +687,7 @@ class IPTVProvider with ChangeNotifier {
   static const String _menuUrl = '$_workerBase/v1/custom/menu';
 
   Future<void> init() async {
+    PerformanceMetrics.mark('provider.init.start');
     _isLoading = true;
     notifyListeners();
 
@@ -675,14 +727,7 @@ class IPTVProvider with ChangeNotifier {
     }
     loadRecentlyPlayed();
 
-    final playlistsJson = prefs.getString('saved_playlists');
-    if (playlistsJson != null) {
-      try {
-        final List decoded = json.decode(playlistsJson);
-        _savedPlaylists =
-            decoded.map((item) => UserPlaylist.fromJson(item)).toList();
-      } catch (_) {}
-    }
+    await _loadSavedPlaylists(prefs);
 
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     // إعادة تفعيل أقسام الأفلام والمسلسلات بعد الإصدارات القديمة التي كانت تخفيها.
@@ -692,7 +737,7 @@ class IPTVProvider with ChangeNotifier {
     _channelFilter = prefs.getString('channel_filter') ?? "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
-    _activationCode = prefs.getString('active_code') ?? "";
+    _activationCode = await _readSensitiveValue(prefs, 'active_code') ?? '';
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
@@ -702,7 +747,8 @@ class IPTVProvider with ChangeNotifier {
     // Xtream sessions also need the managed code/password expected by Worker.
     var playlistsMigrated = false;
     _savedPlaylists = _savedPlaylists.map((playlist) {
-      final host = (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+      final host =
+          (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
       final isXtream = playlist.type.toLowerCase() == 'xtream';
       final isStalker = playlist.type.toLowerCase() == 'stalker';
       if (!isXtream && !isStalker) return playlist;
@@ -729,11 +775,11 @@ class IPTVProvider with ChangeNotifier {
       );
     }).toList();
     if (playlistsMigrated) {
-      await prefs.setString('saved_playlists',
-          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+      await _persistSavedPlaylists();
     }
 
-    final savedCodesJson = prefs.getString(_savedSubscriptionCodesKey);
+    final savedCodesJson =
+        await _readSensitiveValue(prefs, _savedSubscriptionCodesKey);
     if (savedCodesJson != null) {
       try {
         final decodedCodes = jsonDecode(savedCodesJson);
@@ -777,6 +823,7 @@ class IPTVProvider with ChangeNotifier {
     HttpOverrides.global = MyHttpOverrides("");
 
     _isLoading = false;
+    PerformanceMetrics.mark('provider.init.ready');
     notifyListeners();
   }
 
@@ -878,7 +925,8 @@ class IPTVProvider with ChangeNotifier {
         };
       }
     } catch (e) {
-      debugPrint('Worker subscription validation failed: ${redactDiagnostic(e)}');
+      debugPrint(
+          'Worker subscription validation failed: ${redactDiagnostic(e)}');
     }
     return null;
   }
@@ -926,8 +974,7 @@ class IPTVProvider with ChangeNotifier {
       _savedPlaylists = [refreshed];
       _activePlaylistId = refreshed.id;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('saved_playlists',
-          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+      await _persistSavedPlaylists();
       await prefs.setInt('active_code_duration_hours', durationHours);
       notifyListeners();
     }
@@ -1176,7 +1223,9 @@ class IPTVProvider with ChangeNotifier {
           .toString()
           .toLowerCase();
       final mode = (server['content_mode'] ?? 'iptv').toString().toLowerCase();
-      final host = (server['host']?.toString() ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+      final host = (server['host']?.toString() ?? '')
+          .trim()
+          .replaceFirst(RegExp(r'/+$'), '');
       final username = server['username']?.toString() ?? '';
       final password = server['password']?.toString() ?? '';
       final isCustomMenu = mode == 'custom_menu';
@@ -1216,12 +1265,11 @@ class IPTVProvider with ChangeNotifier {
           password: type == 'stalker' ? '' : password);
       _savedPlaylists = [list];
       _activePlaylistId = list.id;
-      await prefs.setString('active_code', cleanCode);
+      await _writeSensitiveValue('active_code', cleanCode);
       await prefs.setInt('active_code_activated_at', now);
       await prefs.setInt('active_code_duration_hours', durationHours);
       await prefs.setString('active_code_sub_name', _subscriptionType);
-      await prefs.setString('saved_playlists',
-          json.encode(_savedPlaylists.map((e) => e.toJson()).toList()));
+      await _persistSavedPlaylists();
       await prefs.setBool('is_logged_in', true);
       _upsertSavedSubscriptionCode(cleanCode, status: 'active');
       await _persistSavedSubscriptionCodes();
@@ -1357,7 +1405,8 @@ class IPTVProvider with ChangeNotifier {
           .where((item) => item['category_id']!.isNotEmpty)
           .toList();
     } catch (e) {
-      debugPrint('Stalker $type categories unavailable: ${redactDiagnostic(e)}');
+      debugPrint(
+          'Stalker $type categories unavailable: ${redactDiagnostic(e)}');
       return [];
     }
   }
@@ -1400,7 +1449,8 @@ class IPTVProvider with ChangeNotifier {
     }
 
     try {
-      final host = (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+      final host =
+          (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
       final user = (playlist.username ?? '').trim();
       final pass = (playlist.password ?? '').trim();
 
@@ -1959,7 +2009,6 @@ class IPTVProvider with ChangeNotifier {
       'active_code_duration_hours',
       'active_code_sub_name',
       'app_name_cached',
-      'saved_playlists',
       'is_logged_in',
       'show_welcome_after_login',
       'favorites',
@@ -1967,6 +2016,9 @@ class IPTVProvider with ChangeNotifier {
     ]) {
       await prefs.remove(key);
     }
+    await _securePlaylistStore.delete();
+    await _securePlaylistStore.deleteValue('active_code');
+    await _securePlaylistStore.deleteValue(_savedSubscriptionCodesKey);
     _isLoggedIn = false;
     _activationCode = '';
     _activationTime = 0;
@@ -1994,11 +2046,13 @@ class IPTVProvider with ChangeNotifier {
       'active_code_activated_at',
       'active_code_duration_hours',
       'active_code_sub_name',
-      'saved_playlists',
       'is_logged_in',
     ]) {
       await prefs.remove(key);
     }
+    await _securePlaylistStore.delete();
+    await _securePlaylistStore.deleteValue('active_code');
+    await _securePlaylistStore.deleteValue(_savedSubscriptionCodesKey);
     _isLoggedIn = false;
     _activationCode = '';
     _activationTime = 0;

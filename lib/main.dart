@@ -18,6 +18,7 @@ import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
+import 'services/performance_metrics.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -36,6 +37,7 @@ class PremiumPalette {
 }
 
 void main() {
+  PerformanceMetrics.mark('app.main.enter');
   WidgetsFlutterBinding.ensureInitialized();
   // ذاكرة صور أكبر تقلل إعادة تحميل شعارات Xtream أثناء التنقل بين الأقسام.
   PaintingBinding.instance.imageCache.maximumSize = 260;
@@ -50,6 +52,7 @@ void main() {
       child: const LiveFootballApp(),
     ),
   );
+  PerformanceMetrics.mark('app.runApp.called');
 }
 
 Future<void> _restoreStartupOrientation() async {

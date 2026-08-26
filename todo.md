@@ -221,3 +221,11 @@
 - [ ] إضافة guard يمنع استدعاء track APIs قبل اكتمال Decoder initialization.
 - [ ] fallback تلقائي إلى BetterPlayer عند فشل libVLC دون إغلاق التطبيق.
 - [ ] تشغيل tests/analyzer/build وعدم نشر APK جديد قبل اجتياز بوابة الاستقرار.
+
+
+# 2.2.32 Regression Baseline
+
+- [ ] تحديد commit أو APK المرجعي للنسخة 2.2.32 ومقارنة مسار تشغيل 2027.
+- [ ] مقارنة رابط المصدر والـheaders وclassifier وتهيئة decoder بين 2.2.32 والحالي.
+- [ ] استعادة السلوك العامل فقط إذا ثبت سبب regression، دون حذف الاشتراك أو القنوات.
+- [ ] إضافة اختبار يمنع تكرار regression ثم بناء نسخة تحقق قبل النشر.

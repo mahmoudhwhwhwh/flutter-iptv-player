@@ -728,15 +728,27 @@ class _PlayerScreenState extends State<PlayerScreen>
             _stream.clearKeys != null &&
             _stream.clearKeys!.isNotEmpty) &&
         (isHlsPlaybackUrl(finalUrl) || isProgressiveTsUrl(finalUrl));
-    final canUseInternalVlc = supportsEmbeddedVlc &&
-        (_defaultPlayerPreference == 'vlc' ||
-            (_autoPlayerPreference && _defaultPlayerPreference == 'native'));
+    // Auto stays on BetterPlayer/Media3 because it owns adaptive quality,
+    // DRM and the broadest Android decoder compatibility. libVLC is opt-in.
+    final canUseInternalVlc =
+        supportsEmbeddedVlc && _defaultPlayerPreference == 'vlc';
     if (!canUseInternalVlc && _usesInternalVlc) {
       await _disposeInternalVlc();
     }
     if (canUseInternalVlc) {
-      final started = await _startInternalVlc(finalUrl, loadGeneration);
-      if (started) return;
+      try {
+        final started = await _startInternalVlc(finalUrl, loadGeneration);
+        if (started) return;
+      } catch (error) {
+        debugPrint(
+            'Embedded VLC initialization failed: ${redactDiagnostic(error)}');
+        await _disposeInternalVlc();
+        if (mounted) {
+          _showOnScreenToast(
+              'تعذر تهيئة Decoder الداخلي؛ تم استخدام Native Player',
+              Icons.info_outline_rounded);
+        }
+      }
     }
 
     BetterPlayerVideoFormat? format;

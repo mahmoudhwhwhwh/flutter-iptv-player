@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildSettingItem(
                 title: 'Auto Player',
                 description:
-                    'يختار محركاً داخلياً مناسباً للرابط: VLC المدمج لـ HLS/TS وNative للصيغ المتقدمة وDRM.',
+                    'Auto يستخدم Native/BetterPlayer للتوافق والجودة وDRM؛ VLC الداخلي يعمل فقط عند اختياره صراحة.',
                 value: _autoPlayer,
                 activeColor: _SettingsPalette.gold,
                 onChanged: (value) {

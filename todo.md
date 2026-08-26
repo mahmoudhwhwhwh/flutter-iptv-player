@@ -186,3 +186,38 @@
 - [ ] تشغيل Flutter tests وanalyzer وbuild release قبل رفع APK.
 - [ ] فحص GitHub asset وSHA-256 وعدم استبدال latest إذا فشل أي تحقق.
 - [ ] تسليم إصدار محافظ مع بيان واضح لما تم التحقق منه وما يحتاج جهاز المستخدم.
+
+
+# Direct 2027 Channel Validation
+
+- [x] تحديد رابط قناة 2027 المستخدم فعلياً من Worker.
+- [x] فحص HTTP والـcontent-type وبداية البيانات؛ القنوات 0–5 أعادت HTTP 200 وvideo/mp2t وبيانات MPEG-TS فعلية.
+- [x] التأكد من classifier عبر regression test؛ رابط custom TS يوجه إلى مسار الوسائط وليس WebView.
+- [ ] توثيق ما إذا كان يمكن إثبات صورة الفيديو داخل APK دون Android/TV فعلي.
+
+
+# Decoder Initialization Audit
+
+- [x] تدقيق تهيئة libVLC وBetterPlayer لكل صيغة وعدم تمرير MIME أو videoFormat خاطئ.
+- [x] التحقق من hardware acceleration وcodec compatibility؛ libVLC يستخدم HwAcc.auto وBetterPlayer يمرر formatHint حسب الرابط.
+- [x] اختبار lifecycle وdispose وretry وتبديل القناة؛ أضيف dispose آمن لمحرك libVLC عند الخروج والتبديل.
+- [x] اختبار تصنيف روابط HLS وMPEG-TS وDASH وDRM؛ اختبار custom TS 2027 ناجح، والفك الفعلي يحتاج جهازاً.
+- [x] تشغيل tests وanalyzer وbuild؛ Flutter 41/41 وAndroid release build ناجحان دون compile errors.
+
+
+# Real Adaptive Quality Switching
+
+- [x] تدقيق BetterPlayer ASMS tracks وواجهات libVLC لاختيار الجودة الفعلية.
+- [x] توحيد نموذج Auto/HD/SD وعرض المسارات الفعلية فقط بترتيب صحيح؛ libVLC يعرض video tracks التي يعلنها المصدر.
+- [x] تنفيذ تطبيق الجودة يدوياً والعودة إلى Auto عبر setVideoTrack أو إعادة تهيئة محكومة للمصدر.
+- [x] منع إعادة التهيئة غير الضرورية وحماية Live reconnect وتبديل القناة؛ التبديل اليدوي يستعمل المسار native دون تبديل المصدر.
+- [x] إضافة اختبارات regression والبناء؛ Flutter 41/41 ناجحة، وحد MPEG-TS الأحادي موثق.
+
+
+# Crash After Internal Quality Integration
+
+- [ ] إعادة إنتاج خروج التطبيق عند فتح المشغل أو نافذة الجودة أو اختيار مسار VLC.
+- [ ] فحص Android logcat وFlutter logs وlibVLC API exceptions.
+- [ ] إضافة guard يمنع استدعاء track APIs قبل اكتمال Decoder initialization.
+- [ ] fallback تلقائي إلى BetterPlayer عند فشل libVLC دون إغلاق التطبيق.
+- [ ] تشغيل tests/analyzer/build وعدم نشر APK جديد قبل اجتياز بوابة الاستقرار.

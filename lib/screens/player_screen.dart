@@ -732,10 +732,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         (_defaultPlayerPreference == 'vlc' ||
             (_autoPlayerPreference && _defaultPlayerPreference == 'native'));
     if (!canUseInternalVlc && _usesInternalVlc) {
-      await _vlcController?.stop();
-      await _vlcController?.dispose();
-      _vlcController = null;
-      _usesInternalVlc = false;
+      await _disposeInternalVlc();
     }
     if (canUseInternalVlc) {
       final started = await _startInternalVlc(finalUrl, loadGeneration);
@@ -874,6 +871,23 @@ class _PlayerScreenState extends State<PlayerScreen>
         _handlePlaybackError(errorMessage, loadGeneration);
       }
     });
+  }
+
+  Future<void> _disposeInternalVlc() async {
+    final controller = _vlcController;
+    _vlcController = null;
+    _usesInternalVlc = false;
+    if (controller == null) return;
+    try {
+      await controller.stop();
+    } catch (error) {
+      debugPrint('VLC stop failed: ${redactDiagnostic(error)}');
+    }
+    try {
+      await controller.dispose();
+    } catch (error) {
+      debugPrint('VLC dispose failed: ${redactDiagnostic(error)}');
+    }
   }
 
   Future<bool> _startInternalVlc(String url, int generation) async {
@@ -1129,6 +1143,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (_betterController != null) {
       _betterController!.dispose();
     }
+    unawaited(_disposeInternalVlc());
     super.dispose();
   }
 
@@ -1169,6 +1184,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _betterController!.dispose();
       _betterController = null;
     }
+    unawaited(_disposeInternalVlc());
 
     setState(() {
       _stream = targetStream;
@@ -1827,7 +1843,110 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  Future<void> _showInternalVlcQualitySelector() async {
+    final controller = _vlcController;
+    if (controller == null || !_initialized) return;
+    Map<int, String> videoTracks;
+    int? activeTrack;
+    try {
+      videoTracks = await controller.getVideoTracks();
+      activeTrack = await controller.getVideoTrack();
+    } catch (error) {
+      debugPrint('VLC quality tracks unavailable: ${redactDiagnostic(error)}');
+      if (mounted)
+        _showOnScreenToast(
+            'لا توجد مسارات جودة معلنة من المصدر', Icons.info_outline_rounded);
+      return;
+    }
+    if (!mounted || videoTracks.isEmpty) {
+      if (mounted)
+        _showOnScreenToast(
+            'المصدر لا يعلن مسارات جودة متعددة', Icons.info_outline_rounded);
+      return;
+    }
+    final options = videoTracks.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    int pending = activeTrack ?? -1;
+    if (pending != -1 && !videoTracks.containsKey(pending)) pending = -1;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.72),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setModalState) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF202022),
+            title: const Text('جودة البث الداخلية',
+                style: TextStyle(color: Colors.white)),
+            content: SizedBox(
+              width: 460,
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  RadioListTile<int>(
+                    value: -1,
+                    groupValue: pending,
+                    activeColor: const Color(0xFF16E0E8),
+                    title: const Text('Auto – تلقائي',
+                        style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('إعادة الاختيار التلقائي من libVLC',
+                        style: TextStyle(color: Colors.white54)),
+                    onChanged: (value) =>
+                        setModalState(() => pending = value ?? -1),
+                  ),
+                  ...options.map((entry) => RadioListTile<int>(
+                        value: entry.key,
+                        groupValue: pending,
+                        activeColor: const Color(0xFF16E0E8),
+                        title: Text(entry.value,
+                            style: const TextStyle(color: Colors.white)),
+                        subtitle: const Text('مسار فيديو معلن من المصدر',
+                            style: TextStyle(color: Colors.white54)),
+                        onChanged: (value) =>
+                            setModalState(() => pending = value ?? -1),
+                      )),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء',
+                    style: TextStyle(color: Colors.white70)),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  try {
+                    if (pending == -1) {
+                      await _disposeInternalVlc();
+                      if (mounted) _initializeController(isRetry: true);
+                    } else {
+                      await controller.setVideoTrack(pending);
+                    }
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } catch (error) {
+                    debugPrint(
+                        'VLC quality switch failed: ${redactDiagnostic(error)}');
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                    if (mounted)
+                      _showOnScreenToast('تعذر تطبيق مسار الجودة من المصدر',
+                          Icons.error_outline_rounded);
+                  }
+                },
+                child: const Text('موافق'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showQualitySelector() {
+    if (_usesInternalVlc && _vlcController != null) {
+      unawaited(_showInternalVlcQualitySelector());
+      return;
+    }
     final controller = _betterController;
     if (controller == null || !_initialized) return;
 

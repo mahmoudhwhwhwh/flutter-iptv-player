@@ -910,7 +910,11 @@ class IPTVProvider with ChangeNotifier {
       final response = await http
           .post(Uri.parse(_loginUrl),
               headers: const {'Content-Type': 'application/json'},
-              body: json.encode({'code': code, 'device_id': deviceId}))
+              body: json.encode({
+                'code': code,
+                'device_id': deviceId,
+                'security_risk_score': _securityRiskScore
+              }))
           .timeout(const Duration(seconds: 8));
       Map<String, dynamic> data = <String, dynamic>{};
       try {
@@ -1202,7 +1206,11 @@ class IPTVProvider with ChangeNotifier {
       final response = await http
           .post(Uri.parse(_loginUrl),
               headers: const {'Content-Type': 'application/json'},
-              body: json.encode({'code': cleanCode, 'device_id': deviceId}))
+              body: json.encode({
+                'code': cleanCode,
+                'device_id': deviceId,
+                'security_risk_score': _securityRiskScore
+              }))
           .timeout(const Duration(seconds: 20));
       Map<String, dynamic> data = <String, dynamic>{};
       try {

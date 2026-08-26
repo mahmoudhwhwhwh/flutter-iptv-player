@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/iptv_provider.dart';
 import '../services/stalker_playback.dart';
+import '../services/redacted_diagnostics.dart';
 import '../models/playlist_item.dart';
 import '../widgets/pin_dialog.dart';
 import 'multi_screen_layout.dart';
@@ -511,7 +512,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
           }
         }
       } catch (e) {
-        print("Error resolving stalker link: $e");
+        debugPrint("Error resolving stalker link: ${redactDiagnostic(e)}");
       }
     }
 

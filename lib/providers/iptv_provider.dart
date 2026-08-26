@@ -11,6 +11,7 @@ import '../models/playlist_item.dart';
 import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
 import '../services/subscription_profile.dart';
+import '../services/redacted_diagnostics.dart';
 
 // تجاوز طلبات الـ HTTP لمنع تخطي شهادات الـ SSL وتخريب الاتصال عبر البروكسي
 class MyHttpOverrides extends HttpOverrides {
@@ -877,7 +878,7 @@ class IPTVProvider with ChangeNotifier {
         };
       }
     } catch (e) {
-      debugPrint('Worker subscription validation failed: $e');
+      debugPrint('Worker subscription validation failed: ${redactDiagnostic(e)}');
     }
     return null;
   }
@@ -994,7 +995,7 @@ class IPTVProvider with ChangeNotifier {
       }
     } catch (e) {
       // Network/config failures must never log the user out.
-      debugPrint('Remote Worker check failed: $e');
+      debugPrint('Remote Worker check failed: ${redactDiagnostic(e)}');
     } finally {
       _isValidatingSubscription = false;
     }
@@ -1239,7 +1240,7 @@ class IPTVProvider with ChangeNotifier {
       lastError = 'انتهت مهلة الاتصال. تحقق من الإنترنت ثم أعد المحاولة';
     } catch (e) {
       lastError = 'تعذر الاتصال. تأكد من الإنترنت وصحة الاشتراك';
-      debugPrint('Cloudflare login error: $e');
+      debugPrint('Cloudflare login error: ${redactDiagnostic(e)}');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -1316,7 +1317,7 @@ class IPTVProvider with ChangeNotifier {
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
     } catch (e) {
-      debugPrint('Stalker $type list unavailable: $e');
+      debugPrint('Stalker $type list unavailable: ${redactDiagnostic(e)}');
       return [];
     }
   }
@@ -1356,7 +1357,7 @@ class IPTVProvider with ChangeNotifier {
           .where((item) => item['category_id']!.isNotEmpty)
           .toList();
     } catch (e) {
-      debugPrint('Stalker $type categories unavailable: $e');
+      debugPrint('Stalker $type categories unavailable: ${redactDiagnostic(e)}');
       return [];
     }
   }

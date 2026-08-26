@@ -18,6 +18,7 @@ import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
 import 'package:flutter_iptv_player/services/stalker_playback.dart';
 import 'package:flutter_iptv_player/services/channel_switch_guard.dart';
+import 'package:flutter_iptv_player/services/redacted_diagnostics.dart';
 
 enum RotationMode {
   smartAuto,
@@ -456,7 +457,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         await _applyPreferredSubtitleLanguage(retries: retries - 1);
       }
     } catch (e) {
-      debugPrint("Failed to apply Xtream subtitle language: $e");
+      debugPrint("Failed to apply Xtream subtitle language: ${redactDiagnostic(e)}");
     }
   }
 
@@ -468,7 +469,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final prefs = await SharedPreferences.getInstance();
         savedPosition = prefs.getInt('vod_pos_${widget.stream.streamId}');
       } catch (e) {
-        debugPrint("Error loading saved position: $e");
+        debugPrint("Error loading saved position: ${redactDiagnostic(e)}");
       }
     }
     await _loadSubSettings();
@@ -546,7 +547,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           }
         }
       } catch (e) {
-        debugPrint("Error resolving stalker link: $e");
+        debugPrint("Error resolving stalker link: ${redactDiagnostic(e)}");
       }
       if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     }
@@ -761,7 +762,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       } else if (event.betterPlayerEventType ==
           BetterPlayerEventType.exception) {
         final errorMessage = event.parameters?["message"] ?? "Playback failure";
-        debugPrint("BetterPlayer exception: $errorMessage");
+        debugPrint("BetterPlayer exception: ${redactDiagnostic(errorMessage)}");
         _handlePlaybackError(errorMessage, loadGeneration);
       }
     });
@@ -770,7 +771,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _handlePlaybackError(dynamic error, int generation) {
     if (!_channelSwitchGuard.isCurrent(generation)) return;
     final message = error.toString().trim();
-    debugPrint("IPTV Playback failed: $message");
+    debugPrint("IPTV Playback failed: ${redactDiagnostic(message)}");
     if (!mounted) return;
     _reconnectTimer?.cancel();
     if (_retryCount >= _maxRetries) {
@@ -1155,7 +1156,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         ]);
         await _betterController!.enablePictureInPicture(_betterPlayerKey);
       } catch (e) {
-        debugPrint("Failed to enable picture in picture: $e");
+        debugPrint("Failed to enable picture in picture: ${redactDiagnostic(e)}");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

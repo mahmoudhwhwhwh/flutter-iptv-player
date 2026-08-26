@@ -300,6 +300,8 @@ class IPTVProvider with ChangeNotifier {
 
   bool _isSecured = true;
   bool get isSecured => _isSecured;
+  int _securityRiskScore = 0;
+  int get securityRiskScore => _securityRiskScore;
   String _securityMessage = "";
   String get securityMessage => _securityMessage;
 
@@ -850,13 +852,11 @@ class IPTVProvider with ChangeNotifier {
 
         for (final path in rootPaths) {
           if (File(path).existsSync()) {
-            _isSecured = false;
-            _securityMessage =
-                "تم كشف صلاحيات الروت أو كسر حماية نظام الهاتف (Root Access Detected). كإجراء أمان، تم إيقاف عمل التطبيق.";
-            _allStreams.clear();
-            _filteredStreams.clear();
-            notifyListeners();
-            return;
+            // Root is a risk signal, not an automatic ban. Backend session
+            // authorization remains the proper place for a final decision.
+            _securityRiskScore = 50;
+            PerformanceMetrics.mark('security.root_signal');
+            break;
           }
         }
       }

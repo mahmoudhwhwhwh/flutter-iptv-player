@@ -685,6 +685,7 @@ class IPTVProvider with ChangeNotifier {
   // The repository stays private; production menu delivery goes through Worker/D1.
   // Playback URLs inside the menu still point to the authenticated Worker proxy.
   static const String _menuUrl = '$_workerBase/v1/custom/menu';
+  static const String _customMenuCacheKey = 'cached_custom_menu_v1';
 
   Future<void> init() async {
     PerformanceMetrics.mark('provider.init.start');
@@ -1296,47 +1297,64 @@ class IPTVProvider with ChangeNotifier {
     return false;
   }
 
+  void _applyCuratedMenu(List<dynamic> decoded) {
+    _allStreams = [];
+    _liveCategories = [];
+    final seen = <String>{};
+    for (final raw in decoded) {
+      if (raw is! Map) continue;
+      final categoryId = raw['category_id']?.toString() ?? '99';
+      final categoryName = raw['category_name']?.toString() ?? 'بث مباشر';
+      if (seen.add(categoryId)) {
+        _liveCategories
+            .add({'category_id': categoryId, 'category_name': categoryName});
+      }
+      _allStreams.add(PlaylistItem(
+        num: null,
+        streamId: _allStreams.length.toString(),
+        name: raw['name']?.toString() ?? 'قناة',
+        streamIcon: raw['icon']?.toString() ?? '',
+        categoryId: categoryId,
+        categoryName: categoryName,
+        url: raw['url']?.toString() ?? '',
+        type: 'live',
+      ));
+    }
+    _applyFilters();
+  }
+
   Future<void> _loadCuratedGitHubContent() async {
-    // القائمة المخصصة مستقلة عن فلاتر Xtream السابقة؛ لا نسمح بحالة قديمة بإخفاء القنوات.
+    // Show stale custom content immediately, then revalidate silently.
     _selectedCategory = 'all';
     _searchQuery = '';
     _channelFilter = 'الكل';
     _isFetchingData = true;
-    _allStreams = [];
-    _liveCategories = [];
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(_customMenuCacheKey);
+    if (cached != null) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List && decoded.isNotEmpty) {
+          _applyCuratedMenu(decoded);
+          notifyListeners();
+        }
+      } catch (_) {}
+    }
     try {
       final response = await http
-          .get(Uri.parse(
-            '$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}',
-          ))
+          .get(
+              Uri.parse('$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}'))
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded is List) {
-          final seen = <String>{};
-          for (final raw in decoded) {
-            if (raw is! Map) continue;
-            final categoryId = raw['category_id']?.toString() ?? '99';
-            final categoryName = raw['category_name']?.toString() ?? 'بث مباشر';
-            if (seen.add(categoryId)) {
-              _liveCategories.add(
-                  {'category_id': categoryId, 'category_name': categoryName});
-            }
-            _allStreams.add(PlaylistItem(
-              num: null,
-              streamId: _allStreams.length.toString(),
-              name: raw['name']?.toString() ?? 'قناة',
-              streamIcon: raw['icon']?.toString() ?? '',
-              categoryId: categoryId,
-              categoryName: categoryName,
-              url: raw['url']?.toString() ?? '',
-              type: 'live',
-            ));
-          }
+          await prefs.setString(_customMenuCacheKey, jsonEncode(decoded));
+          _applyCuratedMenu(decoded);
         }
       }
-    } catch (_) {}
-    _applyFilters();
+    } catch (e) {
+      debugPrint('Custom menu refresh unavailable: ${redactDiagnostic(e)}');
+    }
     _isFetchingData = false;
     notifyListeners();
   }

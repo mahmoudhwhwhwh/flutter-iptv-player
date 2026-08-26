@@ -12,10 +12,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
@@ -147,6 +147,8 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
+  VlcPlayerController? _vlcController;
+  bool _usesInternalVlc = false;
   WebViewController? _webController;
   bool _isWebFallback = false;
   GlobalKey _betterPlayerKey = GlobalKey();
@@ -716,15 +718,19 @@ class _PlayerScreenState extends State<PlayerScreen>
     // For live reconnects, keep the current controller alive until the new
     // source reports initialized. This preserves the last rendered frame.
     // The old controller is disposed in the initialized callback after swap.
-    if (!isRetry && !_externalPlayerAttempted &&
-        (_defaultPlayerPreference == 'vlc' ||
-            _defaultPlayerPreference == 'mx')) {
-      _externalPlayerAttempted = true;
-      final opened = await _openConfiguredExternalPlayer(
-        _defaultPlayerPreference,
-        finalUrl,
-      );
-      if (opened) return;
+    // libVLC is embedded in this APK; no external player application is opened.
+    final canUseInternalVlc = _defaultPlayerPreference == 'vlc' &&
+        !isMpdStream &&
+        !(_isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty);
+    if (!canUseInternalVlc && _usesInternalVlc) {
+      await _vlcController?.stop();
+      await _vlcController?.dispose();
+      _vlcController = null;
+      _usesInternalVlc = false;
+    }
+    if (canUseInternalVlc) {
+      final started = await _startInternalVlc(finalUrl, loadGeneration);
+      if (started) return;
     }
 
     BetterPlayerVideoFormat? format;
@@ -735,7 +741,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       // Leave the format hint unset so ExoPlayer can infer MPEG-TS safely.
       format = null;
     } else if (_streamFormatPreference == 'progressive' &&
-        !isHlsPlaybackUrl(finalUrl) && !isDashPlaybackUrl(finalUrl)) {
+        !isHlsPlaybackUrl(finalUrl) &&
+        !isDashPlaybackUrl(finalUrl)) {
       format = null;
     } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
@@ -860,35 +867,42 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
   }
 
-  Future<bool> _openConfiguredExternalPlayer(String player, String url) async {
-    if (!Platform.isAndroid) return false;
-    final Uri uri;
-    if (player == 'vlc') {
-      uri = Uri.parse('vlc://${Uri.encodeComponent(url)}');
-    } else {
-      final encoded = Uri.encodeComponent(url);
-      uri = Uri.parse(
-          'intent://$encoded#Intent;scheme=https;package=com.mxtech.videoplayer.ad;end');
-    }
-    try {
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
+  Future<bool> _startInternalVlc(String url, int generation) async {
+    if (!mounted || !_channelSwitchGuard.isCurrent(generation)) return false;
+    final previous = _vlcController;
+    final controller = VlcPlayerController.network(
+      url,
+      autoInitialize: true,
+      autoPlay: true,
+      allowBackgroundPlayback: false,
+      hwAcc: HwAcc.auto,
+    );
+    _vlcController = controller;
+    _usesInternalVlc = true;
+    previous?.dispose();
+    controller.addListener(() {
+      if (!mounted || !_channelSwitchGuard.isCurrent(generation)) return;
+      final value = controller.value;
+      if (value.hasError) {
+        _handlePlaybackError(value.errorDescription, generation);
+        return;
+      }
+      if (value.isInitialized) {
         setState(() {
-          _onScreenToastText = 'تعذر فتح المشغل المحدد، سيتم استخدام المشغل الأصلي';
-          _onScreenToastIcon = Icons.info_outline_rounded;
+          _initialized = true;
+          _isBuffering = value.isBuffering;
+          _hasError = false;
+          _errorMessage = null;
         });
       }
-      return opened;
-    } catch (e) {
-      debugPrint('External player unavailable: ${redactDiagnostic(e)}');
-      if (mounted) {
-        setState(() {
-          _onScreenToastText = 'المشغل الخارجي غير مثبت، تم استخدام Native Player';
-          _onScreenToastIcon = Icons.info_outline_rounded;
-        });
-      }
-      return false;
-    }
+    });
+    setState(() {
+      _initialized = false;
+      _isBuffering = true;
+      _hasError = false;
+      _errorMessage = null;
+    });
+    return true;
   }
 
   void _handlePlaybackError(dynamic error, int generation) {
@@ -1067,6 +1081,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    _vlcController?.dispose();
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);
@@ -1770,9 +1785,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         ? audioTracks
             .map((track) => track.label ?? track.language ?? 'Audio')
             .toList()
-        : subtitleTracks
-            .map((track) => track.name ?? 'Subtitle')
-            .toList();
+        : subtitleTracks.map((track) => track.name ?? 'Subtitle').toList();
     if (labels.isEmpty) {
       return Center(
         child: Padding(
@@ -1960,51 +1973,52 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                     if (activeTab == 0)
                       Flexible(
-                      child: tracks.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 22, vertical: 18),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                        child: tracks.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 22, vertical: 18),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.hd_rounded,
+                                        color: Color(0xFF16E0E8), size: 30),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                        realQualityAvailabilityLabel(
+                                            hasTracks: false),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w700)),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                        'لا توجد قائمة متعددة معلنة في الـmanifest؛ لا يمكن اختراع جودة أخرى.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 13)),
+                                  ],
+                                ),
+                              )
+                            : ListView(
+                                shrinkWrap: true,
                                 children: [
-                                  const Icon(Icons.hd_rounded,
-                                      color: Color(0xFF16E0E8), size: 30),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                      realQualityAvailabilityLabel(
-                                          hasTracks: false),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w700)),
-                                  const SizedBox(height: 6),
-                                  const Text(
-                                      'لا توجد قائمة متعددة معلنة في الـmanifest؛ لا يمكن اختراع جودة أخرى.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.white54, fontSize: 13)),
+                                  row(
+                                      value: 'auto',
+                                      title: 'تلقائي',
+                                      subtitle:
+                                          'اختيار الجودة تلقائياً من المصدر',
+                                      icon: Icons.hd_rounded),
+                                  ...tracks.map((track) => row(
+                                        value: realQualityTrackKey(track),
+                                        title: realQualityTrackLabel(track),
+                                        subtitle:
+                                            '${track.width}×${track.height}${(track.mimeType ?? '').isNotEmpty ? ' • ${(track.mimeType ?? '').replaceFirst('video/', '')}' : ''}',
+                                        icon: Icons.hd_rounded,
+                                      )),
                                 ],
                               ),
-                            )
-                          : ListView(
-                              shrinkWrap: true,
-                              children: [
-                                row(
-                                    value: 'auto',
-                                    title: 'تلقائي',
-                                    subtitle:
-                                        'اختيار الجودة تلقائياً من المصدر',
-                                    icon: Icons.hd_rounded),
-                                ...tracks.map((track) => row(
-                                      value: realQualityTrackKey(track),
-                                      title: realQualityTrackLabel(track),
-                                      subtitle:
-                                          '${track.width}×${track.height}${(track.mimeType ?? '').isNotEmpty ? ' • ${(track.mimeType ?? '').replaceFirst('video/', '')}' : ''}',
-                                      icon: Icons.hd_rounded,
-                                    )),
-                              ],
-                            ),
                       )
                     else
                       Flexible(
@@ -2278,29 +2292,42 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 child:
                                     WebViewWidget(controller: _webController!),
                               )
-                            : _initialized && _betterController != null
+                            : _usesInternalVlc && _vlcController != null
                                 ? SizedBox.expand(
-                                    child: (_totalDuration.inSeconds == 0 ||
-                                                _stream.type == 'live') &&
-                                            _liveImageFilter !=
-                                                LiveImageFilter.none
-                                        ? ColorFiltered(
-                                            colorFilter: ColorFilter.matrix(
-                                              liveImageFilterMatrix(
-                                                  _liveImageFilter),
-                                            ),
-                                            child: BetterPlayer(
+                                    child: VlcPlayer(
+                                      controller: _vlcController!,
+                                      aspectRatio: 16 / 9,
+                                      placeholder: const Center(
+                                        child: CircularProgressIndicator(
+                                            color: Colors.redAccent),
+                                      ),
+                                    ),
+                                  )
+                                : _initialized && _betterController != null
+                                    ? SizedBox.expand(
+                                        child: (_totalDuration.inSeconds == 0 ||
+                                                    _stream.type == 'live') &&
+                                                _liveImageFilter !=
+                                                    LiveImageFilter.none
+                                            ? ColorFiltered(
+                                                colorFilter: ColorFilter.matrix(
+                                                  liveImageFilterMatrix(
+                                                      _liveImageFilter),
+                                                ),
+                                                child: BetterPlayer(
+                                                    key: _betterPlayerKey,
+                                                    controller:
+                                                        _betterController!),
+                                              )
+                                            : BetterPlayer(
                                                 key: _betterPlayerKey,
                                                 controller: _betterController!),
-                                          )
-                                        : BetterPlayer(
-                                            key: _betterPlayerKey,
-                                            controller: _betterController!),
-                                  )
-                                : const Center(
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 3),
-                                  ),
+                                      )
+                                    : const Center(
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3),
+                                      ),
                   ),
                 ),
               ),

@@ -156,3 +156,13 @@
 - [ ] تقييم دمج VLC وMX كمحركات داخلية حقيقية داخل APK، لا روابط أو تطبيقات خارجية.
 - [ ] عدم ادعاء دعم داخلي لـVLC/MX قبل توفر مكتبات native متوافقة واختبارها فعلياً على Android.
 - [x] بناء نسخة release والتحقق من الاختبارات وعدم وجود أخطاء analyzer compile؛ اختبار الجهاز الفعلي ما زال خارج البيئة.
+
+
+# Internal Video Engine Integration
+
+- [x] اختيار محرك فيديو داخلي متوافق مع Flutter/Android؛ libVLC مدمج لـHLS/TS، بينما ClearKey/MPD يبقى على BetterPlayer.
+- [x] إضافة الاعتماديات native اللازمة دون حذف BetterPlayer/Native الحالي.
+- [x] تنفيذ اختيار المحرك الداخلي من الإعدادات داخل الـAPK، دون `url_launcher` أو تطبيقات خارجية.
+- [x] ربط fallback واضح؛ libVLC يعمل للمصادر غير DRM، وBetterPlayer يحافظ على جودة/صوت/ترجمة/DRM للمصادر المتقدمة.
+- [x] إضافة اختبارات regression وبناء APK release؛ Flutter 40/40 وAPK 246.7 MB ناجحان، أما اختبار الجهاز الفعلي فمتبقٍ.
+- [x] توثيق الحدود الحقيقية: MX ليس محركاً قابلاً للدمج، وClearKey/MPD يبقى على BetterPlayer، ويلزم اختبار Android/TV فعلي.

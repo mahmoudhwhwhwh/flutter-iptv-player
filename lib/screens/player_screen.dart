@@ -1716,6 +1716,95 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  Widget _qualityDialogTab({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: FocusableActionDetector(
+        mouseCursor: SystemMouseCursors.click,
+        onShowHoverHighlight: (_) {},
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            decoration: BoxDecoration(
+              color: active ? const Color(0x2216E0E8) : Colors.transparent,
+              border: Border(
+                bottom: BorderSide(
+                  color: active ? const Color(0xFF16E0E8) : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon,
+                    size: 18,
+                    color: active ? const Color(0xFF16E0E8) : Colors.white54),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: TextStyle(
+                      color: active ? const Color(0xFF16E0E8) : Colors.white70,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    )),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _qualityDialogAuxiliaryTracks({
+    required int activeTab,
+    required List<BetterPlayerAsmsAudioTrack> audioTracks,
+    required List<BetterPlayerSubtitlesSource> subtitleTracks,
+  }) {
+    final labels = activeTab == 1
+        ? audioTracks
+            .map((track) => track.label ?? track.language ?? 'Audio')
+            .toList()
+        : subtitleTracks
+            .map((track) => track.name ?? 'Subtitle')
+            .toList();
+    if (labels.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Text(
+            activeTab == 1
+                ? 'لا توجد مسارات صوت معلنة من المصدر'
+                : 'لا توجد ترجمة معلنة من المصدر',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60, fontSize: 16),
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: labels.length,
+      itemBuilder: (context, index) => ListTile(
+        dense: true,
+        leading: Icon(
+          activeTab == 1 ? Icons.volume_up_rounded : Icons.subtitles_rounded,
+          color: const Color(0xFFFFC928),
+        ),
+        title: Text(labels[index],
+            textAlign: TextAlign.right,
+            style: const TextStyle(color: Colors.white, fontSize: 16)),
+        trailing: const Icon(Icons.check_circle_outline,
+            color: Colors.white38, size: 22),
+      ),
+    );
+  }
+
   void _showQualitySelector() {
     final controller = _betterController;
     if (controller == null || !_initialized) return;
@@ -1733,6 +1822,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     String pending = controller.betterPlayerAsmsTrack == null
         ? 'auto'
         : realQualityTrackKey(controller.betterPlayerAsmsTrack!);
+    int activeTab = 0;
+    final audioTracks = controller.betterPlayerAsmsAudioTracks ?? const [];
+    final subtitleTracks = controller.betterPlayerSubtitlesSourceList
+        .where((track) => track.type != BetterPlayerSubtitlesSourceType.none)
+        .toList();
 
     showDialog<void>(
       context: context,
@@ -1838,7 +1932,34 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                     ),
                     const Divider(color: Colors.white12, height: 1),
-                    Flexible(
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                      child: Row(
+                        textDirection: TextDirection.rtl,
+                        children: [
+                          _qualityDialogTab(
+                            label: 'الفيديو',
+                            icon: Icons.ondemand_video_rounded,
+                            active: activeTab == 0,
+                            onTap: () => setModalState(() => activeTab = 0),
+                          ),
+                          _qualityDialogTab(
+                            label: 'الصوت',
+                            icon: Icons.volume_up_rounded,
+                            active: activeTab == 1,
+                            onTap: () => setModalState(() => activeTab = 1),
+                          ),
+                          _qualityDialogTab(
+                            label: 'الترجمة',
+                            icon: Icons.subtitles_rounded,
+                            active: activeTab == 2,
+                            onTap: () => setModalState(() => activeTab = 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (activeTab == 0)
+                      Flexible(
                       child: tracks.isEmpty
                           ? Padding(
                               padding: const EdgeInsets.symmetric(
@@ -1884,7 +2005,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     )),
                               ],
                             ),
-                    ),
+                      )
+                    else
+                      Flexible(
+                        child: _qualityDialogAuxiliaryTracks(
+                          activeTab: activeTab,
+                          audioTracks: audioTracks,
+                          subtitleTracks: subtitleTracks,
+                        ),
+                      ),
                     const Divider(color: Colors.white12, height: 1),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),

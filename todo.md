@@ -134,3 +134,14 @@
 - [x] إضافة اختبارات regression للإعدادات، الصيغ، Auto Player، fallback، reconnect، الحفظ، والقوائم.
 - [x] تنفيذ build/release؛ APK release بُني بنجاح، أما التحقق الفعلي من M3U8 وMPEG-TS وMP4 وHTTP/HTTPS وLive/VOD/Series فيحتاج أجهزة ومصادر تشغيل فعلية.
 - [x] إعداد تقرير نهائي يميز ما تم تنفيذه فعلياً وما يحتاج جهاز Android/TV أو مكتبات/مفاتيح توقيع خارجية.
+
+
+# Professional Quality Dialog — User Request
+
+- [x] تدقيق نافذة الجودة الحالية وBetterPlayer ASMS video/audio/subtitle tracks.
+- [x] بناء نافذة جودة Premium فوق الفيديو بخلفية خافتة، تبويبات فيديو/صوت/ترجمة، وحركة Fade وإغلاق خارج النافذة.
+- [x] عرض Auto أولاً ثم المسارات الحقيقية فقط بترتيب تنازلي للدقة والـbitrate مع Radio Buttons وحالة محددة فورية.
+- [x] إضافة Cancel وApply/OK؛ Cancel لا يغير شيئاً وApply يطبق المسار الحقيقي دون إعادة تحميل غير ضرورية.
+- [x] إضافة Hover/focus واضح وتخطيط متجاوب للهاتف والتابلت والكمبيوتر وAndroid TV/الريموت.
+- [x] الحفاظ على وظائف التشغيل وملء الشاشة والصوت والترجمة وLive reconnect وعدم التأثير عليها.
+- [x] إضافة اختبارات جودة regression وتشغيل analyzer/build release؛ Flutter tests 40/40 وAPK release ناجح، والتحقق البصري/الجهاز الفعلي ما زال خارج البيئة.

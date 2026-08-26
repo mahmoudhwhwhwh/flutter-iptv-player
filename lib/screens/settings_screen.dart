@@ -52,6 +52,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
+  String _defaultPlayer = 'native';
+  String _streamFormat = 'auto';
+  bool _autoPlayer = true;
+  bool _backgroundPlayback = false;
+  bool _fullscreenPlayback = true;
+  bool _keepLastChannel = true;
+  bool _animationsEnabled = true;
+  String _cardSize = 'متوسط';
 
   @override
   void initState() {
@@ -78,6 +86,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
+      _defaultPlayer = prefs.getString('default_player') ?? 'native';
+      _streamFormat = prefs.getString('stream_format') ?? 'auto';
+      _autoPlayer = prefs.getBool('auto_player') ?? true;
+      _backgroundPlayback = prefs.getBool('background_playback') ?? false;
+      _fullscreenPlayback = prefs.getBool('fullscreen_playback') ?? true;
+      _keepLastChannel = prefs.getBool('keep_last_channel') ?? true;
+      _animationsEnabled = prefs.getBool('animations_enabled') ?? true;
+      _cardSize = prefs.getString('card_size') ?? 'متوسط';
     });
   }
 
@@ -184,7 +200,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSavedSubscriptionCodesCard(provider),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
+              _buildSectionHeader("المشغّل وصيغة البث", "اختيارات محفوظة وتعمل مع Auto Player"),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: 'المشغّل الافتراضي',
+                value: _defaultPlayer,
+                items: const ['native', 'vlc', 'mx'],
+                itemLabels: const {
+                  'native': 'المشغّل الأصلي Native Player',
+                  'vlc': 'VLC Player (تطبيق خارجي)',
+                  'mx': 'MX Player (تطبيق خارجي)',
+                },
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _defaultPlayer = value);
+                    _saveStringSetting('default_player', value);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'Auto Player',
+                description: 'يحلل الرابط والصيغة ويختار طريقة التشغيل المناسبة تلقائياً.',
+                value: _autoPlayer,
+                activeColor: _SettingsPalette.gold,
+                onChanged: (value) {
+                  setState(() => _autoPlayer = value);
+                  _saveSetting('auto_player', value);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: 'صيغة البث',
+                value: _streamFormat,
+                items: const ['auto', 'hls', 'mpegts', 'progressive'],
+                itemLabels: const {
+                  'auto': 'تلقائي',
+                  'hls': 'HLS / M3U8',
+                  'mpegts': 'MPEG-TS',
+                  'progressive': 'MP4 / WebM / Progressive',
+                },
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _streamFormat = value);
+                    _saveStringSetting('stream_format', value);
+                  }
+                },
+              ),
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: "تسريع الأجهزة (HW Acceleration)",
@@ -206,6 +268,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (val) {
                   setState(() => _autoPlay = val);
                   _saveSetting('auto_play', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'التشغيل في الخلفية',
+                description: 'السماح باستمرار الصوت عند مغادرة المشغل إذا كان النظام يدعم ذلك.',
+                value: _backgroundPlayback,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _backgroundPlayback = val);
+                  _saveSetting('background_playback', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'ملء الشاشة تلقائياً',
+                description: 'فتح محتوى الفيديو بملء الشاشة عند بدء التشغيل.',
+                value: _fullscreenPlayback,
+                activeColor: _SettingsPalette.cyan,
+                onChanged: (val) {
+                  setState(() => _fullscreenPlayback = val);
+                  _saveSetting('fullscreen_playback', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'الاحتفاظ بآخر قناة',
+                description: 'تذكر آخر قناة تم تشغيلها للرجوع إليها لاحقاً.',
+                value: _keepLastChannel,
+                activeColor: _SettingsPalette.gold,
+                onChanged: (val) {
+                  setState(() => _keepLastChannel = val);
+                  _saveSetting('keep_last_channel', val);
                 },
               ),
               const SizedBox(height: 12),
@@ -310,6 +405,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'الرسوم المتحركة',
+                description: 'حركات خفيفة للانتقالات؛ عطّلها على الأجهزة الضعيفة.',
+                value: _animationsEnabled,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _animationsEnabled = val);
+                  _saveSetting('animations_enabled', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDropdownItem(
+                title: 'حجم بطاقات المحتوى',
+                value: _cardSize,
+                items: const ['صغير', 'متوسط', 'كبير'],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _cardSize = value);
+                    _saveStringSetting('card_size', value);
+                  }
+                },
+              ),
               const SizedBox(height: 24),
               _buildSectionHeader('التحكم والأجهزة', ''),
               const SizedBox(height: 12),
@@ -1371,6 +1489,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {required String title,
       required String value,
       required List<String> items,
+      Map<String, String>? itemLabels,
       required void Function(String?) onChanged}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1398,7 +1517,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             items: items.map((String item) {
               return DropdownMenuItem<String>(
                 value: item,
-                child: Text(item),
+                child: Text(itemLabels?[item] ?? item),
               );
             }).toList(),
             onChanged: onChanged,

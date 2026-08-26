@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -14,6 +15,7 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
@@ -204,6 +206,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   Color _subBgColorVal = Colors.transparent;
   String _subFontVal = 'Cairo';
   String _subLangVal = "تلقائي";
+  String _streamFormatPreference = 'auto';
+  String _defaultPlayerPreference = 'native';
+  bool _externalPlayerAttempted = false;
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
 
@@ -303,6 +308,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
       _subFontVal = prefs.getString('sub_font') ?? 'Cairo';
       _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
+      _streamFormatPreference = prefs.getString('stream_format') ?? 'auto';
+      _defaultPlayerPreference = prefs.getString('default_player') ?? 'native';
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
 
@@ -709,14 +716,33 @@ class _PlayerScreenState extends State<PlayerScreen>
     // For live reconnects, keep the current controller alive until the new
     // source reports initialized. This preserves the last rendered frame.
     // The old controller is disposed in the initialized callback after swap.
+    if (!isRetry && !_externalPlayerAttempted &&
+        (_defaultPlayerPreference == 'vlc' ||
+            _defaultPlayerPreference == 'mx')) {
+      _externalPlayerAttempted = true;
+      final opened = await _openConfiguredExternalPlayer(
+        _defaultPlayerPreference,
+        finalUrl,
+      );
+      if (opened) return;
+    }
+
     BetterPlayerVideoFormat? format;
-    if (isHlsPlaybackUrl(finalUrl)) {
+    if (_streamFormatPreference == 'hls' && isHlsPlaybackUrl(finalUrl)) {
+      format = BetterPlayerVideoFormat.hls;
+    } else if (_streamFormatPreference == 'mpegts' &&
+        isProgressiveTsUrl(finalUrl)) {
+      // Leave the format hint unset so ExoPlayer can infer MPEG-TS safely.
+      format = null;
+    } else if (_streamFormatPreference == 'progressive' &&
+        !isHlsPlaybackUrl(finalUrl) && !isDashPlaybackUrl(finalUrl)) {
+      format = null;
+    } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
-    } else if (isProgressiveTsUrl(finalUrl)) {
-      // Leave formatHint unset for progressive TS. ExoPlayer can infer MPEG-TS
-      // from the .ts URL/content type; forcing `other` bypasses that inference.
+    } else {
+      // Auto, or an incompatible manual preference, leaves format unset.
       format = null;
     }
 
@@ -832,6 +858,37 @@ class _PlayerScreenState extends State<PlayerScreen>
         _handlePlaybackError(errorMessage, loadGeneration);
       }
     });
+  }
+
+  Future<bool> _openConfiguredExternalPlayer(String player, String url) async {
+    if (!Platform.isAndroid) return false;
+    final Uri uri;
+    if (player == 'vlc') {
+      uri = Uri.parse('vlc://${Uri.encodeComponent(url)}');
+    } else {
+      final encoded = Uri.encodeComponent(url);
+      uri = Uri.parse(
+          'intent://$encoded#Intent;scheme=https;package=com.mxtech.videoplayer.ad;end');
+    }
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        setState(() {
+          _onScreenToastText = 'تعذر فتح المشغل المحدد، سيتم استخدام المشغل الأصلي';
+          _onScreenToastIcon = Icons.info_outline_rounded;
+        });
+      }
+      return opened;
+    } catch (e) {
+      debugPrint('External player unavailable: ${redactDiagnostic(e)}');
+      if (mounted) {
+        setState(() {
+          _onScreenToastText = 'المشغل الخارجي غير مثبت، تم استخدام Native Player';
+          _onScreenToastIcon = Icons.info_outline_rounded;
+        });
+      }
+      return false;
+    }
   }
 
   void _handlePlaybackError(dynamic error, int generation) {

@@ -1,0 +1,56 @@
+name: Build iOS companion
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lib/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-unsigned:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+          cache: true
+
+      - name: Generate missing iOS platform files
+        run: flutter create --platforms=ios --org com.mahmoud .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify iOS project
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned app for inspection
+        run: |
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app artifacts/LIVE_STREAM_PREMIUM-iOS-unsigned.zip
+
+      - name: Upload unsigned iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LIVE_STREAM_PREMIUM-iOS-unsigned
+          path: artifacts/LIVE_STREAM_PREMIUM-iOS-unsigned.zip
+          if-no-files-found: error

@@ -730,8 +730,10 @@ class _PlayerScreenState extends State<PlayerScreen>
         (isHlsPlaybackUrl(finalUrl) || isProgressiveTsUrl(finalUrl));
     // Auto stays on BetterPlayer/Media3 because it owns adaptive quality,
     // DRM and the broadest Android decoder compatibility. libVLC is opt-in.
-    final canUseInternalVlc =
-        supportsEmbeddedVlc && _defaultPlayerPreference == 'vlc';
+    // Native/BetterPlayer is the only supported player mode. Keep the
+    // embedded VLC implementation isolated for future validation, but never
+    // activate it from legacy saved preferences or remote configuration.
+    const canUseInternalVlc = false;
     if (!canUseInternalVlc && _usesInternalVlc) {
       await _disposeInternalVlc();
     }

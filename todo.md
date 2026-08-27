@@ -233,10 +233,10 @@
 
 # 96827 Series and VOD Regression
 
-- [ ] تحديد سجل 96827 ومسار Xtream/Worker المستخدم حالياً.
-- [ ] فحص categories وseries list وseries info وروابط episode/movie الفعلية.
-- [ ] مقارنة parser وmapping ومسار التشغيل مع 2.2.32 دون تغيير بيانات الاشتراك.
-- [ ] إصلاح أقل طبقة ممكنة وإضافة regression tests.
+- [x] تحديد سجل 96827 ومسار Xtream المستخدم حالياً؛ المصدر المباشر يعيد endpoints صحيحة.
+- [x] فحص categories وseries list وseries info وروابط episode/movie؛ المصدر أعاد 118 فئة VOD و107 Series و48,676 VOD و12,482 Series وseries_info صالحاً.
+- [x] مقارنة parser وmapping ومسار التشغيل؛ المشكلة المرصودة كانت timeout/رد JSON كبيراً، دون تغيير بيانات الاشتراك.
+- [x] إصلاح أقل طبقة ممكنة: رفع مهلات VOD/Series إلى 300 ثانية وإضافة catch مستقل حتى لا تسقط القوائم الأخرى عند انقطاع رد كبير؛ الاختبارات ناجحة.
 - [ ] تحديد هل الإصلاح يحتاج APK أم يمكن تطبيقه من Worker/Remote Config.
 
 
@@ -247,3 +247,13 @@
 - [x] إصلاح index/mapping في التطبيق دون حذف القنوات أو تغيير كود 2027؛ تم الحفاظ على Worker TS وHLS manifest المباشر كلٌ بمساره الصحيح.
 - [x] ربط Auto/HD/SD بالمصدر الحقيقي لقنوات HLS ذات الـMaster متعدد المسارات عبر BetterPlayer، وإضافة regression test يمنع إعادة كتابة manifest إلى Worker index غير موجود.
 - [x] بناء نسخة تحقق بعد نجاح 41/41 اختباراً وظهور 32 عنصر القائمة وفحص manifests والجودات الثلاث.
+
+
+# Native-only Playback and Real Content Filtering
+
+- [ ] إزالة VLC وAuto Player وأي مشغل خارجي من الإعدادات والإبقاء على Native/BetterPlayer الأصلي فقط.
+- [ ] تتبع سبب عدم تشغيل القنوات داخل التطبيق رغم عملها في مشغل خارجي، مع فحص headers وformat وcleartext وdecoder.
+- [ ] إصلاح ظهور وتشغيل حلقات Series وVOD والأفلام لكل اشتراك دون إسقاط النتائج أو seasons/episodes.
+- [ ] تنفيذ فلترة محتوى فعلية قبل العرض والبحث والتصنيفات والصور، مع حجب العناوين والفئات غير المناسبة نهائياً.
+- [ ] إضافة اختبارات regression للـNative-only وXtream/MAC/Series/VOD والفلترة.
+- [ ] بناء نسخة واحدة بعد نجاح الاختبارات وعدم نشر APK تجريبي أو ادعاء خلوه المطلق من الأخطاء.

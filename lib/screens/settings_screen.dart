@@ -46,9 +46,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
-  String _defaultPlayer = 'native';
-  String _streamFormat = 'auto';
-  bool _autoPlayer = true;
   bool _animationsEnabled = true;
   String _cardSize = 'متوسط';
 
@@ -71,9 +68,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
-      _defaultPlayer = prefs.getString('default_player') ?? 'native';
-      _streamFormat = prefs.getString('stream_format') ?? 'auto';
-      _autoPlayer = prefs.getBool('auto_player') ?? true;
       _animationsEnabled = prefs.getBool('animations_enabled') ?? true;
       _cardSize = prefs.getString('card_size') ?? 'متوسط';
     });
@@ -182,53 +176,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSavedSubscriptionCodesCard(provider),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader(
-                  "المشغّل وصيغة البث", "اختيارات محفوظة وتعمل مع Auto Player"),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: 'المشغّل الافتراضي',
-                value: _defaultPlayer,
-                items: const ['native', 'vlc'],
-                itemLabels: const {
-                  'native': 'المشغّل الأصلي Native Player',
-                  'vlc': 'VLC داخلي مدمج داخل التطبيق',
-                },
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _defaultPlayer = value);
-                    _saveStringSetting('default_player', value);
-                  }
-                },
-              ),
+              _buildSectionHeader("المشغّل", "المشغّل الأصلي داخل التطبيق فقط"),
               const SizedBox(height: 12),
               _buildSettingItem(
-                title: 'Auto Player',
+                title: 'Native Player / BetterPlayer',
                 description:
-                    'Auto يستخدم Native/BetterPlayer للتوافق والجودة وDRM؛ VLC الداخلي يعمل فقط عند اختياره صراحة.',
-                value: _autoPlayer,
+                    'يُستخدم المشغّل الأصلي داخل التطبيق لجميع القنوات والأفلام والمسلسلات. يتم اختيار صيغة HLS أو MPEG-TS أو DASH تلقائياً من الرابط الفعلي.',
+                value: true,
                 activeColor: _SettingsPalette.gold,
-                onChanged: (value) {
-                  setState(() => _autoPlayer = value);
-                  _saveSetting('auto_player', value);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: 'صيغة البث',
-                value: _streamFormat,
-                items: const ['auto', 'hls', 'mpegts', 'progressive'],
-                itemLabels: const {
-                  'auto': 'تلقائي',
-                  'hls': 'HLS / M3U8',
-                  'mpegts': 'MPEG-TS',
-                  'progressive': 'MP4 / WebM / Progressive',
-                },
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _streamFormat = value);
-                    _saveStringSetting('stream_format', value);
-                  }
-                },
+                onChanged: (_) {},
               ),
               const SizedBox(height: 12),
               _buildSettingItem(
@@ -452,23 +408,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              Consumer<IPTVProvider>(
-                builder: (context, provider, child) {
-                  return _buildSettingItem(
-                    title: "الوضع العائلي المحمي",
-                    description:
-                        "يفحص أسماء القنوات والفئات وبيانات القوائم ويخفي المحتوى المقيّد قبل أن يظهر في أي قسم.",
-                    value: provider.blockAdultContent,
-                    activeColor: _SettingsPalette.purple,
-                    onChanged: (val) async {
-                      if (!val && provider.isParentalEnabled) {
-                        final verified = await showPinDialog(context, provider);
-                        if (!verified) return;
-                      }
-                      provider.setBlockAdultContent(val);
-                    },
-                  );
-                },
+              _buildSettingItem(
+                title: "فلترة المحتوى المخل — مفعلة دائماً",
+                description:
+                    "يتم فحص أسماء القنوات والفئات والبيانات قبل العرض، وحجب المحتوى المقيّد من القنوات والأفلام والمسلسلات والبحث. لا يمكن تعطيل الحماية من داخل التطبيق.",
+                value: true,
+                activeColor: _SettingsPalette.purple,
+                onChanged: (_) {},
               ),
 
               const SizedBox(height: 24),

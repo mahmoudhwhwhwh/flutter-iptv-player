@@ -313,11 +313,13 @@ class IPTVProvider with ChangeNotifier {
   bool get blockAdultContent => _blockAdultContent;
 
   void setBlockAdultContent(bool value) async {
-    _blockAdultContent = value;
+    // Family protection is enforced. Keep the legacy setter for compatibility,
+    // but never allow a false value to bypass filtering.
+    _blockAdultContent = true;
     _applyFilters();
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('block_adult_content', value);
+    await prefs.setBool('block_adult_content', true);
   }
 
   String? lastError;
@@ -823,7 +825,8 @@ class IPTVProvider with ChangeNotifier {
       _upsertSavedSubscriptionCode(_activationCode, status: 'active');
       await _persistSavedSubscriptionCodes();
     }
-    _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
+    _blockAdultContent = true;
+    await prefs.setBool('block_adult_content', true);
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
     _profileName = prefs.getString('profile_name') ?? 'Premium User';
@@ -1798,7 +1801,7 @@ class IPTVProvider with ChangeNotifier {
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams$refreshQuery"))
-              .timeout(const Duration(seconds: 120))
+              .timeout(const Duration(seconds: 300))
               .then((vodStreamsRes) {
             if (vodStreamsRes.statusCode == 200) {
               final List decoded = json.decode(vodStreamsRes.body);
@@ -1839,13 +1842,18 @@ class IPTVProvider with ChangeNotifier {
             }
             _applyFilters();
             notifyListeners();
+          }).catchError((_) {
+            // A large VOD response may time out or arrive truncated. Keep
+            // live/series content usable instead of aborting the whole load.
+            _applyFilters();
+            notifyListeners();
           });
         });
 
         http
             .get(Uri.parse(
                 "$host/player_api.php?username=$user&password=$pass&action=get_series_categories$refreshQuery"))
-            .timeout(const Duration(seconds: 60))
+            .timeout(const Duration(seconds: 120))
             .then((seriesCatsRes) {
           if (seriesCatsRes.statusCode == 200) {
             final List decoded = json.decode(seriesCatsRes.body);
@@ -1863,7 +1871,7 @@ class IPTVProvider with ChangeNotifier {
           http
               .get(Uri.parse(
                   "$host/player_api.php?username=$user&password=$pass&action=get_series$refreshQuery"))
-              .timeout(const Duration(seconds: 120))
+              .timeout(const Duration(seconds: 300))
               .then((seriesRes) {
             if (seriesRes.statusCode == 200) {
               final List decoded = json.decode(seriesRes.body);
@@ -1896,6 +1904,11 @@ class IPTVProvider with ChangeNotifier {
                   applyChannelFilter: false);
               _allStreams.addAll(filteredSeries);
             }
+            _applyFilters();
+            notifyListeners();
+          }).catchError((_) {
+            // Keep VOD and live content visible if the series payload is too
+            // large or the upstream closes the connection early.
             _applyFilters();
             notifyListeners();
           });

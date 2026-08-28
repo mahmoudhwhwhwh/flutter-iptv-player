@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -405,6 +406,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+    // Keep the display awake only while the player screen is visible.
+    unawaited(WakelockPlus.enable());
     _loadSubSettings();
     _stream = widget.stream;
 
@@ -1102,6 +1105,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (!_isPipActive) {
         _betterController?.pause();
       }
+      // Do not keep the display awake while the app is not in the foreground.
+      unawaited(WakelockPlus.disable());
     } else if (state == AppLifecycleState.resumed) {
       _isPortrait = false;
       _rotationMode = RotationMode.landscapeOnly;
@@ -1112,12 +1117,14 @@ class _PlayerScreenState extends State<PlayerScreen>
       ]);
       // Never restart playback silently after the app returns from background.
       if (_isPipActive) _isPipActive = false;
+      if (mounted) unawaited(WakelockPlus.enable());
     }
     super.didChangeAppLifecycleState(state);
   }
 
   @override
   void dispose() {
+    unawaited(WakelockPlus.disable());
     _vlcController?.dispose();
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {

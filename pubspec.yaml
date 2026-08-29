@@ -17,7 +17,7 @@ dependencies:
   
   # Video Playback (Utilizes ExoPlayer internally on Android systems)
   video_player: ^2.8.2
-  screen_brightness: ^3.0.0
+  screen_brightness: ^2.1.7
   chewie: ^1.7.5
   better_player_plus: ^1.0.7
   

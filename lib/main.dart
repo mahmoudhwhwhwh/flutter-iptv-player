@@ -1568,7 +1568,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
             return;
           }
         }
-      }
     } catch (e) {
       debugPrint("Error fetching series info: $e");
     }

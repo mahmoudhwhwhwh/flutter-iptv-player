@@ -36,6 +36,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _bioLink = false;
+  bool _quantumEntanglement = true;
+  bool _selfHealing = true;
+  bool _quantumRouting = true;
+  
+  bool _hwAcceleration = true;
   bool _autoPlay = true;
   String _subSize = "متوسط";
   String _subFont = 'Cairo';
@@ -46,8 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
-  bool _animationsEnabled = true;
-  String _cardSize = 'متوسط';
 
   @override
   void initState() {
@@ -58,6 +62,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      _bioLink = prefs.getBool('bio_link') ?? false;
+      _quantumEntanglement = prefs.getBool('quantum_entanglement') ?? true;
+      _selfHealing = prefs.getBool('self_healing') ?? true;
+      _quantumRouting = prefs.getBool('quantum_routing') ?? true;
+
+      _hwAcceleration = prefs.getBool('hw_acceleration') ?? true;
       _autoPlay = prefs.getBool('auto_play') ?? true;
       _subSize = prefs.getString('sub_size') ?? "متوسط";
       _subFont = prefs.getString('sub_font') ?? 'Cairo';
@@ -68,8 +78,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
-      _animationsEnabled = prefs.getBool('animations_enabled') ?? true;
-      _cardSize = prefs.getString('card_size') ?? 'متوسط';
     });
   }
 
@@ -160,31 +168,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
-                builder: (context, provider, child) =>
-                    _buildActionButtonSettingCard(
+                builder: (context, provider, child) => _buildActionButtonSettingCard(
                   title: 'تغيير الاشتراك',
-                  description:
-                      'إدخال كود اشتراك جديد. سيتم حذف القنوات والمفضلة الخاصة بالكود السابق، مع الاحتفاظ بالثيم واللغة وإعدادات المشغّل.',
+                  description: 'إدخال كود اشتراك جديد. سيتم حذف القنوات والمفضلة الخاصة بالكود السابق، مع الاحتفاظ بالثيم واللغة وإعدادات المشغّل.',
                   actionLabel: 'تغيير الكود',
                   icon: Icons.swap_horiz_rounded,
                   onTap: () => _confirmSubscriptionChange(provider),
                 ),
               ),
-              const SizedBox(height: 12),
-              Consumer<IPTVProvider>(
-                builder: (context, provider, child) =>
-                    _buildSavedSubscriptionCodesCard(provider),
-              ),
               const SizedBox(height: 24),
-              _buildSectionHeader("المشغّل", "المشغّل الأصلي داخل التطبيق فقط"),
+              _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
               _buildSettingItem(
-                title: 'Native Player / BetterPlayer',
-                description:
-                    'يُستخدم المشغّل الأصلي داخل التطبيق لجميع القنوات والأفلام والمسلسلات. يتم اختيار صيغة HLS أو MPEG-TS أو DASH تلقائياً من الرابط الفعلي.',
-                value: true,
-                activeColor: _SettingsPalette.gold,
-                onChanged: (_) {},
+                title: "تسريع الأجهزة (HW Acceleration)",
+                description: "استخدام أجهزة الجهاز لتشغيل الفيديو بسلاسة أكبر وتقليل استهلاك البطارية.",
+                value: _hwAcceleration,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _hwAcceleration = val);
+                  _saveSetting('hw_acceleration', val);
+                },
               ),
               const SizedBox(height: 12),
               _buildSettingItem(
@@ -196,18 +199,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _autoPlay = val);
                   _saveSetting('auto_play', val);
                 },
-              ),
-
-              const SizedBox(height: 12),
-              Consumer<IPTVProvider>(
-                builder: (context, provider, child) => _buildSettingItem(
-                  title: 'الوضع الخفيف (Lite Mode)',
-                  description:
-                      'مناسب للأجهزة الضعيفة: يعطّل الحركات الثقيلة ويقلل استهلاك الذاكرة لتحسين سلاسة التصفح.',
-                  value: provider.liteMode,
-                  activeColor: _SettingsPalette.cyan,
-                  onChanged: provider.setLiteMode,
-                ),
               ),
               const SizedBox(height: 12),
               _buildDropdownItem(
@@ -237,19 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDropdownItem(
                 title: "لون الترجمة",
                 value: _subColor,
-                items: const [
-                  "أبيض",
-                  "أصفر",
-                  "أزرق سماوي",
-                  "أخضر",
-                  "أحمر",
-                  "أزرق",
-                  "وردي",
-                  "برتقالي",
-                  "بنفسجي",
-                  "أسود",
-                  "رمادي"
-                ],
+                items: const ["أبيض", "أصفر", "أزرق سماوي", "أخضر", "أحمر", "أزرق", "وردي", "برتقالي", "بنفسجي", "أسود", "رمادي"],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => _subColor = val);
@@ -261,16 +240,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDropdownItem(
                 title: "لون خلفية الترجمة",
                 value: _subBgColor,
-                items: const [
-                  "شفاف",
-                  "أسود",
-                  "رمادي داكن",
-                  "أحمر داكن",
-                  "أزرق داكن",
-                  "أخضر داكن",
-                  "أرجواني داكن",
-                  "أبيض"
-                ],
+                items: const ["شفاف", "أسود", "رمادي داكن", "أحمر داكن", "أزرق داكن", "أخضر داكن", "أرجواني داكن", "أبيض"],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => _subBgColor = val);
@@ -282,15 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDropdownItem(
                 title: "لغة الترجمة المفضلة",
                 value: _subLang,
-                items: const [
-                  "تلقائي",
-                  "Arabic",
-                  "English",
-                  "French",
-                  "Spanish",
-                  "Turkish",
-                  "Persian"
-                ],
+                items: const ["تلقائي", "Arabic", "English", "French", "Spanish", "Turkish", "Persian"],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() => _subLang = val);
@@ -300,37 +262,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'الرسوم المتحركة',
-                description:
-                    'حركات خفيفة للانتقالات؛ عطّلها على الأجهزة الضعيفة.',
-                value: _animationsEnabled,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _animationsEnabled = val);
-                  _saveSetting('animations_enabled', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: 'حجم بطاقات المحتوى',
-                value: _cardSize,
-                items: const ['صغير', 'متوسط', 'كبير'],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _cardSize = value);
-                    _saveStringSetting('card_size', value);
-                  }
-                },
-              ),
               const SizedBox(height: 24),
               _buildSectionHeader('التحكم والأجهزة', ''),
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: 'تحكم الريموت',
-                description:
-                    'تشغيل أزرار الأسهم وOK وBack والتقديم والتأخير على الشاشات وTV Box.',
+                description: 'تشغيل أزرار الأسهم وOK وBack والتقديم والتأخير على الشاشات وTV Box.',
                 value: _remoteControlEnabled,
                 activeColor: _SettingsPalette.purpleBright,
                 onChanged: (value) {
@@ -341,8 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: 'تحكم الماوس',
-                description:
-                    'إظهار المؤشر والتفاعل بالنقر والتمرير لفتح الأدوات والتنقل في الواجهات الكبيرة.',
+                description: 'إظهار المؤشر والتفاعل بالنقر والتمرير لفتح الأدوات والتنقل في الواجهات الكبيرة.',
                 value: _mouseControlEnabled,
                 activeColor: _SettingsPalette.cyan,
                 onChanged: (value) {
@@ -354,8 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildSettingItem(
                   title: 'تركيز TV Box والشاشات',
-                  description:
-                      'ينقل التركيز تلقائياً بين الأقسام والبطاقات عند استعمال الأسهم بدون ماوس.',
+                  description: 'ينقل التركيز تلقائياً بين الأقسام والبطاقات عند استعمال الأسهم بدون ماوس.',
                   value: provider.tvBoxFocusEnabled,
                   activeColor: _SettingsPalette.gold,
                   onChanged: provider.setTvBoxFocusEnabled,
@@ -372,8 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (context, provider, child) {
                   return _buildSettingItem(
                     title: "عرض الأفلام والمسلسلات",
-                    description:
-                        "إظهار أو إخفاء أقسام وأبواب الأفلام والمسلسلات تماماً من واجهات التطبيق.",
+                    description: "إظهار أو إخفاء أقسام وأبواب الأفلام والمسلسلات تماماً من واجهات التطبيق.",
                     value: provider.showMoviesSeries,
                     activeColor: _SettingsPalette.danger,
                     onChanged: (val) {
@@ -408,13 +342,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              _buildSettingItem(
-                title: "فلترة المحتوى المخل — مفعلة دائماً",
-                description:
-                    "يتم فحص أسماء القنوات والفئات والبيانات قبل العرض، وحجب المحتوى المقيّد من القنوات والأفلام والمسلسلات والبحث. لا يمكن تعطيل الحماية من داخل التطبيق.",
-                value: true,
-                activeColor: _SettingsPalette.purple,
-                onChanged: (_) {},
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) {
+                  return _buildSettingItem(
+                    title: "الوضع العائلي المحمي",
+                    description: "يفحص أسماء القنوات والفئات وبيانات القوائم ويخفي المحتوى المقيّد قبل أن يظهر في أي قسم.",
+                    value: provider.blockAdultContent,
+                    activeColor: _SettingsPalette.purple,
+                    onChanged: (val) async {
+                      if (!val && provider.isParentalEnabled) {
+                        final verified = await showPinDialog(context, provider);
+                        if (!verified) return;
+                      }
+                      provider.setBlockAdultContent(val);
+                    },
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -431,27 +374,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _buildSettingItem(
                         title: "تفعيل الرقابة الأبوية (رمز الأمان)",
-                        description: isEnabled
-                            ? "الرقابة الأبوية مفعلة برمز أمان. قم بإلغاء التفعيل لتعطيل قفل الأقسام."
+                        description: isEnabled 
+                            ? "الرقابة الأبوية مفعلة برمز أمان. قم بإلغاء التفعيل لتعطيل قفل الأقسام." 
                             : "قم بتعيين رمز أمان PIN مكون من 4 أرقام لقفل وحماية الأقسام والتحكم بالوصول إليها.",
                         value: isEnabled,
                         activeColor: _SettingsPalette.purple,
                         onChanged: (val) async {
                           if (val) {
-                            await showPinDialog(context, provider,
-                                isCreating: true);
+                            await showPinDialog(context, provider, isCreating: true);
                           } else {
-                            bool correct =
-                                await showPinDialog(context, provider);
+                            bool correct = await showPinDialog(context, provider);
                             if (correct) {
                               await provider.clearParentalSettings();
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          "تم إلغاء تفعيل رمز الأمان بنجاح",
-                                          style:
-                                              TextStyle(fontFamily: 'Cairo'))),
+                                  const SnackBar(content: Text("تم إلغاء تفعيل رمز الأمان بنجاح", style: TextStyle(fontFamily: 'Cairo'))),
                                 );
                               }
                             }
@@ -462,23 +399,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         _buildActionButtonSettingCard(
                           title: "تغيير رمز الأمان (PIN)",
-                          description:
-                              "تعديل الرمز المكون من 4 أرقام المستخدم لحماية الأقسام الخاصة بك.",
+                          description: "تعديل الرمز المكون من 4 أرقام المستخدم لحماية الأقسام الخاصة بك.",
                           actionLabel: "تغيير الرمز",
                           icon: Icons.lock_reset_rounded,
                           onTap: () async {
-                            bool correct =
-                                await showPinDialog(context, provider);
+                            bool correct = await showPinDialog(context, provider);
                             if (correct) {
-                              await showPinDialog(context, provider,
-                                  isCreating: true,
-                                  customTitle: "تعيين رمز جديد");
+                              await showPinDialog(context, provider, isCreating: true, customTitle: "تعيين رمز جديد");
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text("تم تغيير رمز الأمان بنجاح",
-                                          style:
-                                              TextStyle(fontFamily: 'Cairo'))),
+                                  const SnackBar(content: Text("تم تغيير رمز الأمان بنجاح", style: TextStyle(fontFamily: 'Cairo'))),
                                 );
                               }
                             }
@@ -487,13 +417,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         _buildActionButtonSettingCard(
                           title: "إدارة الأقسام المقفلة",
-                          description:
-                              "تحديد واختيار الأقسام وقنوات البث المباشر أو الأفلام والمسلسلات المراد قفلها.",
+                          description: "تحديد واختيار الأقسام وقنوات البث المباشر أو الأفلام والمسلسلات المراد قفلها.",
                           actionLabel: "تحديد الأقسام",
                           icon: Icons.category_rounded,
                           onTap: () async {
-                            bool correct =
-                                await showPinDialog(context, provider);
+                            bool correct = await showPinDialog(context, provider);
                             if (correct) {
                               _showCategoryLockDialog(context, provider);
                             }
@@ -519,34 +447,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 decoration: BoxDecoration(
                   color: _SettingsPalette.cyan.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                      color: _SettingsPalette.cyan.withOpacity(0.58)),
+                  border: Border.all(color: _SettingsPalette.cyan.withOpacity(0.58)),
                 ),
                 child: const Column(
                   children: [
                     Text(
                       "تحذير: تفعيل هذه الخيارات يؤدي الى زيادة استهلاك البطارية",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: _SettingsPalette.cyan,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20),
+                      style: TextStyle(color: _SettingsPalette.cyan, fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                     SizedBox(height: 8),
                     Text(
                       "للحصول على أفضل اداء قم بتفعيل كافة المميزات يمكنك الغاء اي شيء حسب الذي تفضله واختيار الطريقة الانسب لك.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white70, fontSize: 13, height: 1.5),
+                      style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
-              _buildSectionHeader(
-                'الحماية والاستقرار الحقيقي',
-                'إعادة الاتصال وKeystore وRemote Config تعمل من مسارات التطبيق الفعلية.',
+              _buildSettingItem(
+                title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",
+                description: "تعمل على تحسين استجابة الخادم بشكل فوري لضمان عدم تأخير البث المباشر.",
+                value: _bioLink,
+                activeColor: _SettingsPalette.purple,
+                onChanged: (val) {
+                  setState(() => _bioLink = val);
+                  _saveSetting('bio_link', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: "2. التشابك الكمي للبث (Quantum Entanglement)",
+                description: "ميزة ثورية تزيد من سرعة تدفق البيانات لضمان أعلى جودة ممكنة دون انقطاع.",
+                value: _quantumEntanglement,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _quantumEntanglement = val);
+                  _saveSetting('quantum_entanglement', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: "3. نواة المعالجة الذاتية (Self-Healing)",
+                description: "نظام ذكي يقوم باكتشاف وإصلاح أعطال البث تلقائياً دون أي تدخل يدوي.",
+                value: _selfHealing,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _selfHealing = val);
+                  _saveSetting('self_healing', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: "4. توجيه المسارات الكمي (Quantum Routing)",
+                description: "يعيد توجيه اتصالك عبر أسرع المسارات العالمية المتاحة لفتح القنوات في أقل من ثانية.",
+                value: _quantumRouting,
+                activeColor: _SettingsPalette.purpleBright,
+                onChanged: (val) {
+                  setState(() => _quantumRouting = val);
+                  _saveSetting('quantum_routing', val);
+                },
               ),
               const SizedBox(height: 32),
               const Center(
@@ -606,24 +568,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   "تفضيلات المشاهدة",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800),
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                 ),
                 SizedBox(height: 3),
                 Text(
                   "خصّص التجربة بما يناسبك",
-                  style: TextStyle(
-                      color: _SettingsPalette.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500),
+                  style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
-          Icon(Icons.workspace_premium_rounded,
-              color: _SettingsPalette.gold, size: 21),
+          Icon(Icons.workspace_premium_rounded, color: _SettingsPalette.gold, size: 21),
         ],
       ),
     );
@@ -642,244 +597,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Widget _buildSavedSubscriptionCodesCard(IPTVProvider provider) {
-    final codes = provider.savedSubscriptionCodes;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _SettingsPalette.surfaceElevated,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _SettingsPalette.purple.withOpacity(0.42)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            textDirection: TextDirection.rtl,
-            children: [
-              const Icon(Icons.key_rounded,
-                  color: _SettingsPalette.gold, size: 23),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'أكواد الاشتراك المحفوظة',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800),
-                ),
-              ),
-              IconButton(
-                tooltip: 'إضافة كود',
-                onPressed: () => _showAddSavedCodeDialog(provider),
-                icon: const Icon(Icons.add_circle_outline_rounded,
-                    color: _SettingsPalette.cyan),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'احفظ أكثر من كود وبدّل بينها دون فقدان الإعدادات. يتم التحقق من كل كود عبر Worker بشكل آمن.',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                color: _SettingsPalette.textMuted, fontSize: 12, height: 1.45),
-          ),
-          const SizedBox(height: 12),
-          if (codes.isEmpty)
-            const Text(
-              'لا توجد أكواد محفوظة بعد.',
-              textAlign: TextAlign.right,
-              style: TextStyle(color: Colors.white54, fontSize: 13),
-            )
-          else
-            ...codes.map((saved) {
-              final isActive =
-                  saved.code == provider.activationCode && provider.isLoggedIn;
-              final title = saved.label.isEmpty ? saved.code : saved.label;
-              final statusText = saved.status == 'checking'
-                  ? 'جاري التحقق'
-                  : saved.status == 'invalid'
-                      ? 'غير صالح'
-                      : isActive
-                          ? 'نشط الآن'
-                          : saved.status == 'active'
-                              ? 'صالح'
-                              : 'محفوظ';
-              final statusColor = saved.status == 'invalid'
-                  ? _SettingsPalette.danger
-                  : isActive
-                      ? _SettingsPalette.cyan
-                      : _SettingsPalette.textMuted;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? _SettingsPalette.cyan.withOpacity(0.08)
-                        : _SettingsPalette.surface,
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                        color: isActive
-                            ? _SettingsPalette.cyan.withOpacity(0.5)
-                            : _SettingsPalette.divider),
-                  ),
-                  child: Row(
-                    textDirection: TextDirection.rtl,
-                    children: [
-                      Icon(
-                          isActive
-                              ? Icons.check_circle_rounded
-                              : Icons.vpn_key_rounded,
-                          color: statusColor,
-                          size: 19),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(title,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700)),
-                            Text(statusText,
-                                style: TextStyle(
-                                    color: statusColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                      if (!isActive)
-                        TextButton(
-                          onPressed: provider.isLoading
-                              ? null
-                              : () => provider
-                                  .switchToSavedSubscription(saved.code),
-                          child: const Text('تبديل'),
-                        ),
-                      PopupMenuButton<String>(
-                        color: _SettingsPalette.surfaceElevated,
-                        onSelected: (value) {
-                          if (value == 'rename')
-                            _showRenameSavedCodeDialog(
-                                provider, saved.code, title);
-                          if (value == 'delete')
-                            provider.removeSavedSubscriptionCode(saved.code);
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                              value: 'rename',
-                              child: Text('إعادة تسمية',
-                                  style: TextStyle(color: Colors.white))),
-                          PopupMenuItem(
-                              value: 'delete',
-                              child: Text('حذف الكود',
-                                  style: TextStyle(color: Colors.redAccent))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showAddSavedCodeDialog(IPTVProvider provider) async {
-    final codeController = TextEditingController();
-    final labelController = TextEditingController();
-    final form = await showDialog<List<String>>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _SettingsPalette.surfaceElevated,
-        title: const Text('إضافة كود اشتراك',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: codeController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'الكود',
-                    labelStyle: TextStyle(color: Colors.white70))),
-            TextField(
-                controller: labelController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'اسم اختياري',
-                    labelStyle: TextStyle(color: Colors.white70))),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(
-                  dialogContext, [codeController.text, labelController.text]),
-              child: const Text('تحقق وحفظ')),
-        ],
-      ),
-    );
-    codeController.dispose();
-    labelController.dispose();
-    if (form == null || !mounted) return;
-    final success =
-        await provider.addSavedSubscriptionCode(form[0], label: form[1]);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success
-            ? 'تم حفظ الكود وتفعيله'
-            : (provider.lastError ?? 'تعذر التحقق من الكود'))));
-  }
-
-  Future<void> _showRenameSavedCodeDialog(
-      IPTVProvider provider, String code, String currentLabel) async {
-    final controller =
-        TextEditingController(text: currentLabel == code ? '' : currentLabel);
-    final label = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _SettingsPalette.surfaceElevated,
-        title: const Text('إعادة تسمية الكود',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-                labelText: 'الاسم',
-                labelStyle: TextStyle(color: Colors.white70))),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text),
-              child: const Text('حفظ')),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (label != null) await provider.renameSavedSubscriptionCode(code, label);
-  }
-
   Future<void> _confirmSubscriptionChange(IPTVProvider provider) async {
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _SettingsPalette.surfaceElevated,
-        title: const Text('تغيير الاشتراك',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text('تغيير الاشتراك', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         content: const Text(
           'سيتم إنهاء الاشتراك الحالي وإرجاعك إلى شاشة إدخال الكود الجديد. ستبقى اللغة والثيم وإعدادات المشغّل محفوظة.',
           style: TextStyle(color: Colors.white70, height: 1.45),
@@ -890,9 +613,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: _SettingsPalette.purple,
-                foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('متابعة'),
           ),
@@ -902,8 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (approved != true || !mounted) return;
     await provider.changeSubscription();
     if (mounted) {
-      Navigator.of(context, rootNavigator: true)
-          .popUntil((route) => route.isFirst);
+      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     }
   }
 
@@ -934,41 +654,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(
               color: _SettingsPalette.surfaceElevated,
               borderRadius: BorderRadius.circular(24),
-              border:
-                  Border.all(color: _SettingsPalette.purple.withOpacity(0.65)),
+              border: Border.all(color: _SettingsPalette.purple.withOpacity(0.65)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('تخصيص ملف الحساب',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800)),
+                const Text('تخصيص ملف الحساب', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 14),
                 TextField(
                   controller: nameController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'اسم العرض',
-                    labelStyle:
-                        const TextStyle(color: _SettingsPalette.textMuted),
+                    labelStyle: const TextStyle(color: _SettingsPalette.textMuted),
                     filled: true,
                     fillColor: const Color(0xFF11111B),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _SettingsPalette.purpleBright,
-                    side: BorderSide(
-                        color: _SettingsPalette.purple.withOpacity(0.65)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                    side: BorderSide(color: _SettingsPalette.purple.withOpacity(0.65)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () async {
                     await _pickProfileImage(provider);
@@ -978,9 +688,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: const Text('اختيار صورة من المعرض'),
                 ),
                 const SizedBox(height: 18),
-                const Text('شعار الحساب',
-                    style: TextStyle(
-                        color: _SettingsPalette.textMuted, fontSize: 13)),
+                const Text('شعار الحساب', style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 13)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 10,
@@ -993,19 +701,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         width: 54,
                         height: 54,
                         decoration: BoxDecoration(
-                          color: selected
-                              ? _SettingsPalette.purple
-                              : const Color(0xFF11111B),
+                          color: selected ? _SettingsPalette.purple : const Color(0xFF11111B),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: selected
-                                  ? _SettingsPalette.purpleBright
-                                  : _SettingsPalette.divider),
+                          border: Border.all(color: selected ? _SettingsPalette.purpleBright : _SettingsPalette.divider),
                         ),
-                        child: Icon(_profileIcon(logo),
-                            color: selected
-                                ? Colors.white
-                                : _SettingsPalette.textMuted),
+                        child: Icon(_profileIcon(logo), color: selected ? Colors.white : _SettingsPalette.textMuted),
                       ),
                     );
                   }).toList(),
@@ -1014,11 +714,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: _SettingsPalette.purple,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14))),
+                    style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                     onPressed: () async {
                       await provider.setProfileName(nameController.text);
                       await provider.setProfileLogo(selectedLogo);
@@ -1044,12 +740,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [
-            provider.accentColor.withOpacity(0.34),
-            provider.themeSurface
-          ], begin: Alignment.topRight, end: Alignment.bottomLeft),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: provider.accentColor.withOpacity(0.65)),
+        gradient: LinearGradient(colors: [provider.accentColor.withOpacity(0.34), provider.themeSurface], begin: Alignment.topRight, end: Alignment.bottomLeft),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: provider.accentColor.withOpacity(0.65)),
         ),
         child: Row(
           children: [
@@ -1059,44 +752,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: provider.accentColor,
                 shape: BoxShape.circle,
-                image: provider.profileImagePath.isNotEmpty &&
-                        File(provider.profileImagePath).existsSync()
-                    ? DecorationImage(
-                        image: FileImage(File(provider.profileImagePath)),
-                        fit: BoxFit.cover)
+                image: provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
+                    ? DecorationImage(image: FileImage(File(provider.profileImagePath)), fit: BoxFit.cover)
                     : null,
               ),
-              child: provider.profileImagePath.isNotEmpty &&
-                      File(provider.profileImagePath).existsSync()
+              child: provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
                   ? null
-                  : Icon(_profileIcon(provider.profileLogo),
-                      color: Colors.white, size: 34),
+                  : Icon(_profileIcon(provider.profileLogo), color: Colors.white, size: 34),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(provider.profileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800)),
+                  Text(provider.profileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 3),
-                  Text(
-                      provider.subscriptionType.isEmpty
-                          ? 'حساب Premium'
-                          : provider.subscriptionType,
-                      style: const TextStyle(
-                          color: _SettingsPalette.gold,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700)),
+                  Text(provider.subscriptionType.isEmpty ? 'حساب Premium' : provider.subscriptionType, style: const TextStyle(color: _SettingsPalette.gold, fontSize: 13, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 3),
-                  Text('ينتهي: ${provider.expirationDateFormatted}',
-                      style: const TextStyle(
-                          color: _SettingsPalette.textMuted, fontSize: 12)),
+                  Text('ينتهي: ${provider.expirationDateFormatted}', style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12)),
                 ],
               ),
             ),
@@ -1138,15 +811,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("المظهر",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800)),
+                Text("المظهر", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
                 SizedBox(height: 2),
-                Text("التبديل بين النمط الداكن والفاتح",
-                    style: TextStyle(
-                        color: _SettingsPalette.textMuted, fontSize: 11)),
+                Text("التبديل بين النمط الداكن والفاتح", style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 11)),
               ],
             ),
           ),
@@ -1168,8 +835,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
         title,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700),
+        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1186,8 +852,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: () => _showOrientationDialog(),
         child: Row(
           children: [
-            const Icon(Icons.screen_rotation_rounded,
-                color: _SettingsPalette.purpleBright, size: 24),
+            const Icon(Icons.screen_rotation_rounded, color: _SettingsPalette.purpleBright, size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -1195,22 +860,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const Text(
                     "اتجاه التطبيق (الشاشة)",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _appOrientation,
-                    style: const TextStyle(
-                        color: _SettingsPalette.textMuted, fontSize: 12),
+                    style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: _SettingsPalette.textMuted, size: 16),
+            const Icon(Icons.arrow_forward_ios_rounded, color: _SettingsPalette.textMuted, size: 16),
           ],
         ),
       ),
@@ -1225,14 +885,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: _SettingsPalette.surfaceElevated,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Text(
                 "اتجاه الشاشة",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                 textAlign: TextAlign.right,
               ),
               content: Column(
@@ -1250,8 +906,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildOrientationRadioOption(
-      StateSetter setDialogState, String option) {
+  Widget _buildOrientationRadioOption(StateSetter setDialogState, String option) {
     final bool isSelected = _appOrientation == option;
     return InkWell(
       onTap: () async {
@@ -1259,10 +914,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _appOrientation = option;
         });
         setDialogState(() {});
-
+        
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('app_orientation', option);
-
+        
         // Apply orientation preference
         if (option == "أفقي") {
           SystemChrome.setPreferredOrientations([
@@ -1282,7 +937,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             DeviceOrientation.portraitDown,
           ]);
         }
-
+        
         Navigator.pop(context);
       },
       child: Padding(
@@ -1328,12 +983,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDropdownItem(
-      {required String title,
-      required String value,
-      required List<String> items,
-      Map<String, String>? itemLabels,
-      required void Function(String?) onChanged}) {
+  Widget _buildDropdownItem({
+    required String title,
+    required String value,
+    required List<String> items,
+    required void Function(String?) onChanged
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -1346,21 +1001,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           DropdownButton<String>(
             value: value,
             dropdownColor: _SettingsPalette.surfaceElevated,
-            style: const TextStyle(
-                color: _SettingsPalette.purpleBright, fontSize: 14),
+            style: const TextStyle(color: _SettingsPalette.purpleBright, fontSize: 14),
             underline: const SizedBox(),
-            icon: const Icon(Icons.arrow_drop_down,
-                color: _SettingsPalette.purpleBright),
+            icon: const Icon(Icons.arrow_drop_down, color: _SettingsPalette.purpleBright),
             items: items.map((String item) {
               return DropdownMenuItem<String>(
                 value: item,
-                child: Text(itemLabels?[item] ?? item),
+                child: Text(item),
               );
             }).toList(),
             onChanged: onChanged,
@@ -1370,22 +1022,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingItem(
-      {required String title,
-      required String description,
-      required bool value,
-      required Color activeColor,
-      required void Function(bool) onChanged}) {
+  Widget _buildSettingItem({
+    required String title, 
+    required String description, 
+    required bool value, 
+    required Color activeColor,
+    required void Function(bool) onChanged
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         color: _SettingsPalette.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: value
-                ? activeColor.withOpacity(0.55)
-                : _SettingsPalette.divider,
-            width: value ? 1.4 : 1),
+        border: Border.all(color: value ? activeColor.withOpacity(0.55) : _SettingsPalette.divider, width: value ? 1.4 : 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1396,18 +1045,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                      color: value ? activeColor : Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20),
+                  style: TextStyle(color: value ? activeColor : Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: const TextStyle(
-                      color: _SettingsPalette.textMuted,
-                      fontSize: 12,
-                      height: 1.4),
+                  style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.4),
                 ),
               ],
             ),
@@ -1449,18 +1092,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: const TextStyle(
-                      color: _SettingsPalette.textMuted,
-                      fontSize: 12,
-                      height: 1.4),
+                  style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12, height: 1.4),
                 ),
               ],
             ),
@@ -1470,18 +1107,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _SettingsPalette.purple,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
             onPressed: onTap,
             icon: Icon(icon, size: 16),
             label: Text(
               actionLabel,
-              style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -1496,31 +1129,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         String filterText = "";
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final liveCats = provider.liveCategories
-                .map((c) => c['category_name'] ?? '')
-                .where((c) => c.isNotEmpty)
-                .toList();
-            final movieCats = provider.movieCategories
-                .map((c) => c['category_name'] ?? '')
-                .where((c) => c.isNotEmpty)
-                .toList();
-            final seriesCats = provider.seriesCategories
-                .map((c) => c['category_name'] ?? '')
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final liveCats = provider.liveCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
+            final movieCats = provider.movieCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
+            final seriesCats = provider.seriesCategories.map((c) => c['category_name'] ?? '').where((c) => c.isNotEmpty).toList();
 
-            final List<String> filteredLive = liveCats
-                .where(
-                    (c) => c.toLowerCase().contains(filterText.toLowerCase()))
-                .toList();
-            final List<String> filteredMovies = movieCats
-                .where(
-                    (c) => c.toLowerCase().contains(filterText.toLowerCase()))
-                .toList();
-            final List<String> filteredSeries = seriesCats
-                .where(
-                    (c) => c.toLowerCase().contains(filterText.toLowerCase()))
-                .toList();
+            final List<String> filteredLive = liveCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
+            final List<String> filteredMovies = movieCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
+            final List<String> filteredSeries = seriesCats.where((c) => c.toLowerCase().contains(filterText.toLowerCase())).toList();
 
             return DefaultTabController(
               length: 3,
@@ -1537,15 +1152,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         const Text(
                           "إدارة الأقسام المقفلة",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Cairo',
-                              fontSize: 18),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Cairo', fontSize: 18),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.settings_suggest,
-                            color: _SettingsPalette.purple),
+                        const Icon(Icons.settings_suggest, color: _SettingsPalette.purple),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -1562,24 +1172,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             filterText = val;
                           });
                         },
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontFamily: 'Cairo'),
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Cairo'),
                         decoration: InputDecoration(
                           hintText: "ابحث عن قسم...",
-                          hintStyle: TextStyle(
-                              color:
-                                  _SettingsPalette.textMuted.withOpacity(0.65),
-                              fontSize: 12,
-                              fontFamily: 'Cairo'),
-                          prefixIcon: Icon(Icons.search,
-                              color:
-                                  _SettingsPalette.textMuted.withOpacity(0.65),
-                              size: 18),
+                          hintStyle: TextStyle(color: _SettingsPalette.textMuted.withOpacity(0.65), fontSize: 12, fontFamily: 'Cairo'),
+                          prefixIcon: Icon(Icons.search, color: _SettingsPalette.textMuted.withOpacity(0.65), size: 18),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                       ),
                     ),
@@ -1588,12 +1187,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       indicatorColor: _SettingsPalette.purple,
                       labelColor: Colors.white,
                       unselectedLabelColor: _SettingsPalette.textMuted,
-                      labelStyle: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13),
-                      unselectedLabelStyle:
-                          TextStyle(fontFamily: 'Cairo', fontSize: 13),
+                      labelStyle: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13),
+                      unselectedLabelStyle: TextStyle(fontFamily: 'Cairo', fontSize: 13),
                       tabs: [
                         Tab(text: "مسلسلات"),
                         Tab(text: "أفلام"),
@@ -1607,12 +1202,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   height: 350,
                   child: TabBarView(
                     children: [
-                      _buildCategoryList(
-                          filteredSeries, provider, setDialogState),
-                      _buildCategoryList(
-                          filteredMovies, provider, setDialogState),
-                      _buildCategoryList(
-                          filteredLive, provider, setDialogState),
+                      _buildCategoryList(filteredSeries, provider, setDialogState),
+                      _buildCategoryList(filteredMovies, provider, setDialogState),
+                      _buildCategoryList(filteredLive, provider, setDialogState),
                     ],
                   ),
                 ),
@@ -1621,10 +1213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: const Text(
                       "إغلاق",
-                      style: TextStyle(
-                          color: Colors.white70,
-                          fontFamily: 'Cairo',
-                          fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white70, fontFamily: 'Cairo', fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -1636,16 +1225,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildCategoryList(List<String> categories, IPTVProvider provider,
-      StateSetter setDialogState) {
+  Widget _buildCategoryList(List<String> categories, IPTVProvider provider, StateSetter setDialogState) {
     if (categories.isEmpty) {
       return Center(
         child: Text(
           "لا توجد أقسام مطابقة",
-          style: TextStyle(
-              color: _SettingsPalette.textMuted.withOpacity(0.65),
-              fontFamily: 'Cairo',
-              fontSize: 13),
+          style: TextStyle(color: _SettingsPalette.textMuted.withOpacity(0.65), fontFamily: 'Cairo', fontSize: 13),
         ),
       );
     }
@@ -1663,12 +1248,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: ListTile(
             dense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
             title: Text(
               cat,
-              style: const TextStyle(
-                  color: Colors.white, fontFamily: 'Cairo', fontSize: 13),
+              style: const TextStyle(color: Colors.white, fontFamily: 'Cairo', fontSize: 13),
               textAlign: TextAlign.right,
             ),
             leading: Switch(
@@ -1696,12 +1279,7 @@ class UpdateDialog extends StatefulWidget {
   final String message;
   final String url;
 
-  const UpdateDialog(
-      {Key? key,
-      required this.version,
-      required this.message,
-      required this.url})
-      : super(key: key);
+  const UpdateDialog({Key? key, required this.version, required this.message, required this.url}) : super(key: key);
 
   @override
   State<UpdateDialog> createState() => _UpdateDialogState();
@@ -1741,7 +1319,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
       // Install APK
       await OpenFilex.open(savePath);
-
+      
       if (mounted) {
         Navigator.pop(context);
       }
@@ -1773,39 +1351,24 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   height: 40,
                   color: _SettingsPalette.purple,
                   alignment: Alignment.center,
-                  child: const Text("L",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold)),
+                  child: const Text("L", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("LIVE STREAM PREMIUM",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    Text("New version ${widget.version}",
-                        style: TextStyle(
-                            color: _SettingsPalette.purple, fontSize: 14)),
+                    const Text("LIVE STREAM PREMIUM", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text("New version ${widget.version}", style: TextStyle(color: _SettingsPalette.purple, fontSize: 14)),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const Text("What's new",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+            const Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
               widget.message,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 14, height: 1.5),
+              style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
               textDirection: TextDirection.rtl,
             ),
             const SizedBox(height: 24),
@@ -1813,39 +1376,30 @@ class _UpdateDialogState extends State<UpdateDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text("${(_progress * 100).toInt()}%",
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text("${(_progress * 100).toInt()}%", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: _progress,
                 backgroundColor: Colors.white24,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    _SettingsPalette.purple),
+                valueColor: const AlwaysStoppedAnimation<Color>(_SettingsPalette.purple),
               ),
               const SizedBox(height: 8),
-              Text(_status,
-                  style: const TextStyle(
-                      color: _SettingsPalette.textMuted, fontSize: 12),
-                  textDirection: TextDirection.rtl),
+              Text(_status, style: const TextStyle(color: _SettingsPalette.textMuted, fontSize: 12), textDirection: TextDirection.rtl),
             ] else ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("لاحقاً",
-                        style: TextStyle(color: _SettingsPalette.textMuted)),
+                    child: const Text("لاحقاً", style: TextStyle(color: _SettingsPalette.textMuted)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: _SettingsPalette.purple),
+                    style: ElevatedButton.styleFrom(backgroundColor: _SettingsPalette.purple),
                     onPressed: _startDownload,
-                    child: const Text("تحديث الآن",
-                        style: TextStyle(color: Colors.white)),
+                    child: const Text("تحديث الآن", style: TextStyle(color: Colors.white)),
                   ),
                 ],
               )

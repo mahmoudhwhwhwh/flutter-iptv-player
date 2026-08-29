@@ -25,11 +25,15 @@ class FilterService {
     'جنسي',
   ];
 
+  static final _tashkeelRegExp = RegExp(r'[ً-ٰٟ]');
+  static final _nonAlphaNumRegExp = RegExp(r'[^A-Z0-9؀-ۿ]+');
+  static final _arabicRegExp = RegExp(r'[؀-ۿݐ-ݿࢠ-ࣿ]');
+
   static String _normalizeSafetyText(String text) {
     return text
         .toUpperCase()
-        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
-        .replaceAll(RegExp(r'[^A-Z0-9\u0600-\u06FF]+'), '');
+        .replaceAll(_tashkeelRegExp, '')
+        .replaceAll(_nonAlphaNumRegExp, '');
   }
 
   static bool _matchesAdultContent(String text) {
@@ -98,7 +102,7 @@ class FilterService {
   /// التحقق من أن القناة عربية
   static bool isArabicStream(String name, String categoryName) {
     // 1. فحص وجود أحرف عربية
-    final arabicRegExp = RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]');
+    final arabicRegExp = _arabicRegExp;
     if (arabicRegExp.hasMatch(name) || arabicRegExp.hasMatch(categoryName)) {
       return true;
     }
@@ -217,7 +221,6 @@ class FilterService {
     List<PlaylistItem> streams, {
     required bool blockAdult,
     required String channelFilter,
-    bool applyChannelFilter = true,
   }) {
     return streams.where((stream) {
       // 1. حظر المحتوى الإباحي
@@ -226,8 +229,7 @@ class FilterService {
       }
 
       // 2. تطبيق تصفية القنوات (الإقليمية والموضوعية)
-      final isLiveStream = stream.type == 'live' || stream.type == 'stalker';
-      if (applyChannelFilter && isLiveStream && channelFilter != "الكل") {
+      if (channelFilter != "الكل") {
         final isArab = isArabicStream(stream.name, stream.categoryName);
         
         if (channelFilter == "القنوات العربية فقط") {

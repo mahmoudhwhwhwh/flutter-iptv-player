@@ -1567,7 +1567,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
             }
             return;
           }
-        }
     } catch (e) {
       debugPrint("Error fetching series info: $e");
     }
@@ -2046,6 +2045,7 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
       ),
     ),
   );
+}
 }
 
 

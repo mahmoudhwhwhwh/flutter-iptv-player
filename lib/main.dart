@@ -128,24 +128,7 @@ class LiveFootballApp extends StatelessWidget {
                 } else if (provider.isVersionBlocked) {
                   message = provider.remoteBlockMessage;
                 }
-                DateTime? currentBackPressTime;
-    return WillPopScope(
-      onWillPop: () async {
-        DateTime now = DateTime.now();
-        if (currentBackPressTime == null || 
-            now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
-          currentBackPressTime = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('اضغط مرة أخرى للخروج', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo')),
-              duration: Duration(seconds: 2),
-            ),
-          );
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
+                            return Scaffold(
                   backgroundColor: Colors.black,
                   body: Center(
                     child: Padding(
@@ -555,7 +538,24 @@ class _MainDashboardState extends State<MainDashboard> {
       });
     }
 
-    return Scaffold(
+        DateTime? currentBackPressTime;
+    return WillPopScope(
+      onWillPop: () async {
+        DateTime now = DateTime.now();
+        if (currentBackPressTime == null || 
+            now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
+          currentBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اضغط مرة أخرى للخروج', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo')),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: colorScheme.background,
       drawer: _buildReferenceDrawer(context, provider, showMoviesSeries),
       appBar: AppBar(
@@ -633,6 +633,7 @@ class _MainDashboardState extends State<MainDashboard> {
               items: tabs.map((t) => BottomNavigationBarItem(icon: Icon(t['icon'], size: 28), label: t['label'])).toList(),
             )
           : null,
+    );
     );
   }
 

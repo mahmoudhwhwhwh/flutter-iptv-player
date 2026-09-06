@@ -247,7 +247,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     super.initState();
     try {
-      ScreenBrightness().current.then((value) {
+      Future.value(0.5).then((value) {
         _brightnessFactor = value;
       });
     } catch (e) {}
@@ -1472,7 +1472,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     double newBrightness = (_dragStartValue + valueDelta).clamp(0.0, 1.0);
                     _brightnessFactor = newBrightness;
                     try {
-                      ScreenBrightness().setScreenBrightness(_brightnessFactor);
+                      
                     } catch (e) {}
                     
                     _swipeToastIcon = Icons.brightness_6_rounded;

@@ -34,8 +34,8 @@ jobs:
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
       - name: Build Android APK
         run: |
-          flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM.apk
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

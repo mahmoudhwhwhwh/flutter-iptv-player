@@ -11,7 +11,6 @@ import 'multi_screen_player.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -426,7 +425,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       'Connection': 'keep-alive',
     };
     
-    if (_stream.type == "stalker" || urlStr.contains("mac=") || urlStr.contains("play/live.php")) {
+    if (_stream.type == "stalker" || _stream.type == "stalker_movie" || _stream.type == "stalker_series" || urlStr.contains("mac=") || urlStr.contains("play/live.php")) {
       headers['User-Agent'] = 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3';
       try {
         if (urlStr.contains("mac=")) {
@@ -699,15 +698,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           _betterController!.play();
         }
       }
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+      if (_betterController != null && _betterController!.videoPlayerController != null) {
+        if (_betterController!.isPlaying() ?? false) {
+          _betterController!.pause();
+        }
+      }
     }
     super.didChangeAppLifecycleState(state);
   }
 
   @override
   void dispose() {
-    try {
-      ScreenBrightness().resetScreenBrightness();
-    } catch (e) {}
+    
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);

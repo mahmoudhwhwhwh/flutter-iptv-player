@@ -128,7 +128,24 @@ class LiveFootballApp extends StatelessWidget {
                 } else if (provider.isVersionBlocked) {
                   message = provider.remoteBlockMessage;
                 }
-                return Scaffold(
+                DateTime? currentBackPressTime;
+    return WillPopScope(
+      onWillPop: () async {
+        DateTime now = DateTime.now();
+        if (currentBackPressTime == null || 
+            now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
+          currentBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اضغط مرة أخرى للخروج', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo')),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
                   backgroundColor: Colors.black,
                   body: Center(
                     child: Padding(

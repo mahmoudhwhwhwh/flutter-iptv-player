@@ -633,6 +633,7 @@ class _MainDashboardState extends State<MainDashboard> {
               items: tabs.map((t) => BottomNavigationBarItem(icon: Icon(t['icon'], size: 28), label: t['label'])).toList(),
             )
           : null,
+      ),
     );
   }
 

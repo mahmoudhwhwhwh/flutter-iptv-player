@@ -12,8 +12,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.content.pm.Signature
-
-import android.content.pm.Signature
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -75,7 +73,7 @@ class MainActivity : FlutterActivity() {
                 @Suppress("DEPRECATION")
                 packageInfo.signatures?.toList().orEmpty()
             }
-            signatures.any { signature ->
+            signatures.any { signature: android.content.pm.Signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                 digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } == expected
             }
@@ -104,7 +102,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call: io.flutter.plugin.common.MethodCall, result: io.flutter.plugin.common.MethodChannel.Result ->
             when (call.method) {
                 "checkSecurity" -> {
                     val sniffer = checkSnifferOrProxy()

@@ -8,16 +8,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Debug
 import io.flutter.embedding.android.FlutterActivity
-
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodCall
-import io.flutter.embedding.engine.FlutterEngine
-import android.content.pm.Signature
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodCall
-import io.flutter.embedding.engine.FlutterEngine
 import java.io.File
 import java.security.MessageDigest
 
@@ -26,12 +19,10 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // السماح الصريح بالتقاط الشاشة وتسجيل الفيديو.
         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
     private fun checkSnifferOrProxy(): Boolean {
-        // فحص وجود برامج اقتناص الروابط الشهيرة أو بروكسي محلي
         val knownPackages = arrayOf(
             "app.greyshirts.sslcapture",
             "com.guoshi.httpcanary",
@@ -42,17 +33,16 @@ class MainActivity : FlutterActivity() {
         )
         for (pkg in knownPackages) {
             try {
-                packageManager.getPackageInfo(pkg, 0)
+                context.packageManager.getPackageInfo(pkg, 0)
                 return true
             } catch (e: Exception) {
-                // Not found
             }
         }
         return false
     }
 
     private fun checkVpnActive(): Boolean {
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork ?: return false
         val caps = cm.getNetworkCapabilities(network) ?: return false
         return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
@@ -63,20 +53,24 @@ class MainActivity : FlutterActivity() {
             .replace(":", "")
             .replace(" ", "")
             .lowercase()
+
         if (expected.isBlank() || expected == "unset") return false
+
         return try {
             val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                packageManager.getPackageInfo(applicationContext.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             } else {
                 @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(applicationContext.packageName, PackageManager.GET_SIGNATURES)
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
             }
+
             val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners?.toList().orEmpty()
             } else {
                 @Suppress("DEPRECATION")
                 packageInfo.signatures?.toList().orEmpty()
             }
+
             signatures.any { signature: android.content.pm.Signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                 digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } == expected
@@ -106,7 +100,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call: io.flutter.plugin.common.MethodCall, result: io.flutter.plugin.common.MethodChannel.Result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
             when (call.method) {
                 "checkSecurity" -> {
                     val sniffer = checkSnifferOrProxy()

@@ -11,9 +11,13 @@ import io.flutter.embedding.android.FlutterActivity
 
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.embedding.engine.FlutterEngine
 import android.content.pm.Signature
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.embedding.engine.FlutterEngine
 import java.io.File
 import java.security.MessageDigest
 
@@ -62,10 +66,10 @@ class MainActivity : FlutterActivity() {
         if (expected.isBlank() || expected == "unset") return false
         return try {
             val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             } else {
                 @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+                packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
             }
             val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners?.toList().orEmpty()
@@ -100,7 +104,7 @@ class MainActivity : FlutterActivity() {
         return false
     }
 
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+    override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channel).setMethodCallHandler { call: io.flutter.plugin.common.MethodCall, result: io.flutter.plugin.common.MethodChannel.Result ->
             when (call.method) {

@@ -634,6 +634,7 @@ class _MainDashboardState extends State<MainDashboard> {
             )
           : null,
     );
+    );
   }
 
   Widget _buildReferenceDrawer(BuildContext context, IPTVProvider provider, bool showMoviesSeries) {

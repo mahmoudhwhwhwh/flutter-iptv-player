@@ -24,7 +24,7 @@ jobs:
           channel: stable
       - name: Install dependencies
         run: |
-          flutter create --platforms=android .
+          flutter create --platforms=android --org com.mahmoud --project-name flutter_iptv_player .
           flutter clean
           flutter pub get
       - name: Extract Version
@@ -32,7 +32,7 @@ jobs:
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           # Force a new tag
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final"
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final2"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"

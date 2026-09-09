@@ -24,6 +24,7 @@ jobs:
           channel: stable
       - name: Install dependencies
         run: |
+          flutter create --platforms=android .
           flutter clean
           flutter pub get
       - name: Extract Version
@@ -31,7 +32,7 @@ jobs:
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           # Force a new tag
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-build2"
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"

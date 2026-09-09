@@ -1,6 +1,6 @@
 {
   "app_name": "LIVE STREAM PREMIUM",
-  "app_version": "2.2.76",
+  "app_version": "2.2.77",
   "servers": [
     {
       "name": "مجاني دجلة 9",
@@ -112,7 +112,7 @@
   "default_xtream_user": "mejdoubnew_958581",
   "default_xtream_pass": "CHmNLjSr",
   "blocking": {
-    "min_version_code": 233,
+    "min_version_code": 277,
     "blocked_version_codes": [
       125,
       130,
@@ -120,17 +120,21 @@
       144,
       205,
       211,
-      212
+      212,
+      233,
+      234,
+      275,
+      276
     ],
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.34 للاستمرار."
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.77 للاستمرار."
   },
   "update": {
-    "latest_version": "v2.2.34",
-    "apk_url": "https://github.com/mahmoudhwhwhwh/live-stream-premium/releases/download/latest/LIVE_STREAM_PREMIUM.apk",
-    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.13. يرجى التحديث للحصول على دعم TV Box والتحكم المحسن والترجمة الفعلية."
+    "latest_version": "v2.2.77",
+    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.77-final7/LIVE_STREAM_PREMIUM-arm64.apk",
+    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
   },
-  "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.76/app-release.apk",
-  "update_message": "LIVE STREAM PREMIUM 2.2.75+275 متاح الآن. يضيف تحديث الإعدادات الداخلية دون إعادة تثبيت عند تغيّر السياسات والقوائم.",
-  "min_version_code": 276,
-  "block_message": "LIVE STREAM PREMIUM 2.2.75+275 متاح الآن. يضيف تحديث الإعدادات الداخلية دون إعادة تثبيت عند تغيّر السياسات والقوائم."
+  "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.77-final7/LIVE_STREAM_PREMIUM-arm64.apk",
+  "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة.",
+  "min_version_code": 277,
+  "block_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
 }

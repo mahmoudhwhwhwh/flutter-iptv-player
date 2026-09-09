@@ -31,7 +31,7 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
           app_name: "LIVE STREAM PREMIUM",
-          app_version: "2.2.34",
+          app_version: "2.2.77",
           disable_vpn_check: true,
           disable_sniffer_check: true,
           slider: sliderImages,
@@ -253,20 +253,20 @@ export default {
             }
           ],
           blocking: {
-            min_version_code: 234,
-            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.34 للاستمرار."
+            min_version_code: 277,
+            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234, 275, 276],
+            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.77 للاستمرار."
           },
           update: {
-            latest_version: "v2.2.34",
+            latest_version: "v2.2.77",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "نسخة جديدة متاحة (v2.2.34). يرجى التحديث الآن."
+            update_message: "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
           }
         });
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.34/LIVE_STREAM_PREMIUM.apk", 302);
+        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.77-final7/LIVE_STREAM_PREMIUM-arm64.apk", 302);
       }
 
       if (url.pathname === "/v1/login") {

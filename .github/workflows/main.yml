@@ -25,15 +25,21 @@ jobs:
       - name: Install dependencies
         run: |
           flutter create --platforms=android --org com.mahmoud --project-name flutter_iptv_player .
+          # Fix kotlin version
           sed -i 's/id "org.jetbrains.kotlin.android" version ".*" apply false/id "org.jetbrains.kotlin.android" version "1.9.22" apply false/' android/settings.gradle
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' android/build.gradle || true
+          
+          # Fix SDK version to 34 to avoid aapt2 error
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/' android/app/build.gradle || true
+          sed -i 's/compileSdk = .*/compileSdk = 34/' android/app/build.gradle || true
+          
           flutter clean
           flutter pub get
       - name: Extract Version
         id: version
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
-          # Force a new tag
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final6"
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final7"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"

@@ -32,7 +32,7 @@ jobs:
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
           # Force a new tag
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final2"
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final3"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"

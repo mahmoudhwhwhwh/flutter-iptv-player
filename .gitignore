@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Android developer local properties
+**/android/local.properties
+**/android/key.properties
+**/android/.gradle/
+**/android/.idea/

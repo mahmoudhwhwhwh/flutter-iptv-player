@@ -1,0 +1,52 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+      - name: Build Android APK (Split)
+        run: |
+          flutter build apk --release --split-per-abi
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk LIVE_STREAM_PREMIUM-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk LIVE_STREAM_PREMIUM-arm32.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk LIVE_STREAM_PREMIUM-x86_64.apk
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_VERSION }}
+          name: Release ${{ env.TAG_VERSION }}
+          files: |
+            LIVE_STREAM_PREMIUM-arm64.apk
+            LIVE_STREAM_PREMIUM-arm32.apk
+            LIVE_STREAM_PREMIUM-x86_64.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

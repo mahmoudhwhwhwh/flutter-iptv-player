@@ -23,15 +23,18 @@ jobs:
           flutter-version: '3.24.0'
           channel: stable
       - name: Install dependencies
-        run: flutter clean
-        flutter pub get
+        run: |
+          flutter clean
+          flutter pub get
       - name: Extract Version
         id: version
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
+          # Force a new tag
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-build2"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "Building version $VERSION (Tag: $TAG_VERSION)"
       - name: Build Android APK (Split)
         run: |
           flutter build apk --release --split-per-abi

@@ -211,10 +211,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                                 width: 55,
                                                 height: 55,
                                                 errorBuilder: (context, error, stackTrace) =>
-                                                    const Icon(Icons.sports_shield, size: 55, color: Colors.grey),
+                                                    const Icon(Icons.shield, size: 55, color: Colors.grey),
                                               )
                                             else
-                                              const Icon(Icons.sports_shield, size: 55, color: Colors.grey),
+                                              const Icon(Icons.shield, size: 55, color: Colors.grey),
                                             const SizedBox(height: 8),
                                             Text(
                                               match['team_a'] ?? '',
@@ -256,10 +256,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                                 width: 55,
                                                 height: 55,
                                                 errorBuilder: (context, error, stackTrace) =>
-                                                    const Icon(Icons.sports_shield, size: 55, color: Colors.grey),
+                                                    const Icon(Icons.shield, size: 55, color: Colors.grey),
                                               )
                                             else
-                                              const Icon(Icons.sports_shield, size: 55, color: Colors.grey),
+                                              const Icon(Icons.shield, size: 55, color: Colors.grey),
                                             const SizedBox(height: 8),
                                             Text(
                                               match['team_b'] ?? '',
@@ -306,7 +306,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                   ),
                                 ],
                               ),
-                            );
+                            ),
+                          );
                         },
                       ),
       ),

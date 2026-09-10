@@ -77,6 +77,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   final FocusNode _firstButtonFocusNode = FocusNode();
   int? _selectedVirtualBitrate;
   int _lastPlayerSettingsVersion = -1;
+  int _activeInitializationId = 0;
   
   // Position tracker
   Duration _currentPosition = Duration.zero;
@@ -333,6 +334,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _initializeController({bool isRetry = false}) async {
+    final myId = ++_activeInitializationId;
     _selectedAsmsTrack = null;
     int? savedPosition;
     if (widget.stream.type != 'live') {
@@ -492,12 +494,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final uri = Uri.parse(finalUrl);
     final path = uri.path.toLowerCase();
     
+    if (myId != _activeInitializationId) return;
     
-      if (_betterController != null) {
-        _betterController!.pause();
-        _betterController!.dispose();
-        _betterController = null;
-      }
+    if (_betterController != null) {
+      _betterController!.pause();
+      _betterController!.dispose();
+      _betterController = null;
+    }
       
       BetterPlayerVideoFormat? format;
       if (path.endsWith('.m3u8') || urlStr.toLowerCase().contains('.m3u8')) {
@@ -553,9 +556,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       );
       
       newBetterController.addEventsListener((BetterPlayerEvent event) {
+        if (myId != _activeInitializationId) {
+          newBetterController.dispose();
+          return;
+        }
         if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
           if (mounted) {
             setState(() {
+              if (myId != _activeInitializationId) {
+                newBetterController.dispose();
+                return;
+              }
               if (_betterController != null && _betterController != newBetterController) {
                   _betterController!.pause();
                   _betterController!.dispose();
@@ -593,6 +604,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             });
           }
         } else if (event.betterPlayerEventType == BetterPlayerEventType.exception) {
+          if (myId != _activeInitializationId) {
+            newBetterController.dispose();
+            return;
+          }
           final errorMessage = event.parameters?["message"] ?? "Playback failure";
           debugPrint("BetterPlayer exception: $errorMessage");
           _handlePlaybackError(errorMessage);

@@ -494,6 +494,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     
     
       if (_betterController != null) {
+        _betterController!.pause();
         _betterController!.dispose();
         _betterController = null;
       }
@@ -556,6 +557,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           if (mounted) {
             setState(() {
               if (_betterController != null && _betterController != newBetterController) {
+                  _betterController!.pause();
                   _betterController!.dispose();
               }
               _betterController = newBetterController;
@@ -743,6 +745,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }).catchError((_) {});
 
     if (_betterController != null) {
+      _betterController!.pause();
       _betterController!.dispose();
     }
     super.dispose();
@@ -781,6 +784,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _reconnectTimer?.cancel();
     
     if (_betterController != null) {
+      _betterController!.pause();
       _betterController!.dispose();
       _betterController = null;
     }

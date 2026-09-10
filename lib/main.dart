@@ -16,6 +16,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
+import 'screens/news_screen.dart';
+import 'screens/matches_screen.dart';
 import 'models/playlist_item.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1031,6 +1033,17 @@ class _HomeTabState extends State<HomeTab> {
             Padding(
               padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
               child: _buildQuickAccessRow(context),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: _buildSportsButton(context, Icons.sports_soccer, "جدول المباريات", "MATCHES", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchesScreen())))),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildSportsButton(context, Icons.article, "الأخبار الرياضية", "NEWS", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen())))),
+                ],
+              ),
             ),
             _buildReferenceSection(
               context: context,

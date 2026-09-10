@@ -906,7 +906,7 @@ class IPTVProvider with ChangeNotifier {
       final configUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/config?t=${DateTime.now().millisecondsSinceEpoch}");
       final configRes = await http.get(configUrl).timeout(const Duration(seconds: 15));
       
-      String host = "http://fh.u2i9o.top:80";
+      String host = "http://fh.u2i9o.top:80"; // Default fallback
       String user = cleanCode;
       String pass = cleanCode;
       int durationHours = -1;

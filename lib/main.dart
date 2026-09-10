@@ -1083,6 +1083,30 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+
+  Widget _buildSportsButton(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap) {
+    return ScaleOnFocus(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.22)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+            const SizedBox(height: 8),
+            Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            Text(title, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickAccessRow(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final surface = Theme.of(context).colorScheme.surface;

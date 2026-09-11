@@ -34,8 +34,13 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Build Android APK (Split)
+      - name: Build Android APK (Unified and Split)
         run: |
+          # Build Unified APK (All Architectures, ~58MB)
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM.apk
+          
+          # Build Split APKs (Specific Architectures, ~22MB)
           flutter build apk --release --split-per-abi
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk LIVE_STREAM_PREMIUM-arm64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk LIVE_STREAM_PREMIUM-arm32.apk
@@ -46,6 +51,7 @@ jobs:
           tag_name: ${{ env.TAG_VERSION }}
           name: Release ${{ env.TAG_VERSION }}
           files: |
+            LIVE_STREAM_PREMIUM.apk
             LIVE_STREAM_PREMIUM-arm64.apk
             LIVE_STREAM_PREMIUM-arm32.apk
             LIVE_STREAM_PREMIUM-x86_64.apk

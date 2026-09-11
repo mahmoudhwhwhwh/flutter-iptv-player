@@ -266,7 +266,7 @@ export default {
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78-final7/LIVE_STREAM_PREMIUM-arm64.apk", 302);
+        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78-final7/LIVE_STREAM_PREMIUM.apk", 302);
       }
 
       if (url.pathname === "/v1/login") {

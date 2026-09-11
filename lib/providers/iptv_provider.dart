@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'main_menu_data.dart';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:io';
@@ -892,6 +891,12 @@ class IPTVProvider with ChangeNotifier {
       return false;
     }
 
+    // 2027 is a Cloudflare-managed menu subscription. It must never be
+    // accepted locally or resolved through the public /config payload.
+    if (cleanCode == "2027") {
+      return _loginCloudflareMenuCode();
+    }
+
     // تحقق إضافي قبل الاتصال
     await _checkVpnAndProxyStatus();
     if (_vpnDetected) {
@@ -1121,6 +1126,87 @@ class IPTVProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return false;
+  }
+
+  Future<bool> _loginCloudflareMenuCode() async {
+    await _checkVpnAndProxyStatus();
+    if (_vpnDetected) {
+      lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة";
+      return false;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final deviceId = await _getDeviceId();
+      final response = await http.post(
+        Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'code': '2027',
+          'device_id': deviceId,
+          'version_code': _currentVersionCode,
+        }),
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        lastError = "رمز الدخول غير صالح أو غير مصرح به";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      if (payload['ok'] != true || payload['user'] is! Map) {
+        lastError = payload['message']?.toString() ?? "رمز الدخول غير صالح";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final user = Map<String, dynamic>.from(payload['user'] as Map);
+      final expiresAt = DateTime.tryParse(user['expires_at']?.toString() ?? '');
+      final durationHours = expiresAt == null
+          ? -1
+          : expiresAt.difference(DateTime.now()).inHours;
+      if (expiresAt != null && !expiresAt.isAfter(DateTime.now())) {
+        lastError = "انتهت صلاحية الاشتراك";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final list = UserPlaylist(
+        id: 'custom_2027',
+        name: _appName,
+        type: 'custom',
+      );
+      await prefs.setString('active_code', '2027');
+      await prefs.setInt('active_code_activated_at', nowMs);
+      await prefs.setInt('active_code_duration_hours', durationHours);
+      await prefs.setString('active_code_sub_name', 'اشتراك 2027');
+      await prefs.setString('saved_playlists', jsonEncode([list.toJson()]));
+      await prefs.setBool('show_welcome_after_login', true);
+      await prefs.setBool('is_logged_in', true);
+
+      _activationCode = '2027';
+      _activationTime = nowMs;
+      _activationDurationHours = durationHours;
+      _subscriptionType = 'اشتراك 2027';
+      _savedPlaylists = [list];
+      _activePlaylistId = list.id;
+      _isLoggedIn = true;
+      _isLoading = false;
+      notifyListeners();
+      await loadPlaylistStreams(list.id);
+      return true;
+    } catch (e) {
+      lastError = "تعذر الاتصال بخادم Cloudflare";
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> loadPlaylistStreams(String id) async {

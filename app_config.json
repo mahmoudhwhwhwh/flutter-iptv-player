@@ -126,15 +126,15 @@
       275,
       276
     ],
-    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.77 للاستمرار."
+    "block_message": "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.79 للاستمرار."
   },
   "update": {
-    "latest_version": "v2.2.77",
-    "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.77-final7/LIVE_STREAM_PREMIUM-arm64.apk",
-    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
+    "latest_version": "v2.2.79",
+    "apk_url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
+    "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.79 الاستثنائي بميزات جديدة: مشغل داخلي متطور، واجهة إعدادات متميزة باللغة العربية، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
   },
-  "apk_url": "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.77-final7/LIVE_STREAM_PREMIUM-arm64.apk",
-  "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة.",
-  "min_version_code": 277,
-  "block_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.77 الاستثنائي بميزات جديدة: مشغل داخلي متطور (ExoPlayer + libVLC)، واجهة إعدادات متميزة باللغة العربية، إبقاء الشاشة مضاءة أثناء البث، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
+  "apk_url": "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
+  "update_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.79 الاستثنائي بميزات جديدة: مشغل داخلي متطور، واجهة إعدادات متميزة باللغة العربية، ودعم كامل لقنوات 2027 والاشتراكات الجديدة.",
+  "min_version_code": 279,
+  "block_message": "يتوفر الآن LIVE STREAM PREMIUM v2.2.79 الاستثنائي بميزات جديدة: مشغل داخلي متطور، واجهة إعدادات متميزة باللغة العربية، ودعم كامل لقنوات 2027 والاشتراكات الجديدة."
 }

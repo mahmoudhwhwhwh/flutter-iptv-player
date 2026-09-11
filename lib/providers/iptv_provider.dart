@@ -877,6 +877,95 @@ class IPTVProvider with ChangeNotifier {
   String get updateMessage => _updateMessage;
 
 
+  Future<bool> _loginViaCloudflareD1(String cleanCode) async {
+    await _checkVpnAndProxyStatus();
+    if (_vpnDetected) {
+      lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة";
+      return false;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final deviceId = await _getDeviceId();
+      final response = await http.post(
+        Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'code': cleanCode,
+          'device_id': deviceId,
+          'version_code': _currentVersionCode,
+        }),
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body);
+        lastError = body is Map ? (body['message']?.toString() ?? "رمز الدخول غير صالح") : "رمز الدخول غير صالح";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      if (payload['ok'] != true || payload['user'] is! Map) {
+        lastError = payload['message']?.toString() ?? "رمز الدخول غير صالح";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final userData = Map<String, dynamic>.from(payload['user'] as Map);
+      final host = (userData['host'] ?? '').toString().trim();
+      final username = (userData['username'] ?? '').toString();
+      final password = (userData['password'] ?? '').toString();
+      final serverType = (userData['server_type'] ?? 'xtream').toString();
+      if (host.isEmpty || username.isEmpty || (serverType != 'stalker' && password.isEmpty)) {
+        lastError = "بيانات الاشتراك غير مكتملة";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final expiry = DateTime.tryParse(userData['expires_at']?.toString() ?? '');
+      if (expiry != null && !expiry.isAfter(DateTime.now())) {
+        lastError = "انتهت صلاحية الاشتراك";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      final durationHours = expiry == null ? -1 : expiry.difference(DateTime.now()).inHours;
+      final pType = serverType == 'stalker' ? 'stalker' : 'xtream';
+      final list = UserPlaylist(
+        id: "${pType}_$cleanCode",
+        name: _appName,
+        type: pType,
+        host: host,
+        username: username,
+        password: pType == 'stalker' ? '' : password,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setString('active_code', cleanCode);
+      await prefs.setInt('active_code_activated_at', nowMs);
+      await prefs.setInt('active_code_duration_hours', durationHours);
+      await prefs.setString('active_code_sub_name', "اشتراك $cleanCode");
+      await prefs.setString('saved_playlists', json.encode([list.toJson()]));
+      await prefs.setBool('show_welcome_after_login', true);
+      await prefs.setBool('is_logged_in', true);
+      _activationCode = cleanCode;
+      _activationTime = nowMs;
+      _activationDurationHours = durationHours;
+      _subscriptionType = "اشتراك $cleanCode";
+      _savedPlaylists = [list];
+      _activePlaylistId = list.id;
+      _isLoggedIn = true;
+      _isLoading = false;
+      notifyListeners();
+      await loadPlaylistStreams(list.id);
+      return true;
+    } catch (e) {
+      lastError = "تعذر الاتصال بخادم الاشتراك";
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> loginWithCode(String code) async {
     lastError = null;
     String cleanCode = code.trim();
@@ -897,7 +986,11 @@ class IPTVProvider with ChangeNotifier {
       return _loginCloudflareMenuCode();
     }
 
-    // تحقق إضافي قبل الاتصال
+    // All non-2027 subscriptions are authenticated by Cloudflare D1.
+    // Do not fetch credentials from the public /config endpoint.
+    return _loginViaCloudflareD1(cleanCode);
+
+    // Legacy path retained below for source compatibility only.
     await _checkVpnAndProxyStatus();
     if (_vpnDetected) {
       lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة";

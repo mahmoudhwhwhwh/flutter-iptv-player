@@ -266,7 +266,45 @@ export default {
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78-final7/LIVE_STREAM_PREMIUM.apk", 302);
+        const apkUrl = "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78-final7/LIVE_STREAM_PREMIUM.apk";
+        try {
+          const response = await fetch(apkUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            }
+          });
+          
+          let finalResponse = response;
+          if (response.status === 301 || response.status === 302) {
+            const redirectUrl = response.headers.get("Location");
+            if (redirectUrl) {
+              finalResponse = await fetch(redirectUrl);
+            }
+          }
+
+          const newHeaders = new Headers();
+          // Copy content headers safely
+          const headersToCopy = ["content-type", "content-length", "content-disposition", "cache-control"];
+          for (const h of headersToCopy) {
+            if (finalResponse.headers.has(h)) {
+              newHeaders.set(h, finalResponse.headers.get(h));
+            }
+          }
+          newHeaders.set("Access-Control-Allow-Origin", "*");
+          if (!newHeaders.has("content-type")) {
+            newHeaders.set("content-type", "application/vnd.android.package-archive");
+          }
+          if (!newHeaders.has("content-disposition")) {
+            newHeaders.set("content-disposition", 'attachment; filename="LIVE_STREAM_PREMIUM.apk"');
+          }
+
+          return new Response(finalResponse.body, {
+            status: finalResponse.status,
+            headers: newHeaders,
+          });
+        } catch (err) {
+          return Response.redirect(apkUrl, 302);
+        }
       }
 
       if (url.pathname === "/v1/login") {

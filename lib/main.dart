@@ -2173,21 +2173,84 @@ class DynamicSectionsWidget extends StatelessWidget {
 
     // Custom JSON Sections (Code 2027)
     final cats = provider.liveCategories;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 2 : 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: isMobile ? 1.4 : 1.6,
-      ),
-      itemCount: cats.length,
-      itemBuilder: (context, index) {
-        final section = cats[index];
+    return Column(
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isMobile ? 2 : 4,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: isMobile ? 1.4 : 1.6,
+          ),
+          itemCount: cats.length + 2,
+          itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildExternalCard(
+            context,
+            'موقع KDTV',
+            Icons.language,
+            const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+            isMobile,
+            'https://kdtv.pages.dev/',
+          );
+        }
+        if (index == 1) {
+          return _buildExternalCard(
+            context,
+            'قناة التليگرام',
+            Icons.telegram_rounded,
+            const [Color(0xFF0EA5E9), Color(0xFF0369A1)],
+            isMobile,
+            'https://t.me/+f9NsIzGjN_hjYWRi',
+          );
+        }
+        final categoryIndex = index - 2;
+        final section = cats[categoryIndex];
         final title = section['category_name'] ?? 'Section';
-        return _buildDynamicCard(context, title, _getIconForCategory(title), _getColorForCategory(title, index), isMobile, section);
+          return _buildDynamicCard(context, title, _getIconForCategory(title), _getColorForCategory(title, categoryIndex), isMobile, section);
+        },
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 14, bottom: 4),
+          child: Text(
+            '© LIVE STREAM PRO — جميع الحقوق محفوظة',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExternalCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Color> gradient,
+    bool isMobile,
+    String url,
+  ) {
+    return ScaleOnFocus(
+      onTap: () async {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: gradient[0].withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: isMobile ? 24 : 32, color: Colors.white),
+            SizedBox(height: isMobile ? 4 : 8),
+            Text(title, style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold, color: Colors.white)),
+          ],
+        ),
+      ),
     );
   }
 

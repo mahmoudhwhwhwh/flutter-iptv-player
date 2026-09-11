@@ -41,7 +41,7 @@ dependencies:
   # Firebase Analytics & Monitoring
   firebase_core: ^2.31.0
   firebase_analytics: ^10.10.4
-  flutter_secure_storage: ^10.3.2
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:

@@ -1017,10 +1017,9 @@ class _HomeTabState extends State<HomeTab> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final liveItems = provider.allStreams
         .where((item) => item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
-        .take(12)
         .toList();
-    final movieItems = provider.allStreams.where((item) => item.type == 'movie').take(12).toList();
-    final seriesItems = provider.allStreams.where((item) => item.type == 'series').take(12).toList();
+    final movieItems = provider.allStreams.where((item) => item.type == 'movie').toList();
+    final seriesItems = provider.allStreams.where((item) => item.type == 'series').toList();
 
     return Container(
       color: Theme.of(context).colorScheme.background,

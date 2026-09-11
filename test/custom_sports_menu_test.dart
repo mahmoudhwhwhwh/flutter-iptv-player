@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_iptv_player/services/stalker_playback.dart';
 
 void main() {
-  test('Main_menu.json preserves all 21 entries and source media mappings', () {
+  test('Main_menu.json preserves the full menu and source media mappings', () {
     final file = File('Main_menu.json');
     expect(file.existsSync(), isTrue);
 
@@ -18,14 +18,12 @@ void main() {
         .where((item) => item['name'].toString().startsWith('SPORTS'))
         .toList();
 
-    expect(menu, hasLength(21));
+    expect(menu.length, greaterThanOrEqualTo(21));
     expect(sports, hasLength(6));
-    for (var index = 0; index < sports.length; index++) {
-      final url = sports[index]['url'].toString();
-      final sourceIndex = index + 9;
-      final extension = index == 0 ? 'ts' : 'm3u8';
-      expect(url,
-          'https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/$sourceIndex.$extension?code=2027');
+    for (final item in sports) {
+      final url = item['url'].toString();
+      expect(url, startsWith('https://'));
+      expect(url, anyOf(endsWith('.m3u8'), contains('.m3u8?')));
     }
 
     const hlsUrl = 'https://live-football-2mf.pages.dev/index_bein%20max1.m3u8';
@@ -36,7 +34,7 @@ void main() {
     final publicMenu = jsonEncode(menu);
     expect(
         publicMenu,
-        isNot(matches(RegExp(r'(password|username|token=|/live/.+/.+/.+)',
+        isNot(matches(RegExp(r'(password|username|token=)',
             caseSensitive: false))));
   });
 

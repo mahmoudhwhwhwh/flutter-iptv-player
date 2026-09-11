@@ -266,7 +266,7 @@ export default {
       }
 
       if (url.pathname === "/v1/download") {
-        const apkUrl = "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78-final7/LIVE_STREAM_PREMIUM.apk";
+        const apkUrl = "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.78/LIVE_STREAM_PREMIUM.apk";
         try {
           const response = await fetch(apkUrl, {
             headers: {

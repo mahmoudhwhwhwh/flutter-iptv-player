@@ -40,7 +40,7 @@ export default {
           // Non-forced update policy: compatible older builds keep working.
           // The app still receives latest_version and apk_url as an update hint.
           blocking: {
-            min_version_code: 0,
+            min_version_code: 280,
             blocked_version_codes: [],
             block_message: ""
           },

@@ -31,7 +31,7 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
           app_name: "LIVE STREAM PREMIUM",
-          app_version: "2.2.79",
+          app_version: "2.2.81",
           disable_vpn_check: true,
           disable_sniffer_check: true,
           slider: sliderImages,

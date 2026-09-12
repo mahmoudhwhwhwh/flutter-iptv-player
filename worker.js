@@ -17,6 +17,8 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    // Reversible service shutdown: preserve code and data while disabling every endpoint.
+    return respond({ ok: false, message: "الخدمة متوقفة مؤقتاً" }, 410);
     if (!env.DB) return respond({ ok: false, message: "Database binding missing" }, 503);
     try {
       let versionCode = parseInt(url.searchParams.get("vc")) || 0;

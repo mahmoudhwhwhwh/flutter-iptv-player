@@ -37,10 +37,12 @@ export default {
           slider: sliderImages,
           // Credentials are never exposed from the public config endpoint.
           servers: [],
+          // Non-forced update policy: compatible older builds keep working.
+          // The app still receives latest_version and apk_url as an update hint.
           blocking: {
-            min_version_code: 279,
-            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234, 277, 278],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.79 للاستمرار."
+            min_version_code: 0,
+            blocked_version_codes: [],
+            block_message: ""
           },
           update: {
             latest_version: "v2.2.80",

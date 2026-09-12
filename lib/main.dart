@@ -2105,8 +2105,6 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
 
 
 // -----------------------------------------------------------------------------
-// DYNAMIC SECTIONS WIDGET (Main_menu.json support for 2027)
-// -----------------------------------------------------------------------------
 class DynamicSectionsWidget extends StatelessWidget {
   const DynamicSectionsWidget({super.key});
 
@@ -2142,7 +2140,7 @@ class DynamicSectionsWidget extends StatelessWidget {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
 
-    if (provider.activationCode != "2027" || provider.liveCategories.isEmpty) {
+    if (true || provider.liveCategories.isEmpty) {
       // Default Sections
       final showMoviesSeries = provider.showMoviesSeries;
       final List<Widget> staticCards = [
@@ -2171,57 +2169,6 @@ class DynamicSectionsWidget extends StatelessWidget {
       }
     }
 
-    // Custom JSON Sections (Code 2027)
-    final cats = provider.liveCategories;
-    return Column(
-      children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isMobile ? 2 : 4,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: isMobile ? 1.4 : 1.6,
-          ),
-          itemCount: cats.length + 2,
-          itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildExternalCard(
-            context,
-            'موقع KDTV',
-            Icons.language,
-            const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-            isMobile,
-            'https://kdtv.pages.dev/',
-          );
-        }
-        if (index == 1) {
-          return _buildExternalCard(
-            context,
-            'قناة التليگرام',
-            Icons.telegram_rounded,
-            const [Color(0xFF0EA5E9), Color(0xFF0369A1)],
-            isMobile,
-            'https://t.me/+f9NsIzGjN_hjYWRi',
-          );
-        }
-        final categoryIndex = index - 2;
-        final section = cats[categoryIndex];
-        final title = section['category_name'] ?? 'Section';
-          return _buildDynamicCard(context, title, _getIconForCategory(title), _getColorForCategory(title, categoryIndex), isMobile, section);
-        },
-        ),
-        const Padding(
-          padding: EdgeInsets.only(top: 14, bottom: 4),
-          child: Text(
-            '© LIVE STREAM PRO — جميع الحقوق محفوظة',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _buildExternalCard(

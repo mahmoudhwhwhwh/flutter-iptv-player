@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'main_menu_data.dart';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:io';
@@ -650,7 +651,7 @@ class IPTVProvider with ChangeNotifier {
           }
         }
 
-        if (_isLoggedIn && _activationCode.isNotEmpty && _activationCode != "2026" && _activationCode != "" && _activationCode != "69743190") {
+        if (_isLoggedIn && _activationCode.isNotEmpty && _activationCode != "2026" && _activationCode != "2027" && _activationCode != "69743190") {
             final users = configData['users'] as Map<String, dynamic>? ?? {};
             final servers = configData['servers'] as List<dynamic>? ?? [];
             bool found = false;
@@ -877,95 +878,6 @@ class IPTVProvider with ChangeNotifier {
   String get updateMessage => _updateMessage;
 
 
-  Future<bool> _loginViaCloudflareD1(String cleanCode) async {
-    await _checkVpnAndProxyStatus();
-    if (_vpnDetected) {
-      lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة";
-      return false;
-    }
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final deviceId = await _getDeviceId();
-      final response = await http.post(
-        Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/login"),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'code': cleanCode,
-          'device_id': deviceId,
-          'version_code': _currentVersionCode,
-        }),
-      ).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        final body = jsonDecode(response.body);
-        lastError = body is Map ? (body['message']?.toString() ?? "رمز الدخول غير صالح") : "رمز الدخول غير صالح";
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      final payload = jsonDecode(response.body) as Map<String, dynamic>;
-      if (payload['ok'] != true || payload['user'] is! Map) {
-        lastError = payload['message']?.toString() ?? "رمز الدخول غير صالح";
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      final userData = Map<String, dynamic>.from(payload['user'] as Map);
-      final host = (userData['host'] ?? '').toString().trim();
-      final username = (userData['username'] ?? '').toString();
-      final password = (userData['password'] ?? '').toString();
-      final serverType = (userData['server_type'] ?? 'xtream').toString();
-      if (host.isEmpty || username.isEmpty || (serverType != 'stalker' && password.isEmpty)) {
-        lastError = "بيانات الاشتراك غير مكتملة";
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      final expiry = DateTime.tryParse(userData['expires_at']?.toString() ?? '');
-      if (expiry != null && !expiry.isAfter(DateTime.now())) {
-        lastError = "انتهت صلاحية الاشتراك";
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      final durationHours = expiry == null ? -1 : expiry.difference(DateTime.now()).inHours;
-      final pType = serverType == 'stalker' ? 'stalker' : 'xtream';
-      final list = UserPlaylist(
-        id: "${pType}_$cleanCode",
-        name: _appName,
-        type: pType,
-        host: host,
-        username: username,
-        password: pType == 'stalker' ? '' : password,
-      );
-      final prefs = await SharedPreferences.getInstance();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      await prefs.setString('active_code', cleanCode);
-      await prefs.setInt('active_code_activated_at', nowMs);
-      await prefs.setInt('active_code_duration_hours', durationHours);
-      await prefs.setString('active_code_sub_name', "اشتراك $cleanCode");
-      await prefs.setString('saved_playlists', json.encode([list.toJson()]));
-      await prefs.setBool('show_welcome_after_login', true);
-      await prefs.setBool('is_logged_in', true);
-      _activationCode = cleanCode;
-      _activationTime = nowMs;
-      _activationDurationHours = durationHours;
-      _subscriptionType = "اشتراك $cleanCode";
-      _savedPlaylists = [list];
-      _activePlaylistId = list.id;
-      _isLoggedIn = true;
-      _isLoading = false;
-      notifyListeners();
-      await loadPlaylistStreams(list.id);
-      return true;
-    } catch (e) {
-      lastError = "تعذر الاتصال بخادم الاشتراك";
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
   Future<bool> loginWithCode(String code) async {
     lastError = null;
     String cleanCode = code.trim();
@@ -980,11 +892,7 @@ class IPTVProvider with ChangeNotifier {
       return false;
     }
 
-    // Subscriptions are authenticated by Cloudflare D1.
-    // Do not fetch credentials from the public /config endpoint.
-    return _loginViaCloudflareD1(cleanCode);
-
-    // Legacy path retained below for source compatibility only.
+    // تحقق إضافي قبل الاتصال
     await _checkVpnAndProxyStatus();
     if (_vpnDetected) {
       lastError = "يرجى إيقاف الـ VPN أو البروكسي قبل المتابعة";
@@ -1026,7 +934,7 @@ class IPTVProvider with ChangeNotifier {
             bool userFound = false;
             dynamic userData = {};
             
-            if (cleanCode != "") {
+            if (cleanCode != "2027") {
                // First check in root users
                if (users.containsKey(cleanCode)) {
                    userFound = true;
@@ -1123,7 +1031,7 @@ class IPTVProvider with ChangeNotifier {
       bool isAuthenticated = false;
       String pType = pass == 'stalker' ? 'stalker' : 'xtream';
       
-      if (cleanCode == "") {
+      if (cleanCode == "2027") {
          isAuthenticated = true;
       } else if (pType == 'stalker') {
          try {
@@ -1227,7 +1135,8 @@ class IPTVProvider with ChangeNotifier {
     }
     _activePlaylistId = id;
 
-    try {
+    if (_activationCode == "2027") {
+       try {
             final menuUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/menu?t=${DateTime.now().millisecondsSinceEpoch}");
             final menuRes = await http.get(menuUrl).timeout(const Duration(seconds: 15));
             final String rawJson = menuRes.statusCode == 200 ? menuRes.body : '[]';
@@ -1485,86 +1394,91 @@ class IPTVProvider with ChangeNotifier {
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
         
-        // Fetch VOD and Series
-        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).then((vodCatsRes) async {
-           if (vodCatsRes.statusCode == 200) {
+        // Fetch VOD and Series in parallel with robust error boundaries
+        final List<Future<void>> futures = [];
+
+        futures.add(Future(() async {
+          try {
+            final vodCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_categories")).timeout(const Duration(seconds: 15));
+            if (vodCatsRes.statusCode == 200) {
               final List decoded = await Isolate.run(() => json.decode(vodCatsRes.body));
               final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {
                 'category_id': item['category_id']?.toString() ?? '',
                 'category_name': item['category_name']?.toString() ?? '',
               }).toList();
-              // اعتراض وتصفية فئات الأفلام
               _movieCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
-           }
-           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).then((vodStreamsRes) async {
-              if (vodStreamsRes.statusCode == 200) {
-                final List decoded = await Isolate.run(() => json.decode(vodStreamsRes.body));
-                List<PlaylistItem> tempMovies = [];
-                for (final item in decoded) {
-                  final catId = item['category_id']?.toString() ?? '';
-                  final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                  final catName = cat.isNotEmpty ? cat['category_name']! : 'أفلام';
-                  final streamId = item['stream_id']?.toString() ?? '';
-                  final container = item['container_extension']?.toString() ?? 'mp4';
-                  tempMovies.add(PlaylistItem(
-                    num: item['num'] is int ? item['num'] : null,
-                    streamId: "movie_$streamId",
-                    name: item['name']?.toString() ?? '',
-                    streamIcon: item['stream_icon']?.toString() ?? '',
-                    categoryId: catId,
-                    categoryName: catName,
-                    url: "$host/movie/$user/$pass/$streamId.$container",
-                    type: "movie",
-                  ));
-                }
-                // اعتراض وتصفية قنوات الأفلام
-                final filteredMovies = FilterService.interceptAndFilterStreams(tempMovies, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-                _allStreams.addAll(filteredMovies);
-              }
-              _applyFilters();
-              notifyListeners();
-           });
-        });
+            }
 
-        http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).then((seriesCatsRes) async {
-           if (seriesCatsRes.statusCode == 200) {
+            final vodStreamsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_vod_streams")).timeout(const Duration(seconds: 25));
+            if (vodStreamsRes.statusCode == 200) {
+              final List decoded = await Isolate.run(() => json.decode(vodStreamsRes.body));
+              List<PlaylistItem> tempMovies = [];
+              for (final item in decoded) {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _movieCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+                final catName = cat.isNotEmpty ? cat['category_name']! : 'أفلام';
+                final streamId = item['stream_id']?.toString() ?? '';
+                final container = item['container_extension']?.toString() ?? 'mp4';
+                tempMovies.add(PlaylistItem(
+                  num: item['num'] is int ? item['num'] : null,
+                  streamId: "movie_$streamId",
+                  name: item['name']?.toString() ?? '',
+                  streamIcon: item['stream_icon']?.toString() ?? '',
+                  categoryId: catId,
+                  categoryName: catName,
+                  url: "$host/movie/$user/$pass/$streamId.$container",
+                  type: "movie",
+                ));
+              }
+              final filteredMovies = FilterService.interceptAndFilterStreams(tempMovies, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+              _allStreams.addAll(filteredMovies);
+            }
+          } catch (e) {
+            debugPrint("Xtream VOD loading failed: $e");
+          }
+        }));
+
+        futures.add(Future(() async {
+          try {
+            final seriesCatsRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series_categories")).timeout(const Duration(seconds: 15));
+            if (seriesCatsRes.statusCode == 200) {
               final List decoded = await Isolate.run(() => json.decode(seriesCatsRes.body));
               final List<Map<String, String>> parsedCats = decoded.map<Map<String, String>>((item) => {
                 'category_id': item['category_id']?.toString() ?? '',
                 'category_name': item['category_name']?.toString() ?? '',
               }).toList();
-              // اعتراض وتصفية فئات المسلسلات
               _seriesCategories = FilterService.interceptAndFilterCategories(parsedCats, blockAdult: _blockAdultContent);
-           }
-           http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).then((seriesRes) async {
-              if (seriesRes.statusCode == 200) {
-                final List decoded = await Isolate.run(() => json.decode(seriesRes.body));
-                List<PlaylistItem> tempSeries = [];
-                for (final item in decoded) {
-                  final catId = item['category_id']?.toString() ?? '';
-                  final cat = _seriesCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-                  final catName = cat.isNotEmpty ? cat['category_name']! : 'مسلسلات';
-                  final streamId = item['series_id']?.toString() ?? '';
-                  tempSeries.add(PlaylistItem(
-                    num: item['num'] is int ? item['num'] : null,
-                    streamId: "series_$streamId",
-                    name: item['name']?.toString() ?? '',
-                    streamIcon: item['cover']?.toString() ?? '',
-                    categoryId: catId,
-                    categoryName: catName,
-                    url: "$host/series/$user/$pass/$streamId.mp4",
-                    type: "series",
-                  ));
-                }
-                // اعتراض وتصفية قنوات المسلسلات
-                final filteredSeries = FilterService.interceptAndFilterStreams(tempSeries, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
-                _allStreams.addAll(filteredSeries);
-              }
-              _applyFilters();
-              notifyListeners();
-           });
-        });
+            }
 
+            final seriesRes = await http.get(Uri.parse("$host/player_api.php?username=$user&password=$pass&action=get_series")).timeout(const Duration(seconds: 25));
+            if (seriesRes.statusCode == 200) {
+              final List decoded = await Isolate.run(() => json.decode(seriesRes.body));
+              List<PlaylistItem> tempSeries = [];
+              for (final item in decoded) {
+                final catId = item['category_id']?.toString() ?? '';
+                final cat = _seriesCategories.firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+                final catName = cat.isNotEmpty ? cat['category_name']! : 'مسلسلات';
+                final streamId = item['series_id']?.toString() ?? '';
+                tempSeries.add(PlaylistItem(
+                  num: item['num'] is int ? item['num'] : null,
+                  streamId: "series_$streamId",
+                  name: item['name']?.toString() ?? '',
+                  streamIcon: item['cover']?.toString() ?? '',
+                  categoryId: catId,
+                  categoryName: catName,
+                  url: "$host/series/$user/$pass/$streamId.mp4",
+                  type: "series",
+                ));
+              }
+              final filteredSeries = FilterService.interceptAndFilterStreams(tempSeries, blockAdult: _blockAdultContent, channelFilter: _channelFilter);
+              _allStreams.addAll(filteredSeries);
+            }
+          } catch (e) {
+            debugPrint("Xtream Series loading failed: $e");
+          }
+        }));
+
+        await Future.wait(futures);
       }
     } catch (e) {
       debugPrint("Streams could not be loaded");
@@ -1658,6 +1572,10 @@ class IPTVProvider with ChangeNotifier {
       if (_activeTab != "favorites") {
         if (_activeTab == "live") {
           if (stream.type != "live" && stream.type != "stalker") return false;
+        } else if (_activeTab == "movie") {
+          if (stream.type != "movie" && stream.type != "stalker_movie") return false;
+        } else if (_activeTab == "series") {
+          if (stream.type != "series" && stream.type != "stalker_series") return false;
         } else {
           if (stream.type != _activeTab) return false;
         }

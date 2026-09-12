@@ -228,14 +228,7 @@ class FilterService {
         return false;
       }
 
-      // 2. Apply channel filters only to Live/channel entries. Movies and
-      // Series belong to their own content tabs and must remain visible.
-      final isChannelEntry = stream.type == 'live' ||
-          stream.type == 'channel' ||
-          stream.type.isEmpty;
-      if (!isChannelEntry) return true;
-
-      // 3. تطبيق تصفية القنوات (الإقليمية والموضوعية)
+      // 2. تطبيق تصفية القنوات (الإقليمية والموضوعية)
       if (channelFilter != "الكل") {
         final isArab = isArabicStream(stream.name, stream.categoryName);
         

@@ -6,3 +6,7 @@ compatibility_date = "2023-05-18"
 binding = "DB"
 database_name = "iptv-subscriptions-db"
 database_id = "d83ba146-78a1-48c4-a18f-28a87e81a5c6"
+
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "iptv-apks"

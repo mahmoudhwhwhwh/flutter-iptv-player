@@ -335,20 +335,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _initializeController({bool isRetry = false}) async {
     final myId = ++_activeInitializationId;
-    // Invalidate and tear down the previous instance immediately. Waiting for
-    // the new source to resolve allows two audio pipelines during rapid zapping.
-    _reconnectTimer?.cancel();
-    _positionTimer?.cancel();
-    final previousController = _betterController;
-    _betterController = null;
-    if (previousController != null) {
-      try {
-        await previousController.pause();
-      } catch (_) {}
-      try {
-        previousController.dispose();
-      } catch (_) {}
-    }
     _selectedAsmsTrack = null;
     int? savedPosition;
     if (widget.stream.type != 'live') {
@@ -360,7 +346,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       }
     }
     await _loadSubSettings();
-    if (!mounted || myId != _activeInitializationId) return;
     if (!isRetry) {
       _initialized = false;
       _hasError = false;
@@ -422,7 +407,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
        }
     }
 
-    if (!mounted || myId != _activeInitializationId) return;
     String finalUrl = urlStr;
     if (kDebugMode) {
        print("[PLAYER] Final URL constructed (without sensitive credentials)");
@@ -513,7 +497,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (myId != _activeInitializationId) return;
     
     if (_betterController != null) {
-      _betterController!.pause();
+      try {
+        _betterController!.pause();
+        _betterController!.setVolume(0.0);
+      } catch (_) {}
       _betterController!.dispose();
       _betterController = null;
     }
@@ -545,7 +532,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       
       BetterPlayerController newBetterController = BetterPlayerController(
         BetterPlayerConfiguration(
-          autoPlay: true,
+          autoPlay: false,
           looping: false,
           fit: _currentBoxFit,
           subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
@@ -815,7 +802,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _reconnectTimer?.cancel();
     
     if (_betterController != null) {
-      _betterController!.pause();
+      try {
+        _betterController!.pause();
+        _betterController!.setVolume(0.0);
+      } catch (_) {}
       _betterController!.dispose();
       _betterController = null;
     }

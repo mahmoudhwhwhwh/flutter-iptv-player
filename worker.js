@@ -31,28 +31,28 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
           app_name: "LIVE STREAM PREMIUM",
-          app_version: "2.2.81",
+          app_version: "2.2.76",
           disable_vpn_check: true,
           disable_sniffer_check: true,
           slider: sliderImages,
           // Credentials are never exposed from the public config endpoint.
           servers: [],
-          // Legacy and redacted builds remain blocked; active builds use D1 login.
+          // Keep the previously compatible release active; credentials remain in D1.
           blocking: {
-            min_version_code: 281,
-            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234, 277, 278, 279, 280],
-            block_message: "يرجى التحديث إلى الإصدار v2.2.81 للاستمرار."
+            min_version_code: 276,
+            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234],
+            block_message: "يرجى التحديث إلى الإصدار v2.2.76 للاستمرار."
           },
           update: {
-            latest_version: "v2.2.81",
+            latest_version: "v2.2.76",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "يتوفر الآن LIVE STREAM PREMIUM v2.2.81 مع مصادقة الاشتراكات عبر Cloudflare D1 وحماية بيانات الخوادم."
+            update_message: "يتوفر الآن LIVE STREAM PREMIUM v2.2.76 مع مصادقة الاشتراكات عبر Cloudflare D1 وحماية بيانات الخوادم."
           }
         });
       }
 
       if (url.pathname === "/v1/download") {
-        const apkUrl = "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.81/LIVE_STREAM_PREMIUM.apk";
+        const apkUrl = "https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.76/app-release.apk";
         try {
           const response = await fetch(apkUrl, {
             headers: {

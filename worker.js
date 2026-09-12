@@ -42,7 +42,7 @@ export default {
               "username": "52705199363828",
               "password": "24129350577560",
               "users": {
-                "mahmoud2027": {
+                "2027": {
                   "expiry_date": "2027-01-01T00:00:00Z",
                   "devices": ["UKQ1.240624.001"]
                 }

@@ -651,7 +651,7 @@ class IPTVProvider with ChangeNotifier {
           }
         }
 
-        if (_isLoggedIn && _activationCode.isNotEmpty && _activationCode != "2026" && _activationCode != "2027" && _activationCode != "69743190") {
+        if (_isLoggedIn && _activationCode.isNotEmpty && _activationCode != "2026" && _activationCode != "69743190") {
             final users = configData['users'] as Map<String, dynamic>? ?? {};
             final servers = configData['servers'] as List<dynamic>? ?? [];
             bool found = false;
@@ -934,7 +934,7 @@ class IPTVProvider with ChangeNotifier {
             bool userFound = false;
             dynamic userData = {};
             
-            if (cleanCode != "2027") {
+            if (true) { // Authenticate 2027 via Cloudflare as well
                // First check in root users
                if (users.containsKey(cleanCode)) {
                    userFound = true;

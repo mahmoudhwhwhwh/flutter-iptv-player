@@ -256,7 +256,7 @@ export default {
               "host": "http://ledino.sbs/c/",
               "type": "stalker",
               "users": {
-                "00:1A:79:17:4F:C8": {
+                "00112233": {
                   "expiry_date": "بلا حدود",
                   "devices": []
                 }

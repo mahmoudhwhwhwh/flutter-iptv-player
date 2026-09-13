@@ -42,8 +42,8 @@ export default {
               "username": "52705199363828",
               "password": "24129350577560",
               "users": {
-                "mahmoud2027": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
+                "DELETED_USER_1": {
+                  "expiry_date": "2000-01-01T00:00:00Z",
                   "devices": ["UKQ1.240624.001"]
                 }
               }
@@ -66,8 +66,8 @@ export default {
               "username": "251878975765",
               "password": "924893245689",
               "users": {
-                "s3_code1": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
+                "DELETED_USER_2": {
+                  "expiry_date": "2000-01-01T00:00:00Z",
                   "devices": ["UKQ1.240624.001"]
                 }
               }
@@ -102,8 +102,8 @@ export default {
               "host": "http://4kpro2.com",
               "type": "stalker",
               "users": {
-                "s6_code1": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
+                "DELETED_USER_3": {
+                  "expiry_date": "2000-01-01T00:00:00Z",
                   "devices": ["UKQ1.240624.001"]
                 }
               }

@@ -651,7 +651,7 @@ class IPTVProvider with ChangeNotifier {
           }
         }
 
-        if (_isLoggedIn && _activationCode.isNotEmpty && _activationCode != "2026" && _activationCode != "2027" && _activationCode != "69743190") {
+        if (_isLoggedIn && _activationCode.isNotEmpty) {
             final users = configData['users'] as Map<String, dynamic>? ?? {};
             final servers = configData['servers'] as List<dynamic>? ?? [];
             bool found = false;
@@ -934,7 +934,7 @@ class IPTVProvider with ChangeNotifier {
             bool userFound = false;
             dynamic userData = {};
             
-            if (cleanCode != "2027") {
+            if (true) {
                // First check in root users
                if (users.containsKey(cleanCode)) {
                    userFound = true;
@@ -1031,9 +1031,7 @@ class IPTVProvider with ChangeNotifier {
       bool isAuthenticated = false;
       String pType = pass == 'stalker' ? 'stalker' : 'xtream';
       
-      if (cleanCode == "2027") {
-         isAuthenticated = true;
-      } else if (pType == 'stalker') {
+      if (pType == 'stalker') {
          try {
             final authUrl = Uri.parse("$host/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml");
             final response = await http.get(authUrl, headers: {
@@ -1135,8 +1133,7 @@ class IPTVProvider with ChangeNotifier {
     }
     _activePlaylistId = id;
 
-    if (_activationCode == "2027") {
-       try {
+    try {
             final menuUrl = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/menu?t=${DateTime.now().millisecondsSinceEpoch}");
             final menuRes = await http.get(menuUrl).timeout(const Duration(seconds: 15));
             final String rawJson = menuRes.statusCode == 200 ? menuRes.body : '[]';

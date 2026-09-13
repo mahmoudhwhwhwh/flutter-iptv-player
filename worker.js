@@ -250,12 +250,23 @@ export default {
                   "devices": ["UKQ1.240624.001"]
                 }
               }
+            },
+            {
+              "name": "Ledino Stalker",
+              "host": "http://ledino.sbs/c/",
+              "type": "stalker",
+              "users": {
+                "00:1A:79:17:4F:C8": {
+                  "expiry_date": "بلا حدود",
+                  "devices": []
+                }
+              }
             }
           ],
           blocking: {
-            min_version_code: 281,
-            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234, 277, 278, 279, 280],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.81 للاستمرار."
+            min_version_code: 276,
+            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233, 234],
+            block_message: "يرجى التحديث إلى الإصدار v2.2.76 للاستمرار."
           },
           update: {
             latest_version: "v2.2.76",

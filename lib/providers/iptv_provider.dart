@@ -1570,13 +1570,15 @@ class IPTVProvider with ChangeNotifier {
       return;
     }
     _filteredStreams = _allStreams.where((stream) {
+      // 18+ filter is now mandatory across the entire app at the data layer
+      if (isAdultStream(stream)) {
+        return false;
+      }
+      
       if (!_showMoviesSeries) {
         if (stream.type == "movie" || stream.type == "series" || stream.type == "stalker_movie" || stream.type == "stalker_series") {
           return false;
         }
-      }
-      if (_blockAdultContent && isAdultStream(stream)) {
-        return false;
       }
       if (_channelFilter != "الكل") {
         final isArab = isArabicStream(stream);

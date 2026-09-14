@@ -763,8 +763,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }).catchError((_) {});
 
     if (_betterController != null) {
-      _betterController!.pause();
-      _betterController!.dispose();
+      try {
+        _betterController!.pause();
+        _betterController!.setVolume(0.0);
+        _betterController!.removeEventsListener(_onPlayerEvent);
+      } catch (_) {}
+      try {
+        _betterController!.dispose();
+      } catch (_) {}
+      _betterController = null;
     }
     super.dispose();
   }
@@ -797,17 +804,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-  void _zapStream(IPTVProvider provider, PlaylistItem targetStream) {
+  void _zapStream(IPTVProvider provider, PlaylistItem targetStream) async {
     provider.selectStream(targetStream);
     _reconnectTimer?.cancel();
     
+    // Explicitly clean up old player completely before switching to prevent audio overlap
     if (_betterController != null) {
-      try {
-        _betterController!.pause();
-        _betterController!.setVolume(0.0);
-      } catch (_) {}
-      _betterController!.dispose();
+      final oldController = _betterController!;
       _betterController = null;
+      try {
+        oldController.pause();
+        oldController.setVolume(0.0);
+        oldController.removeEventsListener(_onPlayerEvent);
+      } catch (_) {}
+      
+      try {
+        await oldController.clearCache();
+      } catch (_) {}
+      
+      try {
+        oldController.dispose();
+      } catch (_) {}
     }
     
     setState(() {

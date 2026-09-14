@@ -17,7 +17,6 @@ import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
 import 'screens/news_screen.dart';
-import 'screens/matches_screen.dart';
 import 'models/playlist_item.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1036,14 +1035,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(child: _buildSportsButton(context, Icons.sports_soccer, "جدول المباريات", "MATCHES", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchesScreen())))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildSportsButton(context, Icons.article, "الأخبار الرياضية", "NEWS", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen())))),
-                ],
-              ),
+              child: _buildSportsButton(context, Icons.article, "الأخبار الرياضية", "NEWS", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen()))),
             ),
             _buildReferenceSection(
               context: context,
@@ -2102,144 +2094,4 @@ Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic
       ),
     ),
   );
-}
-
-
-// -----------------------------------------------------------------------------
-// DYNAMIC SECTIONS WIDGET (Main_menu.json support for 2027)
-// -----------------------------------------------------------------------------
-class DynamicSectionsWidget extends StatelessWidget {
-  const DynamicSectionsWidget({super.key});
-
-  IconData _getIconForCategory(String categoryName) {
-    final lower = categoryName.toLowerCase();
-    if (lower.contains('sports') || lower.contains('رياضة') || lower.contains('بين سبورت')) return Icons.sports_soccer;
-    if (lower.contains('movie') || lower.contains('أفلام')) return Icons.movie;
-    if (lower.contains('kids') || lower.contains('أطفال')) return Icons.child_care;
-    if (lower.contains('islam') || lower.contains('إسلام') || lower.contains('قرآن')) return Icons.mosque;
-    if (lower.contains('news') || lower.contains('أخبار')) return Icons.public;
-    if (lower.contains('doc') || lower.contains('وثائق')) return Icons.landscape;
-    if (lower.contains('entert') || lower.contains('ترفيه')) return Icons.local_activity;
-    return Icons.live_tv;
-  }
-
-  List<Color> _getColorForCategory(String categoryName, int index) {
-    final colors = [
-      [PremiumPalette.violet, const Color(0xFF8E040B)],
-      [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
-      [const Color(0xFF00B4DB), const Color(0xFF0083B0)],
-      [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-      [const Color(0xFF4CAF50), const Color(0xFF2E7D32)],
-      [const Color(0xFF9C27B0), const Color(0xFF6A1B9A)],
-      [const Color(0xFFFF9800), const Color(0xFFF57C00)],
-      [const Color(0xFF607D8B), const Color(0xFF455A64)],
-    ];
-    return colors[index % colors.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<IPTVProvider>(context);
-    final screenW = MediaQuery.of(context).size.width;
-    final isMobile = screenW < 600;
-
-    if (true) {
-      // Default Sections
-      final showMoviesSeries = provider.showMoviesSeries;
-      final List<Widget> staticCards = [
-        _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1, const [PremiumPalette.violet, Color(0xFF5B258A)], isMobile),
-        if (showMoviesSeries)
-          _buildStaticCard(context, "أفلام", Icons.movie, 2, const [Color(0xFF9B59B6), Color(0xFF6D3586)], isMobile),
-        if (showMoviesSeries)
-          _buildStaticCard(context, "مسلسلات", Icons.video_library, 3, const [Color(0xFFA78BFA), Color(0xFF7C3AED)], isMobile),
-        _buildStaticCard(context, "المفضلة", Icons.favorite, 4, const [Color(0xFF8E44AD), Color(0xFF5B258A)], isMobile),
-      ];
-
-      if (isMobile) {
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.4,
-          children: staticCards,
-        );
-      } else {
-        return Row(
-          children: staticCards.map((w) => Expanded(child: w)).toList(),
-        );
-      }
-    }
-
-    // Custom JSON Sections (Code 2027)
-    final cats = provider.liveCategories;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 2 : 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: isMobile ? 1.4 : 1.6,
-      ),
-      itemCount: cats.length,
-      itemBuilder: (context, index) {
-        final section = cats[index];
-        final title = section['category_name'] ?? 'Section';
-        return _buildDynamicCard(context, title, _getIconForCategory(title), _getColorForCategory(title, index), isMobile, section);
-      },
-    );
-  }
-
-  Widget _buildStaticCard(BuildContext context, String title, IconData icon, int index, List<Color> gradient, bool isMobile) {
-    return ScaleOnFocus(
-      onTap: () {
-        context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(index);
-      },
-      child: Container(
-        height: isMobile ? 80 : 100,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: gradient[0].withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: isMobile ? 24 : 32, color: Colors.white),
-            SizedBox(height: isMobile ? 4 : 8),
-            Text(title, style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold, color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDynamicCard(BuildContext context, String title, IconData icon, List<Color> gradient, bool isMobile, dynamic sectionData) {
-    return ScaleOnFocus(
-      onTap: () {
-        final provider = Provider.of<IPTVProvider>(context, listen: false);
-        if (sectionData['category_name'] != null) {
-          provider.setCategory(sectionData['category_name']);
-        }
-        context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(1);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: gradient[0].withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: isMobile ? 24 : 32, color: Colors.white),
-            SizedBox(height: isMobile ? 4 : 8),
-            Text(title, style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold, color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
 }

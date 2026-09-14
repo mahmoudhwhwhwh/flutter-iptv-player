@@ -766,7 +766,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       try {
         _betterController!.pause();
         _betterController!.setVolume(0.0);
-        _betterController!.removeEventsListener(_onPlayerEvent);
+        // events removed by dispose
       } catch (_) {}
       try {
         _betterController!.dispose();
@@ -815,7 +815,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       try {
         oldController.pause();
         oldController.setVolume(0.0);
-        oldController.removeEventsListener(_onPlayerEvent);
+        // events removed by dispose
       } catch (_) {}
       
       try {

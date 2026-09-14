@@ -1520,4 +1520,157 @@ class IPTVProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void setTab(String tab) {
+    _activeTab = tab;
+    _selectedCategory = "all";
+    _applyFilters();
+    notifyListeners();
+  }
+  
+  void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      _applyFilters();
+      notifyListeners();
+      return;
+    }
+    // يمنع إعادة فلترة آلاف العناصر عند كل حرف أثناء الكتابة.
+    _searchDebounce = Timer(const Duration(milliseconds: 130), () {
+      _applyFilters();
+      notifyListeners();
+    });
+  }
+  
+  bool isArabicStream(PlaylistItem stream) {
+    return FilterService.isArabicStream(stream.name, stream.categoryName);
+  }
+  
+  bool isSportsStream(PlaylistItem stream) {
+    return FilterService.isSportsStream(stream.name, stream.categoryName);
+  }
+  
+  bool isNewsStream(PlaylistItem stream) {
+    return FilterService.isNewsStream(stream.name, stream.categoryName);
+  }
+  
+  bool isAlwanStream(PlaylistItem stream) {
+    return FilterService.isAlwanStream(stream.name, stream.categoryName);
+  }
+  
+  bool isAdultStream(PlaylistItem stream) {
+    return FilterService.isAdultStream(stream.name, stream.categoryName);
+  }
+  
+  void _applyFilters() {
+    if (!_isSecured) {
+      _filteredStreams = [];
+      return;
+    }
+    _filteredStreams = _allStreams.where((stream) {
+      if (!_showMoviesSeries) {
+        if (stream.type == "movie" || stream.type == "series" || stream.type == "stalker_movie" || stream.type == "stalker_series") {
+          return false;
+        }
+      }
+      if (_blockAdultContent && isAdultStream(stream)) {
+        return false;
+      }
+      if (_channelFilter != "الكل") {
+        final isArab = isArabicStream(stream);
+        if (_channelFilter == "القنوات العربية فقط") {
+          if (!isArab) return false;
+        } else if (_channelFilter == "القنوات الأجنبية فقط") {
+          if (isArab) return false;
+        } else if (_channelFilter == "قنوات الرياضة فقط") {
+          if (!isSportsStream(stream)) return false;
+        } else if (_channelFilter == "القنوات الرياضية العربية فقط") {
+          if (!isSportsStream(stream) || !isArab) return false;
+        } else if (_channelFilter == "القنوات الإخبارية فقط") {
+          if (!isNewsStream(stream)) return false;
+        } else if (_channelFilter == "قنوات Alwan فقط") {
+          if (!isAlwanStream(stream)) return false;
+        }
+      }
+      if (_activeTab != "favorites") {
+        if (_activeTab == "live") {
+          if (stream.type != "live" && stream.type != "stalker") return false;
+        } else if (_activeTab == "movie") {
+          if (stream.type != "movie" && stream.type != "stalker_movie") return false;
+        } else if (_activeTab == "series") {
+          if (stream.type != "series" && stream.type != "stalker_series") return false;
+        } else {
+          if (stream.type != _activeTab) return false;
+        }
+      }
+      if (_activeTab == "favorites" && !_favorites.contains(stream.streamId)) return false;
+      if (_selectedCategory != "all" && stream.categoryName != _selectedCategory) return false;
+      if (_searchQuery.isNotEmpty && !stream.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
+      return true;
+    }).toList();
+  }
+  
+  void selectStream(PlaylistItem item) {
+    _currentStream = item;
+    addToRecentlyPlayed(item);
+    notifyListeners();
+  }
+  
+  Future<void> setCategory(String category) async {
+    _selectedCategory = category;
+    _applyFilters();
+    notifyListeners();
+  }
+  
+  Future<void> changeSubscription() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in <String>[
+      'active_code',
+      'active_code_activated_at',
+      'active_code_duration_hours',
+      'active_code_sub_name',
+      'app_name_cached',
+      'saved_playlists',
+      'is_logged_in',
+      'show_welcome_after_login',
+      'favorites',
+      'recently_played_streams',
+    ]) {
+      await prefs.remove(key);
+    }
+    _isLoggedIn = false;
+    _activationCode = '';
+    _activationTime = 0;
+    _activationDurationHours = -1;
+    _subscriptionType = '';
+    _savedPlaylists.clear();
+    _allStreams.clear();
+    _filteredStreams.clear();
+    _liveCategories.clear();
+    _movieCategories.clear();
+    _seriesCategories.clear();
+    _favorites.clear();
+    _recentlyPlayed.clear();
+    _currentStream = null;
+    _activePlaylistId = null;
+    _selectedCategory = 'all';
+    _searchQuery = '';
+    notifyListeners();
+  }
+  
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _isLoggedIn = false;
+    _savedPlaylists.clear();
+    _allStreams.clear();
+    _liveCategories.clear();
+    _movieCategories.clear();
+    _seriesCategories.clear();
+    _activePlaylistId = null;
+    notifyListeners();
+  }
+
 }

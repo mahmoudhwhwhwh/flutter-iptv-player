@@ -37,217 +37,14 @@ export default {
           slider: sliderImages,
           servers: [
             {
-              "name": "مجاني دجلة 9",
-              "host": "http://megatv.shop:2052",
-              "username": "52705199363828",
-              "password": "24129350577560",
-              "users": {
-                "DELETED_USER_1": {
-                  "expiry_date": "2000-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 2",
-              "host": "http://cliccck52258.club:2082",
-              "username": "khaledsliman",
-              "password": "755246419856",
-              "users": {
-                "02389": {
-                  "expiry_date": "بلا بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 3",
-              "host": "http://1@cliccck52258.club:2082",
-              "username": "251878975765",
-              "password": "924893245689",
-              "users": {
-                "DELETED_USER_2": {
-                  "expiry_date": "2000-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 4",
-              "host": "http://marveliptv.life",
-              "username": "01112727740kh",
-              "password": "khiary7740",
-              "users": {
-                "96827": {
-                  "expiry_date": "بلا حدود ",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 5",
-              "host": "http://4kpro2.com",
+              "name": "Bossdynns Stalker",
+              "host": "http://bossdynns.com/c/",
               "type": "stalker",
               "users": {
-                "999499": {
-                  "username": "00:1A:79:70:9D:14",
-                  "expiry_date": "2026-08-03T00:00:00Z",
-                  "devices": ["UKQ1.240624.001", "RKQ1.211119.001"],
-                  "blocked": true
-                }
-              }
-            },
-            {
-              "name": "Server 6",
-              "host": "http://4kpro2.com",
-              "type": "stalker",
-              "users": {
-                "DELETED_USER_3": {
-                  "expiry_date": "2000-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 7",
-              "host": "http://line.tvdsz.cc",
-              "type": "stalker",
-              "users": {
-                "joker01": {
+                "112233": {
+                  "username": "00:1A:79:7A:15:A6",
                   "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 1",
-              "host": "http://31.220.41.178",
-              "username": "marv90746918",
-              "password": "khaled974635",
-              "users": {
-                "joker02": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 2",
-              "host": "http://app.upsdo.me:8080",
-              "username": "PCJ7KCNU0AX6",
-              "password": "36508313",
-              "users": {
-                "joker03": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 3",
-              "host": "http://185.191.126.127:8080",
-              "username": "b0:99:d7:15:88:50",
-              "password": "3090914536649669",
-              "users": {
-                "joker04": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 4",
-              "host": "http://dhoomtv.xyz",
-              "username": "8zpo3GsVY7",
-              "password": "beneficial2concern",
-              "users": {
-                "joker05": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 5",
-              "host": "http://filex.me:8080",
-              "username": "@boss1751",
-              "password": "rS27a9QKeT",
-              "users": {
-                "joker06": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 6",
-              "host": "http://cli2345.live:2082",
-              "username": "162228198272",
-              "password": "847259919147",
-              "users": {
-                "joker07": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 7",
-              "host": "http://alliptvapp.com:8080",
-              "username": "575612159628",
-              "password": "210763093616",
-              "users": {
-                "joker08": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 8",
-              "host": "http://atlaspro.live",
-              "username": "3525480303377768",
-              "password": "3525480303377768",
-              "users": {
-                "joker09": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 10",
-              "host": "http://luxipgold.xyz:8080",
-              "username": "15034094901029",
-              "password": "18800196589372",
-              "users": {
-                "joker10": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "دجلة مجاني 11",
-              "host": "http://mypythonpremium.com:8789",
-              "username": "wilderd",
-              "password": "tFeWsYW",
-              "users": {
-                "joker11": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة  12",
-              "host": "http://falcon-sa.xyz",
-              "username": "wSGGTNJH",
-              "password": "32CC849A",
-              "users": {
-                "joker12": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
+                  "devices": []
                 }
               }
             },
@@ -256,7 +53,8 @@ export default {
               "host": "http://ledino.sbs/c/",
               "type": "stalker",
               "users": {
-                "00112233": {
+                "002233": {
+                  "username": "00:1A:79:17:4F:C8",
                   "expiry_date": "بلا حدود",
                   "devices": []
                 }

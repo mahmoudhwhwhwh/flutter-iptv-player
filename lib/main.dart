@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,15 +11,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:video_player/video_player.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
+import 'screens/news_screen.dart';
 import 'models/playlist_item.dart';
-import 'services/stalker_series.dart';
-import 'services/performance_metrics.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -37,7 +36,6 @@ class PremiumPalette {
 }
 
 void main() {
-  PerformanceMetrics.mark('app.main.enter');
   WidgetsFlutterBinding.ensureInitialized();
   // ذاكرة صور أكبر تقلل إعادة تحميل شعارات Xtream أثناء التنقل بين الأقسام.
   PaintingBinding.instance.imageCache.maximumSize = 260;
@@ -52,7 +50,6 @@ void main() {
       child: const LiveFootballApp(),
     ),
   );
-  PerformanceMetrics.mark('app.runApp.called');
 }
 
 Future<void> _restoreStartupOrientation() async {
@@ -60,11 +57,9 @@ Future<void> _restoreStartupOrientation() async {
     final prefs = await SharedPreferences.getInstance();
     final savedOrient = prefs.getString('app_orientation') ?? 'تلقائي';
     if (savedOrient == 'أفقي') {
-      await SystemChrome.setPreferredOrientations(
-          [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     } else if (savedOrient == 'عمودي') {
-      await SystemChrome.setPreferredOrientations(
-          [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
     }
   } catch (_) {}
 }
@@ -87,8 +82,7 @@ class LiveFootballApp extends StatelessWidget {
           title: 'LIVE STREAM PREMIUM',
           debugShowCheckedModeBanner: false,
           locale: Locale(themeProvider.appLanguage == 'English' ? 'en' : 'ar'),
-          themeMode:
-              themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
@@ -119,101 +113,53 @@ class LiveFootballApp extends StatelessWidget {
               displayColor: const Color(0xFF17122F),
             ),
           ),
-          builder: (context, child) {
-            return Directionality(
-              textDirection: themeProvider.appLanguage == 'English'
-                  ? TextDirection.ltr
-                  : TextDirection.rtl,
-              child: Consumer<IPTVProvider>(
-                builder: (context, provider, _) {
-                  if (provider.snifferDetected ||
-                      provider.vpnDetected ||
-                      provider.isVersionBlocked ||
-                      !provider.isSecured) {
-                    String message = "";
-                    if (provider.snifferDetected) {
-                      message =
-                          "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
-                    } else if (!provider.isSecured) {
-                      message = provider.securityMessage.isNotEmpty
-                          ? provider.securityMessage
-                          : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
-                    } else if (provider.vpnDetected) {
-                      message =
-                          "🚨 يرجى إيقاف تشغيل VPN أو البروكسي للاستمرار!";
-                    } else if (provider.isVersionBlocked) {
-                      message = provider.remoteBlockMessage;
-                    }
-                    return Scaffold(
-                      backgroundColor: Colors.black,
-                      body: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: PremiumPalette.violet, size: 80),
-                              const SizedBox(height: 20),
-                              Text(
-                                message,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.5),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+      builder: (context, child) {
+        return Directionality(
+          textDirection: themeProvider.appLanguage == 'English' ? TextDirection.ltr : TextDirection.rtl,
+          child: Consumer<IPTVProvider>(
+            builder: (context, provider, _) {
+              if (provider.snifferDetected || provider.vpnDetected || provider.isVersionBlocked || !provider.isSecured) {
+                String message = "";
+                if (provider.snifferDetected) {
+                  message = "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
+                } else if (!provider.isSecured) {
+                  message = provider.securityMessage.isNotEmpty ? provider.securityMessage : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
+                } else if (provider.vpnDetected) {
+                  message = "🚨 يرجى إيقاف تشغيل VPN أو البروكسي للاستمرار!";
+                } else if (provider.isVersionBlocked) {
+                  message = provider.remoteBlockMessage;
+                }
+                            return Scaffold(
+                  backgroundColor: Colors.black,
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: PremiumPalette.violet, size: 80),
+                          const SizedBox(height: 20),
+                          Text(
+                            message,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1.5),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
+                        ],
                       ),
-                    );
-                  }
-                  if (provider.autoLiteModeNoticePending) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!context.mounted) return;
-                      _showAutoLiteModeNotice(context, provider);
-                    });
-                  }
-                  return MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      disableAnimations: provider.liteMode,
                     ),
-                    child: child!,
-                  );
-                },
-              ),
-            );
-          },
-          home: const StartupGate(child: AuthWrapper()),
+                  ),
+                );
+              }
+              return child!;
+            },
+          ),
+        );
+      },
+      home: const AuthWrapper(),
         );
       },
     );
   }
-}
-
-Future<void> _showAutoLiteModeNotice(
-    BuildContext context, IPTVProvider provider) async {
-  await provider.consumeAutoLiteModeNotice();
-  if (!context.mounted) return;
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: true,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('تم تفعيل الوضع الخفيف تلقائياً'),
-      content: const Text(
-        'اكتشف التطبيق أن هذا الجهاز قد يملك ذاكرة أو مواصفات محدودة، لذلك فعّل الوضع الخفيف لتحسين السلاسة وتقليل استهلاك الذاكرة وتعطيل الحركات الثقيلة.\n\nيمكنك تغيير هذا الخيار لاحقاً من الإعدادات.',
-        textAlign: TextAlign.right,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text('حسناً'),
-        ),
-      ],
-    ),
-  );
 }
 
 class AuthWrapper extends StatelessWidget {
@@ -225,8 +171,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, provider, _) {
         if (provider.isLoading && !provider.isLoggedIn) {
           return const Scaffold(
-            body: Center(
-                child: CircularProgressIndicator(color: PremiumPalette.violet)),
+            body: Center(child: CircularProgressIndicator(color: PremiumPalette.violet)),
           );
         }
         if (provider.isLoggedIn && !provider.isExpired) {
@@ -234,186 +179,6 @@ class AuthWrapper extends StatelessWidget {
         }
         return const LoginScreen();
       },
-    );
-  }
-}
-
-Duration startupIntroTransitionDuration(bool isLiteMode) {
-  return isLiteMode
-      ? const Duration(milliseconds: 120)
-      : const Duration(milliseconds: 420);
-}
-
-class StartupGate extends StatefulWidget {
-  final Widget child;
-
-  const StartupGate({super.key, required this.child});
-
-  @override
-  State<StartupGate> createState() => _StartupGateState();
-}
-
-class _StartupGateState extends State<StartupGate> {
-  VideoPlayerController? _controller;
-  bool _showIntro = false;
-  bool _isFinishing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _prepareIntro();
-  }
-
-  Future<void> _prepareIntro() async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadySeen = prefs.getBool('premium_intro_seen') ?? false;
-    if (alreadySeen) return;
-    await prefs.setBool('premium_intro_seen', true);
-
-    final controller = VideoPlayerController.asset('assets/intro_premium.mp4');
-    try {
-      await controller.initialize();
-      controller.addListener(_onVideoTick);
-      await controller.play();
-      if (!mounted) {
-        await controller.dispose();
-        return;
-      }
-      setState(() {
-        _controller = controller;
-        _showIntro = true;
-      });
-    } catch (_) {
-      await controller.dispose();
-    }
-  }
-
-  void _onVideoTick() {
-    final value = _controller?.value;
-    if (value == null || !value.isInitialized || value.isPlaying) return;
-    if (value.position >= value.duration - const Duration(milliseconds: 150)) {
-      _finishIntro();
-    }
-  }
-
-  Future<void> _finishIntro() async {
-    if (_isFinishing) return;
-    _isFinishing = true;
-    final isLiteMode =
-        Provider.of<IPTVProvider>(context, listen: false).liteMode;
-    final transitionDuration = startupIntroTransitionDuration(isLiteMode);
-    if (mounted) setState(() {});
-    await Future<void>.delayed(transitionDuration);
-
-    final controller = _controller;
-    _controller = null;
-    if (mounted) setState(() => _showIntro = false);
-    if (controller != null) {
-      controller.removeListener(_onVideoTick);
-      await controller.dispose();
-    }
-  }
-
-  @override
-  void dispose() {
-    final controller = _controller;
-    if (controller != null) {
-      controller.removeListener(_onVideoTick);
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  Widget _buildIntroView(VideoPlayerController controller) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF070610),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: controller.value.size.width,
-              height: controller.value.size.height,
-              child: VideoPlayer(controller),
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.15),
-                  const Color(0xFF070610).withOpacity(0.88),
-                ],
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 44, 24, 26),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'أهلاً بك في\nLIVE STREAM PREMIUM',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 30,
-                      height: 1.25,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'تجربة مشاهدة فاخرة، سريعة، ومصممة لعشاق الرياضة',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 15),
-                  ),
-                  const SizedBox(height: 28),
-                  OutlinedButton(
-                    onPressed: _isFinishing ? null : _finishIntro,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white54),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text('تخطي المقدمة'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_showIntro || _controller == null) return widget.child;
-    final controller = _controller!;
-    final isLiteMode =
-        Provider.of<IPTVProvider>(context, listen: false).liteMode;
-    final duration = startupIntroTransitionDuration(isLiteMode);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.child,
-        AnimatedOpacity(
-          opacity: _isFinishing ? 0 : 1,
-          duration: duration,
-          curve: Curves.easeOutCubic,
-          child: _buildIntroView(controller),
-        ),
-      ],
     );
   }
 }
@@ -428,8 +193,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _codeController = TextEditingController();
   bool _obscureCode = true;
 
@@ -457,19 +221,16 @@ class _LoginScreenState extends State<LoginScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 20 : 40, vertical: isMobile ? 80 : 56),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 40, vertical: isMobile ? 80 : 56),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.fromLTRB(isMobile ? 28 : 36,
-                    isMobile ? 38 : 46, isMobile ? 28 : 36, isMobile ? 34 : 42),
+                padding: EdgeInsets.fromLTRB(isMobile ? 28 : 36, isMobile ? 38 : 46, isMobile ? 28 : 36, isMobile ? 34 : 42),
                 decoration: BoxDecoration(
                   color: const Color(0xFF050509),
                   borderRadius: BorderRadius.circular(28),
-                  border:
-                      Border.all(color: const Color(0xFF2A2A38), width: 1.2),
+                  border: Border.all(color: const Color(0xFF2A2A38), width: 1.2),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -480,10 +241,8 @@ class _LoginScreenState extends State<LoginScreen>
                         Container(
                           width: isMobile ? 58 : 66,
                           height: isMobile ? 58 : 66,
-                          decoration: const BoxDecoration(
-                              color: Color(0xFFA855F7), shape: BoxShape.circle),
-                          child: const Icon(Icons.play_arrow_rounded,
-                              color: Colors.black, size: 38),
+                          decoration: const BoxDecoration(color: Color(0xFFA855F7), shape: BoxShape.circle),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 38),
                         ),
                         const SizedBox(width: 16),
                         const Expanded(
@@ -491,11 +250,7 @@ class _LoginScreenState extends State<LoginScreen>
                             "LIVE STREAM PREMIUM",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 25,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.1),
+                            style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: 1.1),
                           ),
                         ),
                       ],
@@ -504,130 +259,47 @@ class _LoginScreenState extends State<LoginScreen>
                     if (provider.lastError != null)
                       Container(
                         margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.redAccent.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: Colors.redAccent.withOpacity(0.55)),
+                          border: Border.all(color: Colors.redAccent.withOpacity(0.55)),
                         ),
-                        child: Text(provider.lastError!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.redAccent, fontSize: 13)),
+                        child: Text(provider.lastError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                       ),
                     TextField(
                       controller: _codeController,
                       obscureText: _obscureCode,
-                      style: TextStyle(
-                          color: Colors.white, fontSize: isMobile ? 18 : 20),
+                      style: TextStyle(color: Colors.white, fontSize: isMobile ? 18 : 20),
                       decoration: InputDecoration(
                         hintText: "أدخل كود الاشتراك",
-                        hintStyle: const TextStyle(
-                            color: Color(0xFF74747E), fontSize: 18),
-                        prefixIcon: const Icon(Icons.key_rounded,
-                            color: Color(0xFFD1D1D5), size: 30),
+                        hintStyle: const TextStyle(color: Color(0xFF74747E), fontSize: 18),
+                        prefixIcon: const Icon(Icons.key_rounded, color: Color(0xFFD1D1D5), size: 30),
                         suffixIcon: IconButton(
-                          icon: Icon(
-                              _obscureCode
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: const Color(0xFFD1D1D5),
-                              size: 30),
-                          onPressed: () =>
-                              setState(() => _obscureCode = !_obscureCode),
+                          icon: Icon(_obscureCode ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFFD1D1D5), size: 30),
+                          onPressed: () => setState(() => _obscureCode = !_obscureCode),
                         ),
                         filled: true,
                         fillColor: const Color(0xFF15151B),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 22, vertical: 23),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFA855F7), width: 1.5)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 23),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: Color(0xFFA855F7), width: 1.5)),
                       ),
                     ),
-                    if (provider.savedSubscriptionCodes.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'الأكواد المحفوظة',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: provider.savedSubscriptionCodes.map((saved) {
-                          final title =
-                              saved.label.isEmpty ? saved.code : saved.label;
-                          final isActive =
-                              saved.code == provider.activationCode;
-                          return ActionChip(
-                            avatar: Icon(
-                              isActive
-                                  ? Icons.check_circle_rounded
-                                  : Icons.key_rounded,
-                              size: 17,
-                              color: isActive
-                                  ? const Color(0xFF5EEAD4)
-                                  : const Color(0xFFD8B4FE),
-                            ),
-                            label: Text(title),
-                            labelStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700),
-                            backgroundColor: isActive
-                                ? const Color(0xFF163B3B)
-                                : const Color(0xFF171321),
-                            side: BorderSide(
-                                color: isActive
-                                    ? const Color(0xFF2DD4BF)
-                                    : const Color(0xFF493568)),
-                            onPressed: provider.isLoading
-                                ? null
-                                : () async {
-                                    _codeController.text = saved.code;
-                                    final success = await provider
-                                        .switchToSavedSubscription(saved.code);
-                                    if (success && mounted)
-                                      FocusScope.of(context).unfocus();
-                                  },
-                          );
-                        }).toList(),
-                      ),
-                    ],
                     const SizedBox(height: 28),
                     SizedBox(
                       height: isMobile ? 68 : 74,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [Color(0xFF7C2CEB), Color(0xFFA855F7)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight),
+                          gradient: const LinearGradient(colors: [Color(0xFF7C2CEB), Color(0xFFA855F7)], begin: Alignment.centerLeft, end: Alignment.centerRight),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: ElevatedButton(
                           onPressed: provider.isLoading
                               ? null
                               : () async {
-                                  final success = await provider
-                                      .loginWithCode(_codeController.text);
+                                  final success = await provider.loginWithCode(_codeController.text);
                                   if (success) FocusScope.of(context).unfocus();
                                 },
                           style: ElevatedButton.styleFrom(
@@ -636,29 +308,17 @@ class _LoginScreenState extends State<LoginScreen>
                             disabledBackgroundColor: Colors.transparent,
                             elevation: 0,
                             shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(22)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                           ),
                           child: provider.isLoading
-                              ? const SizedBox(
-                                  width: 25,
-                                  height: 25,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2.5))
-                              : const Text("تسجيل الدخول",
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.w500)),
+                              ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                              : const Text("تسجيل الدخول", style: TextStyle(fontSize: 25, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
                     const SizedBox(height: 36),
                     const Center(
-                      child: Text("تابعنا على Telegram",
-                          style: TextStyle(
-                              color: Color(0xFFB7B7C1),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600)),
+                      child: Text("تابعنا على Telegram", style: TextStyle(color: Color(0xFFB7B7C1), fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
@@ -667,38 +327,27 @@ class _LoginScreenState extends State<LoginScreen>
                       runSpacing: 10,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () =>
-                              _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
+                          onPressed: () => _launchURL("https://t.me/+f9NsIzGjN_hjYWRi"),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFFA855F7),
                             side: const BorderSide(color: Color(0xFFA855F7)),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                           icon: const Icon(Icons.telegram_rounded, size: 20),
-                          label: const Text("القناة الرسمية",
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w700)),
+                          label: const Text("القناة الرسمية", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                         ),
                         ElevatedButton.icon(
-                          onPressed: () =>
-                              _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
+                          onPressed: () => _launchURL("https://t.me/+uryaRDBEm4lmYWZi"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF211B2E),
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          icon: const Icon(Icons.workspace_premium_rounded,
-                              color: Color(0xFFFFC857), size: 20),
-                          label: const Text("قناة الاشتراك",
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w700)),
+                          icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 20),
+                          label: const Text("قناة الاشتراك", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                         ),
                       ],
                     ),
@@ -728,11 +377,7 @@ class _LoginGlow extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [
-              color.withOpacity(0.25),
-              color.withOpacity(0.05),
-              Colors.transparent
-            ],
+            colors: [color.withOpacity(0.25), color.withOpacity(0.05), Colors.transparent],
             stops: const [0.0, 0.42, 1.0],
           ),
         ),
@@ -788,12 +433,7 @@ class _MainDashboardState extends State<MainDashboard> {
               color: const Color(0xFF11111B),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: const Color(0xFFA855F7), width: 1.3),
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFFA855F7).withOpacity(0.18),
-                    blurRadius: 28,
-                    spreadRadius: 2)
-              ],
+              boxShadow: [BoxShadow(color: const Color(0xFFA855F7).withOpacity(0.18), blurRadius: 28, spreadRadius: 2)],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -801,65 +441,46 @@ class _MainDashboardState extends State<MainDashboard> {
                 Container(
                   width: 76,
                   height: 76,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFFA855F7), shape: BoxShape.circle),
-                  child: const Icon(Icons.play_arrow_rounded,
-                      color: Colors.black, size: 50),
+                  decoration: const BoxDecoration(color: Color(0xFFA855F7), shape: BoxShape.circle),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 50),
                 ),
                 const SizedBox(height: 18),
-                const Text('أهلاً بك في LIVE STREAM PREMIUM',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900)),
+                const Text('أهلاً بك في LIVE STREAM PREMIUM', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
                 Text(
-                  provider.subscriptionType.isEmpty
-                      ? 'تم تفعيل اشتراكك بنجاح'
-                      : 'اشتراكك: ${provider.subscriptionType}',
+                  provider.subscriptionType.isEmpty ? 'تم تفعيل اشتراكك بنجاح' : 'اشتراكك: ${provider.subscriptionType}',
                   textAlign: TextAlign.center,
-                  style:
-                      const TextStyle(color: Color(0xFFC8C8D0), fontSize: 15),
+                  style: const TextStyle(color: Color(0xFFC8C8D0), fontSize: 15),
                 ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () =>
-                            _openTelegram('https://t.me/+f9NsIzGjN_hjYWRi'),
+                        onPressed: () => _openTelegram('https://t.me/+f9NsIzGjN_hjYWRi'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFFA855F7),
                           side: const BorderSide(color: Color(0xFFA855F7)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         icon: const Icon(Icons.telegram_rounded, size: 19),
-                        label: const Text('القناة الرسمية',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700)),
+                        label: const Text('القناة الرسمية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () =>
-                            _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
+                        onPressed: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF251B36),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
-                        icon: const Icon(Icons.workspace_premium_rounded,
-                            color: Color(0xFFFFC857), size: 19),
-                        label: const Text('قناة الاشتراك',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700)),
+                        icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 19),
+                        label: const Text('قناة الاشتراك', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ],
@@ -874,12 +495,9 @@ class _MainDashboardState extends State<MainDashboard> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text('ابدأ المشاهدة',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800)),
+                    child: const Text('ابدأ المشاهدة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   ),
                 ),
               ],
@@ -900,8 +518,7 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final bool useBottomNav = MediaQuery.of(context).size.width < 600 ||
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final bool useBottomNav = MediaQuery.of(context).size.width < 600 || MediaQuery.of(context).orientation == Orientation.portrait;
     final provider = Provider.of<IPTVProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
     final showMoviesSeries = provider.showMoviesSeries;
@@ -909,10 +526,8 @@ class _MainDashboardState extends State<MainDashboard> {
     final List<Map<String, dynamic>> tabs = [
       {"icon": Icons.home_rounded, "label": "الرئيسية", "index": 0},
       {"icon": Icons.live_tv_rounded, "label": "مباشر", "index": 1},
-      if (showMoviesSeries)
-        {"icon": Icons.movie_filter_rounded, "label": "أفلام", "index": 2},
-      if (showMoviesSeries)
-        {"icon": Icons.video_library_rounded, "label": "مسلسلات", "index": 3},
+      if (showMoviesSeries) {"icon": Icons.movie_filter_rounded, "label": "أفلام", "index": 2},
+      if (showMoviesSeries) {"icon": Icons.video_library_rounded, "label": "مسلسلات", "index": 3},
       {"icon": Icons.favorite_rounded, "label": "مفضلة", "index": 4},
     ];
 
@@ -924,7 +539,24 @@ class _MainDashboardState extends State<MainDashboard> {
       });
     }
 
-    return Scaffold(
+        DateTime? currentBackPressTime;
+    return WillPopScope(
+      onWillPop: () async {
+        DateTime now = DateTime.now();
+        if (currentBackPressTime == null || 
+            now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
+          currentBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اضغط مرة أخرى للخروج', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Cairo')),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: colorScheme.background,
       drawer: _buildReferenceDrawer(context, provider, showMoviesSeries),
       appBar: AppBar(
@@ -947,11 +579,7 @@ class _MainDashboardState extends State<MainDashboard> {
                 "LIVE STREAM PREMIUM",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.45),
+                style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 0.45),
               ),
             ),
             Container(
@@ -964,11 +592,7 @@ class _MainDashboardState extends State<MainDashboard> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("PREMIUM",
-                      style: TextStyle(
-                          color: Color(0xFFFFC857),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800)),
+                  Text("PREMIUM", style: TextStyle(color: Color(0xFFFFC857), fontSize: 13, fontWeight: FontWeight.w800)),
                   SizedBox(width: 5),
                   Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 19),
                 ],
@@ -976,16 +600,13 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             IconButton(
               tooltip: "بحث",
-              icon: const Icon(Icons.search_rounded,
-                  color: Colors.white, size: 31),
+              icon: const Icon(Icons.search_rounded, color: Colors.white, size: 31),
               onPressed: () => updateIndex(1),
             ),
             IconButton(
               tooltip: "الإعدادات",
-              icon: const Icon(Icons.settings_rounded,
-                  color: Colors.white, size: 29),
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 29),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
             ),
           ],
         ),
@@ -1010,31 +631,22 @@ class _MainDashboardState extends State<MainDashboard> {
               unselectedFontSize: 12,
               selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
               elevation: 0,
-              items: tabs
-                  .map((t) => BottomNavigationBarItem(
-                      icon: Icon(t['icon'], size: 28), label: t['label']))
-                  .toList(),
+              items: tabs.map((t) => BottomNavigationBarItem(icon: Icon(t['icon'], size: 28), label: t['label'])).toList(),
             )
           : null,
+      ),
     );
   }
 
-  Widget _buildReferenceDrawer(
-      BuildContext context, IPTVProvider provider, bool showMoviesSeries) {
+  Widget _buildReferenceDrawer(BuildContext context, IPTVProvider provider, bool showMoviesSeries) {
     final accent = Theme.of(context).colorScheme.primary;
     final surface = Theme.of(context).colorScheme.surface;
-    Widget entry(
-        {required IconData icon, required String label, required int index}) {
+    Widget entry({required IconData icon, required String label, required int index}) {
       final bool selected = _selectedIndex == index;
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-        leading: Icon(icon,
-            color: selected ? accent : const Color(0xFFD0D0D7), size: 31),
-        title: Text(label,
-            style: TextStyle(
-                color: selected ? accent : const Color(0xFFD0D0D7),
-                fontSize: 21,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+        leading: Icon(icon, color: selected ? accent : const Color(0xFFD0D0D7), size: 31),
+        title: Text(label, style: TextStyle(color: selected ? accent : const Color(0xFFD0D0D7), fontSize: 21, fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
         onTap: () {
           Navigator.pop(context);
           updateIndex(index);
@@ -1042,8 +654,7 @@ class _MainDashboardState extends State<MainDashboard> {
       );
     }
 
-    final profileImage = provider.profileImagePath.isNotEmpty &&
-            File(provider.profileImagePath).existsSync()
+    final profileImage = provider.profileImagePath.isNotEmpty && File(provider.profileImagePath).existsSync()
         ? FileImage(File(provider.profileImagePath))
         : null;
 
@@ -1064,10 +675,7 @@ class _MainDashboardState extends State<MainDashboard> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF2A2A37),
                       shape: BoxShape.circle,
-                      image: profileImage == null
-                          ? null
-                          : DecorationImage(
-                              image: profileImage, fit: BoxFit.cover),
+                      image: profileImage == null ? null : DecorationImage(image: profileImage, fit: BoxFit.cover),
                     ),
                     child: profileImage == null
                         ? Icon(
@@ -1088,33 +696,20 @@ class _MainDashboardState extends State<MainDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(provider.profileName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700)),
+                        Text(provider.profileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
                         SizedBox(height: 11),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            border: Border.all(
-                                color: const Color(0xFFA855F7), width: 1.5),
+                            border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text("PREMIUM",
-                                  style: TextStyle(
-                                      color: Color(0xFFFFC857),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800)),
+                              Text("PREMIUM", style: TextStyle(color: Color(0xFFFFC857), fontSize: 12, fontWeight: FontWeight.w800)),
                               SizedBox(width: 4),
-                              Icon(Icons.star_rounded,
-                                  color: Color(0xFFFFC857), size: 16),
+                              Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 16),
                             ],
                           ),
                         ),
@@ -1128,78 +723,42 @@ class _MainDashboardState extends State<MainDashboard> {
             const SizedBox(height: 12),
             entry(icon: Icons.home_rounded, label: "الرئيسية", index: 0),
             entry(icon: Icons.live_tv_rounded, label: "قنوات مباشرة", index: 1),
-            if (showMoviesSeries)
-              entry(icon: Icons.movie_rounded, label: "الأفلام", index: 2),
-            if (showMoviesSeries)
-              entry(
-                  icon: Icons.video_library_rounded,
-                  label: "المسلسلات",
-                  index: 3),
+            if (showMoviesSeries) entry(icon: Icons.movie_rounded, label: "الأفلام", index: 2),
+            if (showMoviesSeries) entry(icon: Icons.video_library_rounded, label: "المسلسلات", index: 3),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
             ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-              leading: const Icon(Icons.settings_rounded,
-                  color: Color(0xFFD0D0D7), size: 31),
-              title: const Text("الإعدادات",
-                  style: TextStyle(
-                      color: Color(0xFFD0D0D7),
-                      fontSize: 21,
-                      fontWeight: FontWeight.w500)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.settings_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("الإعدادات", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
               },
             ),
             ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-              leading: const Icon(Icons.telegram_rounded,
-                  color: Color(0xFFA855F7), size: 31),
-              title: const Text("القناة الرسمية",
-                  style: TextStyle(
-                      color: Color(0xFFD0D0D7),
-                      fontSize: 21,
-                      fontWeight: FontWeight.w500)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.telegram_rounded, color: Color(0xFFA855F7), size: 31),
+              title: const Text("القناة الرسمية", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
               onTap: () => _openTelegram('https://t.me/+f9NsIzGjN_hjYWRi'),
             ),
             ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-              leading: const Icon(Icons.workspace_premium_rounded,
-                  color: Color(0xFFFFC857), size: 31),
-              title: const Text("قناة الاشتراك",
-                  style: TextStyle(
-                      color: Color(0xFFD0D0D7),
-                      fontSize: 21,
-                      fontWeight: FontWeight.w500)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC857), size: 31),
+              title: const Text("قناة الاشتراك", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
               onTap: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
             ),
             ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-              leading: const Icon(Icons.support_agent_rounded,
-                  color: Color(0xFFD0D0D7), size: 31),
-              title: const Text("الدعم والمساعدة",
-                  style: TextStyle(
-                      color: Color(0xFFD0D0D7),
-                      fontSize: 21,
-                      fontWeight: FontWeight.w500)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.support_agent_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("الدعم والمساعدة", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
               onTap: () => _openTelegram('https://t.me/+uryaRDBEm4lmYWZi'),
             ),
             const Spacer(),
             ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 26, vertical: 17),
-              leading: const Icon(Icons.logout_rounded,
-                  color: Color(0xFFD0D0D7), size: 31),
-              title: const Text("تسجيل خروج",
-                  style: TextStyle(
-                      color: Color(0xFFD0D0D7),
-                      fontSize: 21,
-                      fontWeight: FontWeight.w500)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 17),
+              leading: const Icon(Icons.logout_rounded, color: Color(0xFFD0D0D7), size: 31),
+              title: const Text("تسجيل خروج", style: TextStyle(color: Color(0xFFD0D0D7), fontSize: 21, fontWeight: FontWeight.w500)),
               onTap: provider.logout,
             ),
           ],
@@ -1217,8 +776,7 @@ class _MainDashboardState extends State<MainDashboard> {
       case 2:
         return const StreamsListScreen(title: "الأفلام", tab: "movie");
       case 3:
-        return const StreamsListScreen(
-            title: "المسلسلات", tab: "series", isSeries: true);
+        return const StreamsListScreen(title: "المسلسلات", tab: "series", isSeries: true);
       case 4:
         return const FavoritesScreen();
       default:
@@ -1234,8 +792,7 @@ class ModernSidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelected;
 
-  const ModernSidebar(
-      {super.key, required this.selectedIndex, required this.onSelected});
+  const ModernSidebar({super.key, required this.selectedIndex, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -1256,58 +813,43 @@ class ModernSidebar extends StatelessWidget {
       width: isMobile ? 55 : 82,
       decoration: BoxDecoration(
         color: PremiumPalette.surface,
-        border: Border(
-            left: BorderSide(color: PremiumPalette.violet.withOpacity(0.18))),
+        border: Border(left: BorderSide(color: PremiumPalette.violet.withOpacity(0.18))),
       ),
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.only(
-                top: isMobile ? 12 : 18, bottom: isMobile ? 6 : 10),
+            padding: EdgeInsets.only(top: isMobile ? 12 : 18, bottom: isMobile ? 6 : 10),
             child: Container(
               width: isMobile ? 34 : 42,
               height: isMobile ? 34 : 42,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [
-                  PremiumPalette.violetBright,
-                  PremiumPalette.violet
-                ]),
+                gradient: const LinearGradient(colors: [PremiumPalette.violetBright, PremiumPalette.violet]),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                      color: PremiumPalette.violet.withOpacity(0.35),
-                      blurRadius: 14)
-                ],
+                boxShadow: [BoxShadow(color: PremiumPalette.violet.withOpacity(0.35), blurRadius: 14)],
               ),
               child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.settings,
-                color: Colors.white54, size: isMobile ? 18 : 20),
+            icon: Icon(Icons.settings, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'الإعدادات',
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()));
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             },
           ),
           SizedBox(height: isMobile ? 4 : 8),
           IconButton(
-            icon: Icon(Icons.tune_rounded,
-                color: Colors.white54, size: isMobile ? 18 : 20),
+            icon: Icon(Icons.tune_rounded, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'التفضيلات',
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()));
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             },
           ),
           SizedBox(height: isMobile ? 16 : 32),
-          ...items
-              .map((item) => _buildItem(item['icon'], item['index'], isMobile)),
+          ...items.map((item) => _buildItem(item['icon'], item['index'], isMobile)),
           const Spacer(),
           IconButton(
-            icon: Icon(Icons.logout,
-                color: Colors.white54, size: isMobile ? 18 : 20),
+            icon: Icon(Icons.logout, color: Colors.white54, size: isMobile ? 18 : 20),
             tooltip: 'تسجيل الخروج',
             onPressed: () => provider.logout(),
           ),
@@ -1331,14 +873,10 @@ class ModernSidebar extends StatelessWidget {
               height: isMobile ? 20 : 24,
               decoration: BoxDecoration(
                 color: isSel ? PremiumPalette.gold : Colors.transparent,
-                borderRadius:
-                    const BorderRadius.horizontal(left: Radius.circular(2)),
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(2)),
               ),
             ),
-            Expanded(
-                child: Icon(icon,
-                    color: isSel ? Colors.white : Colors.white54,
-                    size: isMobile ? 20 : 24)),
+            Expanded(child: Icon(icon, color: isSel ? Colors.white : Colors.white54, size: isMobile ? 20 : 24)),
           ],
         ),
       ),
@@ -1357,8 +895,7 @@ class MarqueeAnnouncementWidget extends StatefulWidget {
   const MarqueeAnnouncementWidget({super.key, required this.text});
 
   @override
-  State<MarqueeAnnouncementWidget> createState() =>
-      _MarqueeAnnouncementWidgetState();
+  State<MarqueeAnnouncementWidget> createState() => _MarqueeAnnouncementWidgetState();
 }
 
 class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
@@ -1414,20 +951,14 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: accent,
-              borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(8),
-                  bottomRight: Radius.circular(8)),
+              borderRadius: const BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.campaign, color: Colors.white, size: 16),
                 SizedBox(width: 6),
-                Text("إعلان هام",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+                Text("إعلان هام", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -1445,10 +976,7 @@ class _MarqueeAnnouncementWidgetState extends State<MarqueeAnnouncementWidget> {
                       padding: const EdgeInsets.only(left: 120, right: 16),
                       child: Text(
                         widget.text,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
                   );
@@ -1487,13 +1015,11 @@ class _HomeTabState extends State<HomeTab> {
     final provider = Provider.of<IPTVProvider>(context);
     final isMobile = MediaQuery.of(context).size.width < 600;
     final liveItems = provider.allStreams
-        .where((item) =>
-            item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
+        .where((item) => item.type == 'live' || item.type == 'channel' || item.type.isEmpty)
+        .take(12)
         .toList();
-    final movieItems =
-        provider.allStreams.where((item) => item.type == 'movie').toList();
-    final seriesItems =
-        provider.allStreams.where((item) => item.type == 'series').toList();
+    final movieItems = provider.allStreams.where((item) => item.type == 'movie').take(12).toList();
+    final seriesItems = provider.allStreams.where((item) => item.type == 'series').take(12).toList();
 
     return Container(
       color: Theme.of(context).colorScheme.background,
@@ -1504,9 +1030,12 @@ class _HomeTabState extends State<HomeTab> {
           children: [
             const BannerSliderWidget(),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                  isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
+              padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
               child: _buildQuickAccessRow(context),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
+              child: _buildSportsButton(context, Icons.article, "الأخبار الرياضية", "NEWS", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen()))),
             ),
             _buildReferenceSection(
               context: context,
@@ -1546,30 +1075,38 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+
+  Widget _buildSportsButton(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap) {
+    return ScaleOnFocus(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.22)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+            const SizedBox(height: 8),
+            Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            Text(title, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickAccessRow(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final surface = Theme.of(context).colorScheme.surface;
-    final entries =
-        <({String english, String arabic, IconData icon, int index})>[
-      (
-        english: 'LIVE',
-        arabic: 'قنوات مباشرة',
-        icon: Icons.live_tv_rounded,
-        index: 1
-      ),
+    final entries = <({String english, String arabic, IconData icon, int index})>[
+      (english: 'LIVE', arabic: 'قنوات مباشرة', icon: Icons.live_tv_rounded, index: 1),
       (english: 'MOVIES', arabic: 'أفلام', icon: Icons.movie_rounded, index: 2),
-      (
-        english: 'SERIES',
-        arabic: 'مسلسلات',
-        icon: Icons.video_library_rounded,
-        index: 3
-      ),
-      (
-        english: 'FAVOURITES',
-        arabic: 'المفضلة',
-        icon: Icons.favorite_rounded,
-        index: 4
-      ),
+      (english: 'SERIES', arabic: 'مسلسلات', icon: Icons.video_library_rounded, index: 3),
+      (english: 'FAVOURITES', arabic: 'المفضلة', icon: Icons.favorite_rounded, index: 4),
     ];
 
     return SizedBox(
@@ -1581,9 +1118,7 @@ class _HomeTabState extends State<HomeTab> {
             Expanded(
               child: ScaleOnFocus(
                 autofocus: i == 0,
-                onTap: () => context
-                    .findAncestorStateOfType<_MainDashboardState>()
-                    ?.updateIndex(entries[i].index),
+                onTap: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(entries[i].index),
                 child: Container(
                   decoration: BoxDecoration(
                     color: surface,
@@ -1591,27 +1126,15 @@ class _HomeTabState extends State<HomeTab> {
                     border: Border.all(color: accent.withOpacity(0.22)),
                   ),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(entries[i].icon, color: accent, size: 38),
                         const SizedBox(height: 9),
-                        Text(entries[i].english,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.45)),
+                        Text(entries[i].english, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.45)),
                         const SizedBox(height: 3),
-                        Text(entries[i].arabic,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Color(0xFFC0C0CA), fontSize: 11)),
+                        Text(entries[i].arabic, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFFC0C0CA), fontSize: 11)),
                       ],
                     ),
                   ),
@@ -1645,21 +1168,10 @@ class _HomeTabState extends State<HomeTab> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Expanded(
-                    child: Text(title,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800))),
+                Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800))),
                 TextButton(
-                  onPressed: () => context
-                      .findAncestorStateOfType<_MainDashboardState>()
-                      ?.updateIndex(tabIndex),
-                  child: Text('عرض الكل',
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600)),
+                  onPressed: () => context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(tabIndex),
+                  child: Text('عرض الكل', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 17, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -1674,8 +1186,7 @@ class _HomeTabState extends State<HomeTab> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) => SizedBox(
                 width: cardWidth,
-                child: buildStreamCardLocal(context, provider, items[index],
-                    isSeries: isSeries, isMobile: true),
+                child: buildStreamCardLocal(context, provider, items[index], isSeries: isSeries, isMobile: true),
               ),
             ),
           ),
@@ -1706,11 +1217,10 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
 
   Future<void> _fetchBanners() async {
     try {
-      final url = Uri.parse(
-          "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
+      final url = Uri.parse("https://iptv-subscription-api.tvkora56.workers.dev/v1/slider?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body);
+        final List<dynamic> data = await Isolate.run(() => json.decode(res.body));
         setState(() {
           _banners = data.map((e) => e.toString().trim()).toList();
           _isLoadingBanners = false;
@@ -1728,18 +1238,15 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
     if (_banners.length > 1) {
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-        if (_currentPage < _banners.length - 1)
-          _currentPage++;
-        else
-          _currentPage = 0;
+        if (_currentPage < _banners.length - 1) _currentPage++;
+        else _currentPage = 0;
         if (_pageController.hasClients) {
-          _pageController.animateToPage(_currentPage,
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic);
+          _pageController.animateToPage(_currentPage, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
         }
       });
     }
   }
+
 
   @override
   void initState() {
@@ -1763,8 +1270,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
     if (_isLoadingBanners) {
       return SizedBox(
         height: bannerHeight,
-        child: const Center(
-            child: CircularProgressIndicator(color: Color(0xFFA855F7))),
+        child: const Center(child: CircularProgressIndicator(color: Color(0xFFA855F7))),
       );
     }
     if (_banners.isEmpty) {
@@ -1789,10 +1295,8 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                     imageUrl: _banners[index],
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    placeholder: (_, __) =>
-                        const ColoredBox(color: Color(0xFF171324)),
-                    errorWidget: (_, __, ___) =>
-                        const ColoredBox(color: Color(0xFF171324)),
+                    placeholder: (_, __) => const ColoredBox(color: Color(0xFF171324)),
+                    errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF171324)),
                   ),
                   const DecoratedBox(
                     decoration: BoxDecoration(
@@ -1815,21 +1319,14 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                           'LIVE STREAM PREMIUM',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: isMobile ? 28 : 38,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2),
+                          style: TextStyle(color: Colors.white, fontSize: isMobile ? 28 : 38, fontWeight: FontWeight.w500, letterSpacing: 0.2),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           'استمتع بأفضل القنوات والأفلام والمسلسلات',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: const Color(0xFFE5E5EA),
-                              fontSize: isMobile ? 16 : 21,
-                              fontWeight: FontWeight.w400),
+                          style: TextStyle(color: const Color(0xFFE5E5EA), fontSize: isMobile ? 16 : 21, fontWeight: FontWeight.w400),
                         ),
                       ],
                     ),
@@ -1844,11 +1341,8 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
             right: 0,
             child: Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF9A7612).withOpacity(0.82),
-                    borderRadius: BorderRadius.circular(20)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(color: const Color(0xFF9A7612).withOpacity(0.82), borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(dotCount, (index) {
@@ -1859,9 +1353,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                       height: 9,
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
-                        color: isActive
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.white.withOpacity(0.82),
+                        color: isActive ? Theme.of(context).colorScheme.primary : Colors.white.withOpacity(0.82),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     );
@@ -1884,11 +1376,7 @@ class StreamsListScreen extends StatelessWidget {
   final String tab;
   final bool isSeries;
 
-  const StreamsListScreen(
-      {super.key,
-      required this.title,
-      required this.tab,
-      this.isSeries = false});
+  const StreamsListScreen({super.key, required this.title, required this.tab, this.isSeries = false});
 
   int _getCrossAxisCount(double width) {
     if (width < 600) return tab == 'live' ? 2 : 3;
@@ -1912,17 +1400,11 @@ class StreamsListScreen extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(
-                isMobile ? 16 : 24, 16, isMobile ? 16 : 24, 10),
+            padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 16, isMobile ? 16 : 24, 10),
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Expanded(
-                    child: Text(title,
-                        style: TextStyle(
-                            fontSize: isMobile ? 25 : 31,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white))),
+                Expanded(child: Text(title, style: TextStyle(fontSize: isMobile ? 25 : 31, fontWeight: FontWeight.w800, color: Colors.white))),
                 SizedBox(
                   width: isMobile ? 138 : 240,
                   height: 43,
@@ -1931,17 +1413,12 @@ class StreamsListScreen extends StatelessWidget {
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
                       hintText: 'بحث...',
-                      hintStyle: const TextStyle(
-                          color: Color(0xFFB6B7C2), fontSize: 13),
-                      prefixIcon:
-                          Icon(Icons.search_rounded, color: accent, size: 22),
+                      hintStyle: const TextStyle(color: Color(0xFFB6B7C2), fontSize: 13),
+                      prefixIcon: Icon(Icons.search_rounded, color: accent, size: 22),
                       filled: true,
                       fillColor: surface,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                   ),
                 ),
@@ -1971,22 +1448,13 @@ class StreamsListScreen extends StatelessWidget {
                     provider.setCategory(categoryId);
                   },
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
                     decoration: BoxDecoration(
                       color: selected ? accent : surface,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                          color: selected ? accent : accent.withOpacity(0.22)),
+                      border: Border.all(color: selected ? accent : accent.withOpacity(0.22)),
                     ),
-                    child: Text(category,
-                        style: TextStyle(
-                            color: selected
-                                ? Colors.white
-                                : const Color(0xFFD2D2DA),
-                            fontSize: 14,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500)),
+                    child: Text(category, style: TextStyle(color: selected ? Colors.white : const Color(0xFFD2D2DA), fontSize: 14, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
                   ),
                 );
               },
@@ -1997,8 +1465,7 @@ class StreamsListScreen extends StatelessWidget {
             child: provider.isFetchingData
                 ? Center(child: CircularProgressIndicator(color: accent))
                 : GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                        isMobile ? 14 : 24, 8, isMobile ? 14 : 24, 24),
+                    padding: EdgeInsets.fromLTRB(isMobile ? 14 : 24, 8, isMobile ? 14 : 24, 24),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: _getCrossAxisCount(screenW),
                       childAspectRatio: tab == 'live' ? 0.90 : 0.64,
@@ -2006,9 +1473,7 @@ class StreamsListScreen extends StatelessWidget {
                       mainAxisSpacing: isMobile ? 14 : 18,
                     ),
                     itemCount: streams.length,
-                    itemBuilder: (context, index) => buildStreamCardLocal(
-                        context, provider, streams[index],
-                        isSeries: isSeries, isMobile: isMobile),
+                    itemBuilder: (context, index) => buildStreamCardLocal(context, provider, streams[index], isSeries: isSeries, isMobile: isMobile),
                   ),
           ),
         ],
@@ -2040,21 +1505,13 @@ class FavoritesScreen extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 12 : 24, vertical: isMobile ? 12 : 16),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: isMobile ? 12 : 16),
           alignment: Alignment.centerRight,
-          child: Text("المفضلة",
-              style: TextStyle(
-                  fontSize: isMobile ? 18 : 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
+          child: Text("المفضلة", style: TextStyle(fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.bold, color: Colors.white)),
         ),
         Expanded(
           child: streams.isEmpty
-              ? Center(
-                  child: Text("لا توجد قنوات أو عروض في المفضلة",
-                      style: TextStyle(
-                          fontSize: isMobile ? 14 : 16, color: Colors.white54)))
+              ? Center(child: Text("لا توجد قنوات أو عروض في المفضلة", style: TextStyle(fontSize: isMobile ? 14 : 16, color: Colors.white54)))
               : GridView.builder(
                   padding: EdgeInsets.all(isMobile ? 12 : 24),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -2064,113 +1521,12 @@ class FavoritesScreen extends StatelessWidget {
                     mainAxisSpacing: isMobile ? 6 : 12,
                   ),
                   itemCount: streams.length,
-                  itemBuilder: (ctx, i) => buildStreamCardLocal(
-                      context, provider, streams[i],
-                      isSeries: streams[i].type == "series",
-                      isMobile: isMobile),
+                  itemBuilder: (ctx, i) => buildStreamCardLocal(context, provider, streams[i], isSeries: streams[i].type == "series", isMobile: isMobile),
                 ),
         ),
       ],
     );
   }
-}
-
-Map<String, List<dynamic>> normalizeSeriesEpisodes(dynamic rawEpisodes) {
-  final result = <String, List<dynamic>>{};
-
-  void addSeason(String season, dynamic value) {
-    final items = <dynamic>[];
-    if (value is List) {
-      items.addAll(value);
-    } else if (value is Map) {
-      final nested = value['episodes'] ?? value['items'] ?? value['data'];
-      if (nested is List) {
-        items.addAll(nested);
-      } else {
-        // Some Xtream/Stalker variants return {episode_id: episodeObject}.
-        for (final item in value.values) {
-          if (item is Map) items.add(Map<String, dynamic>.from(item));
-        }
-      }
-    }
-    if (items.isNotEmpty || !result.containsKey(season)) {
-      result[season.isEmpty ? '1' : season] = items;
-    }
-  }
-
-  if (rawEpisodes is Map) {
-    rawEpisodes.forEach((key, value) => addSeason(key.toString(), value));
-  } else if (rawEpisodes is List) {
-    // Flat responses may carry the season on every episode.
-    final grouped = <String, List<dynamic>>{};
-    for (final item in rawEpisodes) {
-      final map = item is Map ? Map<String, dynamic>.from(item) : null;
-      final season = map?['season'] ?? map?['season_number'] ?? '1';
-      grouped.putIfAbsent(season.toString(), () => <dynamic>[]).add(item);
-    }
-    grouped.forEach((key, value) => addSeason(key, value));
-  }
-  return result;
-}
-
-List<Map<String, dynamic>> normalizeSeriesSeasons(
-  dynamic rawSeasons,
-  Map<String, List<dynamic>> episodes,
-  String cover,
-) {
-  final result = <Map<String, dynamic>>[];
-
-  void addSeason(String fallbackNumber, dynamic item) {
-    if (item is Map) {
-      final map = Map<String, dynamic>.from(item);
-      final rawNumber = map['season_number'] ??
-          map['season_num'] ??
-          map['season'] ??
-          map['id'] ??
-          fallbackNumber;
-      final number = rawNumber.toString();
-      if (number.isNotEmpty) {
-        map['season_number'] = rawNumber;
-        map.putIfAbsent('cover', () => cover);
-        map.putIfAbsent('episode_count', () => episodes[number]?.length ?? 0);
-        result.add(map);
-      }
-    } else if (item is List) {
-      final number = fallbackNumber.isEmpty ? '1' : fallbackNumber;
-      result.add({
-        'season_number': number,
-        'name': 'الموسم $number',
-        'cover': cover,
-        'episode_count': item.length,
-      });
-    }
-  }
-
-  if (rawSeasons is List) {
-    for (final item in rawSeasons) addSeason('', item);
-  } else if (rawSeasons is Map) {
-    rawSeasons.forEach((key, item) => addSeason(key.toString(), item));
-  }
-  if (result.isEmpty) {
-    for (final entry in episodes.entries) {
-      result.add({
-        'season_number': entry.key,
-        'name': 'الموسم ${entry.key}',
-        'cover': cover,
-        'episode_count': entry.value.length,
-      });
-    }
-  }
-  result.sort((a, b) {
-    final aNum = int.tryParse(a['season_number']?.toString() ?? '') ?? 0;
-    final bNum = int.tryParse(b['season_number']?.toString() ?? '') ?? 0;
-    return aNum.compareTo(bNum);
-  });
-  for (final season in result) {
-    final number = season['season_number']?.toString() ?? '';
-    if (number.isNotEmpty) episodes.putIfAbsent(number, () => <dynamic>[]);
-  }
-  return result;
 }
 
 // -----------------------------------------------------------------------------
@@ -2189,221 +1545,85 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _seriesData;
   String _selectedSeason = "";
-  Map<String, dynamic>? _resumeProgress;
-
-  String get _progressKey => 'series_progress_${widget.series.streamId}';
-
-  Future<void> _loadSavedProgress() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_progressKey);
-      if (!mounted || raw == null || raw.isEmpty) return;
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        setState(() => _resumeProgress = Map<String, dynamic>.from(decoded));
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveEpisodeProgress(dynamic ep, String seasonNumber) async {
-    final episodeId =
-        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
-    if (episodeId == null) return;
-    final progress = <String, dynamic>{
-      'season': seasonNumber,
-      'episode_id': episodeId.toString(),
-      'episode_number': ep['episode_num'] ?? ep['episode_number'] ?? '',
-      'title': (ep['title'] ?? ep['name'] ?? 'الحلقة').toString(),
-      'saved_at': DateTime.now().millisecondsSinceEpoch,
-    };
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_progressKey, jsonEncode(progress));
-    if (mounted) setState(() => _resumeProgress = progress);
-  }
 
   @override
   void initState() {
     super.initState();
-    _loadSavedProgress();
     _fetchSeriesInfo();
-  }
-
-  Future<Map<String, dynamic>> _fetchStalkerSeriesInfo(
-      String rawId, IPTVProvider provider) async {
-    final playlist = provider.savedPlaylists.firstWhere(
-      (item) => item.id == provider.activePlaylistId,
-      orElse: () => UserPlaylist(id: '', name: '', type: ''),
-    );
-    final base = (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
-    final mac = (playlist.username ?? '').trim();
-    if (base.isEmpty || mac.isEmpty) {
-      throw const FormatException('Stalker session unavailable');
-    }
-    final headers = <String, String>{
-      'Cookie': 'mac=$mac',
-      'User-Agent':
-          'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 MAG200 stbapp',
-    };
-    final uri = Uri.parse('$base/server/load.php').replace(queryParameters: {
-      'type': 'series',
-      'action': 'get_ordered_list',
-      'movie_id': stalkerSeriesParentId(rawId),
-      'genre': '0',
-      'force_ch_link_check': '0',
-      'p': '1',
-      'JsHttpRequest': '1-xml',
-    });
-    final response = await http.get(uri, headers: headers).timeout(
-          const Duration(seconds: 20),
-        );
-    if (response.statusCode != 200) {
-      throw Exception('Stalker series HTTP ${response.statusCode}');
-    }
-    final decoded = json.decode(response.body);
-    final js = decoded is Map ? decoded['js'] : null;
-    final rows = js is Map && js['data'] is List
-        ? List<dynamic>.from(js['data'])
-        : js is List
-            ? List<dynamic>.from(js)
-            : <dynamic>[];
-    final episodes = stalkerRowsToEpisodes(rows);
-    final info = <String, dynamic>{
-      'name': widget.series.name,
-      'cover': widget.series.streamIcon,
-    };
-    return {
-      'info': info,
-      'episodes': episodes,
-      'seasons':
-          normalizeSeriesSeasons(null, episodes, widget.series.streamIcon),
-    };
   }
 
   Future<void> _fetchSeriesInfo() async {
     try {
-      final s = widget.series;
       final provider = Provider.of<IPTVProvider>(context, listen: false);
-      final rawId = s.streamId
-          .replaceFirst('stalker_series_', '')
-          .replaceFirst('series_', '');
-      if (s.type == 'stalker_series') {
-        final data = await _fetchStalkerSeriesInfo(rawId, provider);
-        if (mounted) {
-          setState(() {
-            _seriesData = data;
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-      final streamUri = Uri.tryParse(s.url);
-      if (streamUri == null || rawId.isEmpty)
-        throw const FormatException('Invalid series URL');
+      final activePlaylist = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId);
+      final s = widget.series;
+      var seriesId = s.streamId.replaceAll('series_', '');
+      
+      String host = activePlaylist.host ?? "";
+      if (host.endsWith('/')) host = host.substring(0, host.length - 1);
+      String username = activePlaylist.username ?? "";
+      String password = activePlaylist.password ?? "";
+      
+      if (host.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
+          final url = "$host/player_api.php?username=$username&password=$password&action=get_series_info&series_id=$seriesId";
+          final response = await http.get(Uri.parse(url));
+          if (response.statusCode == 200) {
+            final data = await Isolate.run(() => json.decode(response.body));
+            List<dynamic> parsedSeasons = [];
+            Map<String, dynamic> parsedEpisodes = {};
 
-      String host = '';
-      String username = '';
-      String password = '';
-      if (streamUri.queryParameters['action'] == 'get_series_info') {
-        final segments = streamUri.pathSegments;
-        final apiIndex = segments.indexOf('player_api.php');
-        final baseSegments =
-            apiIndex > 0 ? segments.take(apiIndex).toList() : <String>[];
-        host = Uri(
-          scheme: streamUri.scheme,
-          host: streamUri.host,
-          port: streamUri.hasPort ? streamUri.port : null,
-          path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
-        ).toString().replaceFirst(RegExp(r'/$'), '');
-        username = streamUri.queryParameters['username'] ?? '';
-        password = streamUri.queryParameters['password'] ?? '';
-      } else {
-        final segments = streamUri.pathSegments;
-        final seriesIndex = segments.indexOf('series');
-        if (seriesIndex >= 0 && segments.length > seriesIndex + 3) {
-          final baseSegments = segments.take(seriesIndex).toList();
-          host = Uri(
-            scheme: streamUri.scheme,
-            host: streamUri.host,
-            port: streamUri.hasPort ? streamUri.port : null,
-            path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
-          ).toString().replaceFirst(RegExp(r'/$'), '');
-          username = Uri.decodeComponent(segments[seriesIndex + 1]);
-          password = Uri.decodeComponent(segments[seriesIndex + 2]);
-        }
-      }
-      if (host.isEmpty || username.isEmpty || password.isEmpty) {
-        throw const FormatException('Series API credentials unavailable');
-      }
+            if (data['episodes'] != null) {
+              if (data['episodes'] is Map) {
+                parsedEpisodes = Map<String, dynamic>.from(data['episodes']);
+              } else if (data['episodes'] is List) {
+                parsedEpisodes["1"] = List<dynamic>.from(data['episodes']);
+              }
+            }
 
-      final query = Uri(queryParameters: {
-        'username': username,
-        'password': password,
-        'action': 'get_series_info',
-        'series_id': rawId,
-      });
-      final response = await http
-          .get(Uri.parse('$host/player_api.php${query.toString()}'))
-          .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200)
-        throw Exception('Series info HTTP ${response.statusCode}');
+            if (data['seasons'] != null && data['seasons'] is List && (data['seasons'] as List).isNotEmpty) {
+              parsedSeasons = List<dynamic>.from(data['seasons']);
+            } else if (data['seasons'] != null && data['seasons'] is Map && (data['seasons'] as Map).isNotEmpty) {
+              parsedSeasons = (data['seasons'] as Map).values.toList();
+            } else {
+              parsedEpisodes.keys.forEach((key) {
+                parsedSeasons.add({
+                  "season_number": key,
+                  "name": "الموسم $key",
+                  "cover": data['info']?['cover'] ?? "",
+                  "episode_count": (parsedEpisodes[key] as List).length
+                });
+              });
+            }
 
-      final decoded = json.decode(response.body);
-      final data = decoded is Map<String, dynamic>
-          ? decoded
-          : Map<String, dynamic>.from(decoded as Map);
-      final parsedEpisodes = normalizeSeriesEpisodes(data['episodes']);
-      final cover =
-          data['info'] is Map ? data['info']['cover']?.toString() ?? '' : '';
-      final parsedSeasons = normalizeSeriesSeasons(
-        data['seasons'],
-        parsedEpisodes,
-        cover,
-      );
+            parsedSeasons.sort((a, b) {
+              int sA = int.tryParse(a['season_number']?.toString() ?? '0') ?? 0;
+              int sB = int.tryParse(b['season_number']?.toString() ?? '0') ?? 0;
+              return sA.compareTo(sB);
+            });
 
-      if (mounted) {
-        setState(() {
-          _seriesData = {
-            'info': data['info'] is Map
-                ? Map<String, dynamic>.from(data['info'])
-                : <String, dynamic>{},
-            'seasons': parsedSeasons,
-            'episodes': parsedEpisodes,
-          };
-          _isLoading = false;
-        });
+            for (var season in parsedSeasons) {
+              String sNum = season['season_number'].toString();
+              if (!parsedEpisodes.containsKey(sNum)) parsedEpisodes[sNum] = [];
+            }
+
+            if (mounted) {
+              setState(() {
+                _seriesData = {"info": data['info'] ?? {}, "seasons": parsedSeasons, "episodes": parsedEpisodes};
+                _isLoading = false;
+              });
+            }
+            return;
+          }
       }
-      return;
+    
     } catch (e) {
-      debugPrint('Error fetching series info: $e');
+      debugPrint("Error fetching series info: $e");
     }
     if (mounted) setState(() => _isLoading = false);
   }
 
-  Future<void> _resumeSavedEpisode() async {
-    final progress = _resumeProgress;
-    final data = _seriesData;
-    if (progress == null || data == null) return;
-    final season = progress['season']?.toString() ?? '';
-    final episodes = (data['episodes'] as Map<String, dynamic>)[season];
-    if (episodes is! List) return;
-    final wantedId = progress['episode_id']?.toString();
-    for (final item in episodes) {
-      if (item is! Map) continue;
-      final id = item['id'] ??
-          item['episode_id'] ??
-          item['stream_id'] ??
-          item['media_id'];
-      if (id?.toString() == wantedId) {
-        _selectedSeason = season;
-        await _playEpisode(item, seasonNumber: season);
-        return;
-      }
-    }
-  }
-
-  Future<void> _playEpisode(dynamic ep, {String? seasonNumber}) async {
+  void _playEpisode(dynamic ep) async {
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    await _saveEpisodeProgress(ep, seasonNumber ?? _selectedSeason);
     final categoryName = widget.series.categoryName;
     if (provider.isCategoryLocked(categoryName)) {
       bool ok = await showPinDialog(context, provider);
@@ -2411,85 +1631,26 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       provider.unlockCategorySession(categoryName);
     }
 
-    String host = "";
-    String user = "";
-    String pass = "";
-    try {
-      final uri = Uri.parse(widget.series.url);
-      final segments = uri.pathSegments;
-      final seriesIndex = segments.indexOf('series');
-      if (seriesIndex >= 0 && segments.length >= seriesIndex + 4) {
-        final baseSegments = segments.take(seriesIndex).toList();
-        host = Uri(
-          scheme: uri.scheme,
-          host: uri.host,
-          port: uri.hasPort ? uri.port : null,
-          path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
-        ).toString().replaceFirst(RegExp(r'/$'), '');
-        user = Uri.decodeComponent(segments[seriesIndex + 1]);
-        pass = Uri.decodeComponent(segments[seriesIndex + 2]);
-      }
-    } catch (e) {}
-    final epId =
-        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
-    final info = ep['info'] is Map
-        ? Map<String, dynamic>.from(ep['info'])
-        : <String, dynamic>{};
-    final directCandidates = [
-      ep['direct_source'],
-      ep['stream_url'],
-      ep['cmd'],
-      ep['url'],
-      info['direct_source'],
-      info['stream_url'],
-      info['cmd'],
-      info['url'],
-    ];
-    final directUrl = directCandidates
-        .map((value) => value?.toString().trim() ?? '')
-        .firstWhere((value) => value.isNotEmpty, orElse: () => '');
-    if (epId == null || epId.toString().isEmpty) return;
-    final rawExt = ep['container_extension'] ??
-        ep['extension'] ??
-        info['container_extension'] ??
-        info['extension'];
-    final ext = rawExt?.toString().trim().replaceFirst('.', '') ?? '';
-    var epUrl = directUrl;
-    if (widget.series.type == 'stalker_series' && directUrl.isNotEmpty) {
-      final isHttp =
-          directUrl.startsWith('http://') || directUrl.startsWith('https://');
-      if (!isHttp) {
-        final playlist = provider.savedPlaylists.firstWhere(
-          (item) => item.id == provider.activePlaylistId,
-          orElse: () => UserPlaylist(id: '', name: '', type: ''),
-        );
-        final base =
-            (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
-        final mac = (playlist.username ?? '').trim();
-        if (base.isNotEmpty && mac.isNotEmpty) {
-          epUrl = Uri.parse('$base/play').replace(queryParameters: {
-            'cmd': directUrl,
-            'mac': mac,
-          }).toString();
-        }
-      }
-    }
-    if (epUrl.isEmpty && host.isNotEmpty) {
-      epUrl =
-          "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
-    }
-    if (epUrl.isEmpty) return;
+    
+    final activePlaylist = provider.savedPlaylists.firstWhere((p) => p.id == provider.activePlaylistId);
+    String host = activePlaylist.host ?? "";
+    if (host.endsWith('/')) host = host.substring(0, host.length - 1);
+    String user = activePlaylist.username ?? "";
+    String pass = activePlaylist.password ?? "";
+
+    final epId = ep['id'];
+    final ext = ep['container_extension'] ?? "mp4";
+    final epUrl = "$host/series/$user/$pass/$epId.$ext";
     final stream = PlaylistItem(
       streamId: epId.toString(),
-      name: "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}",
+      name: "${widget.series.name} - ${ep['title'] ?? 'الحلقة'}",
       url: epUrl,
       type: "series",
       streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
       categoryId: "",
       categoryName: "مسلسلات",
     );
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
   }
 
   @override
@@ -2500,18 +1661,13 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final pad = isMobile ? 16.0 : 32.0;
 
     if (_isLoading) {
-      return const Scaffold(
-          body: Center(
-              child: CircularProgressIndicator(color: PremiumPalette.violet)));
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: PremiumPalette.violet)));
     }
 
     if (_seriesData == null || (_seriesData!['seasons'] as List).isEmpty) {
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: Center(
-            child: Text("عذراً، لا توجد حلقات متاحة لهذا المسلسل",
-                style: TextStyle(
-                    color: Colors.white, fontSize: isMobile ? 14 : 16))),
+        body: Center(child: Text("عذراً، لا توجد حلقات متاحة لهذا المسلسل", style: TextStyle(color: Colors.white, fontSize: isMobile ? 14 : 16))),
       );
     }
 
@@ -2523,8 +1679,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     String name = info['name'] ?? widget.series.name;
     String plot = info['plot'] ?? "لا يوجد وصف متاح لهذا المسلسل.";
     String rating = info['rating']?.toString() ?? "";
-    String year =
-        info['releaseDate']?.toString() ?? info['year']?.toString() ?? "";
+    String year = info['releaseDate']?.toString() ?? info['year']?.toString() ?? "";
 
     if (_selectedSeason.isEmpty && seasons.isNotEmpty) {
       _selectedSeason = seasons.first['season_number'].toString();
@@ -2576,8 +1731,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                   Padding(
                     padding: EdgeInsets.all(isMobile ? 8 : 12),
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back,
-                          color: Colors.white, size: isMobile ? 20 : 24),
+                      icon: Icon(Icons.arrow_back, color: Colors.white, size: isMobile ? 20 : 24),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -2593,48 +1747,26 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                               fontSize: isMobile ? 24 : 36,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
-                              shadows: const [
-                                Shadow(color: Colors.black87, blurRadius: 10)
-                              ]),
+                              shadows: const [Shadow(color: Colors.black87, blurRadius: 10)]),
                         ),
                         SizedBox(height: isMobile ? 8 : 12),
                         Row(
                           children: [
                             if (year.isNotEmpty) ...[
-                              Text(year,
-                                  style: TextStyle(
-                                      color: const Color(0xFF46D369),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isMobile ? 12 : 14)),
+                              Text(year, style: TextStyle(color: const Color(0xFF46D369), fontWeight: FontWeight.bold, fontSize: isMobile ? 12 : 14)),
                               SizedBox(width: isMobile ? 8 : 12)
                             ],
-                            Text("${seasons.length} مواسم",
-                                style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: isMobile ? 12 : 14)),
+                            Text("${seasons.length} مواسم", style: TextStyle(color: Colors.white70, fontSize: isMobile ? 12 : 14)),
                             SizedBox(width: isMobile ? 8 : 12),
                             Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.white54),
-                                    borderRadius: BorderRadius.circular(2)),
-                                child: Text("HD",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: isMobile ? 9 : 10))),
-                            if (rating.isNotEmpty &&
-                                rating != "0" &&
-                                rating != "0.0") ...[
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(border: Border.all(color: Colors.white54), borderRadius: BorderRadius.circular(2)),
+                                child: Text("HD", style: TextStyle(color: Colors.white, fontSize: isMobile ? 9 : 10))),
+                            if (rating.isNotEmpty && rating != "0" && rating != "0.0") ...[
                               SizedBox(width: isMobile ? 8 : 12),
-                              Icon(Icons.star,
-                                  color: Colors.amber,
-                                  size: isMobile ? 12 : 14),
+                              Icon(Icons.star, color: Colors.amber, size: isMobile ? 12 : 14),
                               const SizedBox(width: 2),
-                              Text(rating,
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: isMobile ? 12 : 14)),
+                              Text(rating, style: TextStyle(color: Colors.white, fontSize: isMobile ? 12 : 14)),
                             ]
                           ],
                         ),
@@ -2642,76 +1774,31 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                         SizedBox(
                           width: isMobile ? screenW * 0.9 : screenW * 0.6,
                           child: Text(plot,
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isMobile ? 12 : 14,
-                                  height: 1.4),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis),
+                              style: TextStyle(color: Colors.white, fontSize: isMobile ? 12 : 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
                         ),
                         SizedBox(height: isMobile ? 16 : 24),
                         Row(
                           children: [
-                            if (_resumeProgress != null) ...[
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(
-                                      color: Color(0xFF46D9D9)),
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: isMobile ? 12 : 18,
-                                      vertical: isMobile ? 8 : 12),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4)),
-                                ),
-                                icon: Icon(Icons.play_circle_outline,
-                                    size: isMobile ? 18 : 22),
-                                label: Text(
-                                  'متابعة: م${_resumeProgress!['season']} - ${_resumeProgress!['title'] ?? 'الحلقة'}',
-                                  style:
-                                      TextStyle(fontSize: isMobile ? 12 : 14),
-                                ),
-                                onPressed: _resumeSavedEpisode,
-                              ),
-                              SizedBox(width: isMobile ? 8 : 12),
-                            ],
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: PremiumPalette.violet,
                                 foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: isMobile ? 16 : 24,
-                                    vertical: isMobile ? 8 : 12),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4)),
+                                padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: isMobile ? 8 : 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                               ),
-                              icon: Icon(Icons.play_arrow,
-                                  size: isMobile ? 20 : 24),
-                              label: Text("تشغيل",
-                                  style: TextStyle(
-                                      fontSize: isMobile ? 14 : 16,
-                                      fontWeight: FontWeight.bold)),
+                              icon: Icon(Icons.play_arrow, size: isMobile ? 20 : 24),
+                              label: Text("تشغيل", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold)),
                               onPressed: () {
-                                if (currentEpisodes.isNotEmpty)
-                                  _playEpisode(currentEpisodes.first,
-                                      seasonNumber: _selectedSeason);
+                                if (currentEpisodes.isNotEmpty) _playEpisode(currentEpisodes.first);
                               },
                             ),
                             SizedBox(width: isMobile ? 8 : 12),
                             Container(
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white54, width: 1.5)),
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white54, width: 1.5)),
                               child: IconButton(
-                                icon: Icon(Icons.favorite_border,
-                                    color: Colors.white,
-                                    size: isMobile ? 18 : 20),
+                                icon: Icon(Icons.favorite_border, color: Colors.white, size: isMobile ? 18 : 20),
                                 onPressed: () {
-                                  Provider.of<IPTVProvider>(context,
-                                          listen: false)
-                                      .toggleFavorite(
-                                          widget.series.streamId ?? "");
+                                  Provider.of<IPTVProvider>(context, listen: false).toggleFavorite(widget.series.streamId ?? "");
                                 },
                               ),
                             ),
@@ -2736,29 +1823,19 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                           return Padding(
                             padding: EdgeInsets.only(left: isMobile ? 12 : 24),
                             child: InkWell(
-                              onTap: () =>
-                                  setState(() => _selectedSeason = sNum),
+                              onTap: () => setState(() => _selectedSeason = sNum),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(sName,
                                       style: TextStyle(
-                                          fontSize: isMobile ? 14 : 16,
-                                          fontWeight: isSel
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                          color: isSel
-                                              ? Colors.white
-                                              : Colors.white54)),
+                                          fontSize: isMobile ? 14 : 16, fontWeight: isSel ? FontWeight.bold : FontWeight.normal, color: isSel ? Colors.white : Colors.white54)),
                                   const SizedBox(height: 4),
                                   if (isSel)
                                     Container(
                                         width: isMobile ? 20 : 30,
                                         height: isMobile ? 2 : 3,
-                                        decoration: BoxDecoration(
-                                            color: PremiumPalette.violet,
-                                            borderRadius:
-                                                BorderRadius.circular(1))),
+                                        decoration: BoxDecoration(color: PremiumPalette.violet, borderRadius: BorderRadius.circular(1))),
                                 ],
                               ),
                             ),
@@ -2790,18 +1867,11 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.02)),
+                              border: Border.all(color: Colors.white.withOpacity(0.02)),
                             ),
                             child: Row(
                               children: [
-                                SizedBox(
-                                    width: isMobile ? 24 : 32,
-                                    child: Text("${i + 1}",
-                                        style: TextStyle(
-                                            fontSize: isMobile ? 16 : 20,
-                                            color: Colors.white54,
-                                            fontWeight: FontWeight.bold))),
+                                SizedBox(width: isMobile ? 24 : 32, child: Text("${i + 1}", style: TextStyle(fontSize: isMobile ? 16 : 20, color: Colors.white54, fontWeight: FontWeight.bold))),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(6),
                                   child: SizedBox(
@@ -2811,57 +1881,30 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                         ? CachedNetworkImage(
                                             imageUrl: epCover,
                                             fit: BoxFit.contain,
-                                            placeholder: (c, u) => Container(
-                                                color: Colors.white10),
-                                            errorWidget: (c, u, e) => Container(
-                                                color: Colors.white10,
-                                                child: const Icon(
-                                                    Icons.play_circle_outline,
-                                                    color: Colors.white54)))
-                                        : Container(
-                                            color: Colors.white10,
-                                            child: const Icon(
-                                                Icons.play_circle_outline,
-                                                color: Colors.white54,
-                                                size: 24)),
+                                            placeholder: (c, u) => Container(color: Colors.white10),
+                                            errorWidget: (c, u, e) => Container(color: Colors.white10, child: const Icon(Icons.play_circle_outline, color: Colors.white54)))
+                                        : Container(color: Colors.white10, child: const Icon(Icons.play_circle_outline, color: Colors.white54, size: 24)),
                                   ),
                                 ),
                                 SizedBox(width: isMobile ? 12 : 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Expanded(
                                               child: Text(epTitle,
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          isMobile ? 13 : 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.white),
+                                                  style: TextStyle(fontSize: isMobile ? 13 : 16, fontWeight: FontWeight.bold, color: Colors.white),
                                                   maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis)),
-                                          Text(epDuration,
-                                              style: TextStyle(
-                                                  color: Colors.white54,
-                                                  fontSize:
-                                                      isMobile ? 10 : 12)),
+                                                  overflow: TextOverflow.ellipsis)),
+                                          Text(epDuration, style: TextStyle(color: Colors.white54, fontSize: isMobile ? 10 : 12)),
                                         ],
                                       ),
                                       if (epPlot.isNotEmpty) ...[
                                         SizedBox(height: isMobile ? 2 : 4),
-                                        Text(epPlot,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: isMobile ? 10 : 11)),
+                                        Text(epPlot, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white70, fontSize: isMobile ? 10 : 11)),
                                       ]
                                     ],
                                   ),
@@ -2909,8 +1952,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
   bool _isFocused = false;
 
   void _setFocus(bool hasFocus) {
-    if (_isFocused != hasFocus && mounted)
-      setState(() => _isFocused = hasFocus);
+    if (_isFocused != hasFocus && mounted) setState(() => _isFocused = hasFocus);
     if (hasFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -2933,8 +1975,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
 
   @override
   Widget build(BuildContext context) {
-    final tvBoxFocusEnabled = context
-        .select<IPTVProvider, bool>((provider) => provider.tvBoxFocusEnabled);
+    final tvBoxFocusEnabled = context.select<IPTVProvider, bool>((provider) => provider.tvBoxFocusEnabled);
     return InkWell(
       focusNode: _focusNode,
       canRequestFocus: tvBoxFocusEnabled,
@@ -2953,17 +1994,8 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
           duration: const Duration(milliseconds: 90),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: _isFocused ? Colors.white70 : Colors.transparent,
-                width: 1.5),
-            boxShadow: _isFocused
-                ? [
-                    const BoxShadow(
-                        color: Colors.black54,
-                        blurRadius: 15,
-                        offset: Offset(0, 5))
-                  ]
-                : [],
+            border: Border.all(color: _isFocused ? Colors.white70 : Colors.transparent, width: 1.5),
+            boxShadow: _isFocused ? [const BoxShadow(color: Colors.black54, blurRadius: 15, offset: Offset(0, 5))] : [],
           ),
           child: widget.child,
         ),
@@ -2973,9 +2005,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
 }
 
 // Beautiful Movie/Stream Card (Compact)
-Widget buildStreamCardLocal(
-    BuildContext context, IPTVProvider provider, dynamic stream,
-    {bool isSeries = false, bool isMobile = false}) {
+Widget buildStreamCardLocal(BuildContext context, IPTVProvider provider, dynamic stream, {bool isSeries = false, bool isMobile = false}) {
   final accent = Theme.of(context).colorScheme.primary;
   String name = "";
   String imageUrl = "";
@@ -2997,15 +2027,11 @@ Widget buildStreamCardLocal(
         provider.unlockCategorySession(categoryName);
       }
       if (isSeries) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => SeriesDetailsScreen(series: stream)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => SeriesDetailsScreen(series: stream)));
       } else {
         provider.selectStream(stream);
         provider.addToRecentlyPlayed(stream);
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
       }
     },
     child: ClipRRect(
@@ -3020,28 +2046,17 @@ Widget buildStreamCardLocal(
                   memCacheWidth: isMobile ? 300 : 420,
                   maxWidthDiskCache: isMobile ? 300 : 420,
                   fadeInDuration: const Duration(milliseconds: 80),
-                  placeholder: (context, url) => Container(
-                      color: Colors.white10,
-                      child: Center(
-                          child: CircularProgressIndicator(
-                              color: accent, strokeWidth: 2))),
-                  errorWidget: (context, url, error) => Container(
-                      color: Colors.white10,
-                      child: const Icon(Icons.movie,
-                          size: 40, color: Colors.white24)),
+                  placeholder: (context, url) => Container(color: Colors.white10, child: Center(child: CircularProgressIndicator(color: accent, strokeWidth: 2))),
+                  errorWidget: (context, url, error) => Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
                 )
-              : Container(
-                  color: Colors.white10,
-                  child:
-                      const Icon(Icons.movie, size: 40, color: Colors.white24)),
+              : Container(color: Colors.white10, child: const Icon(Icons.movie, size: 40, color: Colors.white24)),
           // Gradient Name Overlay
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 7 : 9, vertical: isMobile ? 8 : 10),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 7 : 9, vertical: isMobile ? 8 : 10),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.black, Colors.transparent],
@@ -3054,10 +2069,7 @@ Widget buildStreamCardLocal(
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white),
+                style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w700, color: Colors.white),
               ),
             ),
           ),
@@ -3069,9 +2081,7 @@ Widget buildStreamCardLocal(
               onTap: () => provider.toggleFavorite(streamId),
               child: Container(
                 padding: EdgeInsets.all(isMobile ? 3 : 4),
-                decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
                 child: Icon(
                   isFav ? Icons.favorite : Icons.favorite_border,
                   color: isFav ? accent : Colors.white,
@@ -3084,183 +2094,4 @@ Widget buildStreamCardLocal(
       ),
     ),
   );
-}
-
-// -----------------------------------------------------------------------------
-// DYNAMIC SECTIONS WIDGET (Main_menu.json support for 2027)
-// -----------------------------------------------------------------------------
-class DynamicSectionsWidget extends StatelessWidget {
-  const DynamicSectionsWidget({super.key});
-
-  IconData _getIconForCategory(String categoryName) {
-    final lower = categoryName.toLowerCase();
-    if (lower.contains('sports') ||
-        lower.contains('رياضة') ||
-        lower.contains('بين سبورت')) return Icons.sports_soccer;
-    if (lower.contains('movie') || lower.contains('أفلام')) return Icons.movie;
-    if (lower.contains('kids') || lower.contains('أطفال'))
-      return Icons.child_care;
-    if (lower.contains('islam') ||
-        lower.contains('إسلام') ||
-        lower.contains('قرآن')) return Icons.mosque;
-    if (lower.contains('news') || lower.contains('أخبار')) return Icons.public;
-    if (lower.contains('doc') || lower.contains('وثائق'))
-      return Icons.landscape;
-    if (lower.contains('entert') || lower.contains('ترفيه'))
-      return Icons.local_activity;
-    return Icons.live_tv;
-  }
-
-  List<Color> _getColorForCategory(String categoryName, int index) {
-    final colors = [
-      [PremiumPalette.violet, const Color(0xFF8E040B)],
-      [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
-      [const Color(0xFF00B4DB), const Color(0xFF0083B0)],
-      [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-      [const Color(0xFF4CAF50), const Color(0xFF2E7D32)],
-      [const Color(0xFF9C27B0), const Color(0xFF6A1B9A)],
-      [const Color(0xFFFF9800), const Color(0xFFF57C00)],
-      [const Color(0xFF607D8B), const Color(0xFF455A64)],
-    ];
-    return colors[index % colors.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<IPTVProvider>(context);
-    final screenW = MediaQuery.of(context).size.width;
-    final isMobile = screenW < 600;
-
-    if (provider.liveCategories.isEmpty) {
-      // Default Sections
-      final showMoviesSeries = provider.showMoviesSeries;
-      final List<Widget> staticCards = [
-        _buildStaticCard(context, "بث مباشر", Icons.live_tv, 1,
-            const [PremiumPalette.violet, Color(0xFF5B258A)], isMobile),
-        if (showMoviesSeries)
-          _buildStaticCard(context, "أفلام", Icons.movie, 2,
-              const [Color(0xFF9B59B6), Color(0xFF6D3586)], isMobile),
-        if (showMoviesSeries)
-          _buildStaticCard(context, "مسلسلات", Icons.video_library, 3,
-              const [Color(0xFFA78BFA), Color(0xFF7C3AED)], isMobile),
-        _buildStaticCard(context, "المفضلة", Icons.favorite, 4,
-            const [Color(0xFF8E44AD), Color(0xFF5B258A)], isMobile),
-      ];
-
-      if (isMobile) {
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.4,
-          children: staticCards,
-        );
-      } else {
-        return Row(
-          children: staticCards.map((w) => Expanded(child: w)).toList(),
-        );
-      }
-    }
-
-    // Custom JSON Sections (Code 2027)
-    final cats = provider.liveCategories;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 2 : 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: isMobile ? 1.4 : 1.6,
-      ),
-      itemCount: cats.length,
-      itemBuilder: (context, index) {
-        final section = cats[index];
-        final title = section['category_name'] ?? 'Section';
-        return _buildDynamicCard(context, title, _getIconForCategory(title),
-            _getColorForCategory(title, index), isMobile, section);
-      },
-    );
-  }
-
-  Widget _buildStaticCard(BuildContext context, String title, IconData icon,
-      int index, List<Color> gradient, bool isMobile) {
-    return ScaleOnFocus(
-      onTap: () {
-        context
-            .findAncestorStateOfType<_MainDashboardState>()
-            ?.updateIndex(index);
-      },
-      child: Container(
-        height: isMobile ? 80 : 100,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-                color: gradient[0].withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: isMobile ? 24 : 32, color: Colors.white),
-            SizedBox(height: isMobile ? 4 : 8),
-            Text(title,
-                style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDynamicCard(BuildContext context, String title, IconData icon,
-      List<Color> gradient, bool isMobile, dynamic sectionData) {
-    return ScaleOnFocus(
-      onTap: () {
-        final provider = Provider.of<IPTVProvider>(context, listen: false);
-        if (sectionData['category_name'] != null) {
-          provider.setCategory(sectionData['category_name']);
-        }
-        context.findAncestorStateOfType<_MainDashboardState>()?.updateIndex(1);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-                color: gradient[0].withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: isMobile ? 24 : 32, color: Colors.white),
-            SizedBox(height: isMobile ? 4 : 8),
-            Text(title,
-                style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
 }

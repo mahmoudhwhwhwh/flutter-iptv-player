@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIVE STREAM PRO - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f0f13; color: #fff; }
+        .sidebar { background: linear-gradient(180deg, #16161d 0%, #0d0d12 100%); border-left: 1px solid #2d2d3d; }
+        .card { background-color: #1a1a24; border: 1px solid #2d2d3d; border-radius: 12px; }
+        .accent-purple { color: #b072ff; }
+        .bg-purple { background-color: #b072ff; }
+        .btn-primary { background: linear-gradient(90deg, #9b51e0 0%, #7028e4 100%); color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+        .btn-primary:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(155, 81, 224, 0.5); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f0f13]">
+        <div class="card p-8 w-96 text-center">
+            <h1 class="text-2xl font-bold mb-6">LIVE STREAM PRO<br><span class="accent-purple text-lg">Admin Panel</span></h1>
+            <input type="password" id="adminSecret" placeholder="Admin Secret Key" class="w-full bg-[#0f0f13] border border-[#2d2d3d] p-3 rounded mb-4 text-white focus:outline-none focus:border-[#b072ff]">
+            <button onclick="login()" class="btn-primary w-full">دخول</button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 flex flex-col h-full shadow-2xl z-10 hidden" id="sidebar">
+        <div class="p-6 text-center border-b border-[#2d2d3d]">
+            <h2 class="text-xl font-bold tracking-wider">LIVE STREAM</h2>
+            <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Premium Admin</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <a href="#" class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg bg-[#2d2d3d] text-white">
+                <i class="fas fa-home w-5"></i> <span>الرئيسية</span>
+            </a>
+            <a href="#" onclick="showSection('subs')" class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-[#2d2d3d] text-gray-400 hover:text-white transition">
+                <i class="fas fa-users w-5"></i> <span>الاشتراكات</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-[#2d2d3d] text-gray-400 hover:text-white transition">
+                <i class="fas fa-box w-5"></i> <span>الباقات والخطط</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-[#2d2d3d] text-gray-400 hover:text-white transition">
+                <i class="fas fa-shield-alt w-5"></i> <span>إعدادات الحماية (VPN)</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-[#2d2d3d] text-gray-400 hover:text-white transition">
+                <i class="fas fa-cogs w-5"></i> <span>الإعدادات العامة</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-[#2d2d3d]">
+            <button onclick="logout()" class="w-full p-2 text-sm text-red-400 hover:bg-red-400 hover:text-white rounded transition border border-red-400">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden hidden" id="mainContent">
+        <header class="h-16 border-b border-[#2d2d3d] flex items-center justify-between px-8 bg-[#16161d]">
+            <h2 class="text-xl font-semibold" id="pageTitle">نظرة عامة</h2>
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <div class="text-sm text-gray-400"><i class="fas fa-circle text-green-500 text-xs mr-2"></i> Worker API Online</div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-8" id="dashboardSection">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm">إجمالي الاشتراكات</p>
+                            <h3 class="text-3xl font-bold mt-2" id="statTotal">--</h3>
+                        </div>
+                        <div class="p-3 bg-blue-500 bg-opacity-20 rounded-lg"><i class="fas fa-users text-blue-500"></i></div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm">النشطة حالياً</p>
+                            <h3 class="text-3xl font-bold mt-2 text-green-400" id="statActive">--</h3>
+                        </div>
+                        <div class="p-3 bg-green-500 bg-opacity-20 rounded-lg"><i class="fas fa-check-circle text-green-500"></i></div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm">الأجهزة المرتبطة</p>
+                            <h3 class="text-3xl font-bold mt-2 text-purple-400" id="statDevices">--</h3>
+                        </div>
+                        <div class="p-3 bg-purple-500 bg-opacity-20 rounded-lg"><i class="fas fa-tv text-purple-500"></i></div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm">المنتهية / الموقوفة</p>
+                            <h3 class="text-3xl font-bold mt-2 text-red-400" id="statExpired">--</h3>
+                        </div>
+                        <div class="p-3 bg-red-500 bg-opacity-20 rounded-lg"><i class="fas fa-ban text-red-500"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold">أحدث الاشتراكات</h3>
+                    <button onclick="showAddSubModal()" class="btn-primary text-sm"><i class="fas fa-plus ml-2"></i>إضافة اشتراك</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="text-gray-400 border-b border-[#2d2d3d]">
+                            <tr>
+                                <th class="pb-3">المستخدم</th>
+                                <th class="pb-3">كود التفعيل</th>
+                                <th class="pb-3">الباقة</th>
+                                <th class="pb-3">الحالة</th>
+                                <th class="pb-3">تاريخ الانتهاء</th>
+                                <th class="pb-3">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subsTableBody">
+                            <tr><td colspan="6" class="text-center py-4 text-gray-500">جاري التحميل...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8787'; // Change to actual worker URL in prod
+        let secret = localStorage.getItem('adminSecret') || '';
+
+        if (secret) {
+            checkAuth();
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_URL}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${secret}` }
+                });
+                if (res.ok) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    const data = await res.json();
+                    updateStats(data.data);
+                    loadSubscriptions();
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                console.error(e);
+                alert("فشل الاتصال بالخادم. يرجى التأكد من تشغيل الـ Worker.");
+            }
+        }
+
+        function login() {
+            secret = document.getElementById('adminSecret').value;
+            localStorage.setItem('adminSecret', secret);
+            checkAuth();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminSecret');
+            secret = '';
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        function updateStats(data) {
+            if(!data) return;
+            document.getElementById('statTotal').innerText = data.total_subs || 0;
+            document.getElementById('statActive').innerText = data.active || 0;
+            document.getElementById('statExpired').innerText = (data.expired || 0) + (data.suspended || 0);
+            document.getElementById('statDevices').innerText = data.total_devices || 0;
+        }
+
+        async function loadSubscriptions() {
+            try {
+                const res = await fetch(`${API_URL}/admin/subscriptions`, {
+                    headers: { 'Authorization': `Bearer ${secret}` }
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('subsTableBody');
+                tbody.innerHTML = '';
+                
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(sub => {
+                        let statusColor = sub.status === 'active' ? 'text-green-400' : 'text-red-400';
+                        tbody.innerHTML += `
+                            <tr class="border-b border-[#2d2d3d] hover:bg-[#2d2d3d] transition">
+                                <td class="py-4">${sub.username}</td>
+                                <td class="py-4 font-mono text-xs text-gray-400">${sub.subscription_code || '---'}</td>
+                                <td class="py-4"><span class="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">${sub.plan_name || 'Standard'}</span></td>
+                                <td class="py-4 ${statusColor} font-bold">${sub.status.toUpperCase()}</td>
+                                <td class="py-4 text-gray-400">${new Date(sub.expires_at).toLocaleDateString()}</td>
+                                <td class="py-4 space-x-2 space-x-reverse">
+                                    <button class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button>
+                                    <button class="text-yellow-400 hover:text-yellow-300" title="Reset Devices"><i class="fas fa-unlink"></i></button>
+                                    <button class="text-red-400 hover:text-red-300" title="Suspend"><i class="fas fa-ban"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">لا توجد اشتراكات</td></tr>';
+                }
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>

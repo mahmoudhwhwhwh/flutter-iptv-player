@@ -2,16 +2,6 @@ name: Build iOS companion
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'lib/**'
-      - 'assets/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - 'ios/**'
-      - '.github/workflows/ios.yml'
 
 permissions:
   contents: read
@@ -32,7 +22,7 @@ jobs:
           cache: true
 
       - name: Generate missing iOS platform files
-        run: flutter create --platforms=ios --org com.mahmoud .
+        run: flutter create --platforms=ios --org com.mahmoud --project-name flutter_iptv_player .
 
       - name: Install dependencies
         run: flutter pub get

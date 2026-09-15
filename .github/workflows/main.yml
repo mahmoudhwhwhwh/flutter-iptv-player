@@ -20,25 +20,38 @@ jobs:
           flutter-version: '3.24.0'
           channel: stable
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter clean
+          flutter pub get
       - name: Extract Version
         id: version
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
+          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)-final7"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
           echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Build Android APK
+      - name: Build Android APK (Unified and Split)
         run: |
+          # Build Unified APK (All Architectures, ~58MB)
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk LIVE_STREAM_PREMIUM.apk
+          
+          # Build Split APKs (Specific Architectures, ~22MB)
+          flutter build apk --release --split-per-abi
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk LIVE_STREAM_PREMIUM-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk LIVE_STREAM_PREMIUM-arm32.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk LIVE_STREAM_PREMIUM-x86_64.apk
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
           name: Release ${{ env.TAG_VERSION }}
-          files: LIVE_STREAM_PREMIUM.apk
+          files: |
+            LIVE_STREAM_PREMIUM.apk
+            LIVE_STREAM_PREMIUM-arm64.apk
+            LIVE_STREAM_PREMIUM-arm32.apk
+            LIVE_STREAM_PREMIUM-x86_64.apk
           draft: false
           prerelease: false
         env:

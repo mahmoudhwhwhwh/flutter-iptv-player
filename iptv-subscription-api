@@ -1,1 +1,4 @@
-cfut_xOJILYWBp8G9zFsPw9dFdAB0KVaLS9jDb055QCLg3a89518e
+curl "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+-H "Authorization: Bearer cfut_fzJjsywhBWipWx3bVvJQU5a87HNdZZxmZyCpmPJO9771f7a3"
+
+cfut_fzJjsywhBWipWx3bVvJQU5a87HNdZZxmZyCpmPJO9771f7a3

@@ -3,6 +3,45 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+class RemoteContentItem {
+  const RemoteContentItem(
+      {required this.title,
+      this.imageUrl = '',
+      this.description = '',
+      this.url = '',
+      this.date = ''});
+  final String title;
+  final String imageUrl;
+  final String description;
+  final String url;
+  final String date;
+
+  factory RemoteContentItem.fromJson(dynamic value) {
+    if (value is String)
+      return RemoteContentItem(title: value, imageUrl: value);
+    if (value is! Map) return const RemoteContentItem(title: '');
+    return RemoteContentItem(
+      title: value['title']?.toString() ?? value['name']?.toString() ?? '',
+      imageUrl: value['image']?.toString() ??
+          value['image_url']?.toString() ??
+          value['icon']?.toString() ??
+          '',
+      description: value['description']?.toString() ?? '',
+      url: value['url']?.toString() ?? value['link']?.toString() ?? '',
+      date:
+          value['date']?.toString() ?? value['published_at']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'image_url': imageUrl,
+        'description': description,
+        'url': url,
+        'date': date,
+      };
+}
+
 class RemoteConfig {
   const RemoteConfig({
     required this.configVersion,
@@ -12,6 +51,12 @@ class RemoteConfig {
     required this.webFallback,
     required this.maxBufferMs,
     required this.retryCount,
+    required this.slider,
+    required this.news,
+    required this.matches,
+    required this.maintenance,
+    required this.latestVersion,
+    required this.downloadUrl,
   });
 
   final int configVersion;
@@ -21,6 +66,12 @@ class RemoteConfig {
   final bool webFallback;
   final int maxBufferMs;
   final int retryCount;
+  final List<RemoteContentItem> slider;
+  final List<RemoteContentItem> news;
+  final List<RemoteContentItem> matches;
+  final bool maintenance;
+  final String latestVersion;
+  final String downloadUrl;
 
   static final fallback = RemoteConfig(
     configVersion: 1,
@@ -30,6 +81,12 @@ class RemoteConfig {
     webFallback: true,
     maxBufferMs: 30000,
     retryCount: 2,
+    slider: const [],
+    news: const [],
+    matches: const [],
+    maintenance: false,
+    latestVersion: '',
+    downloadUrl: '',
   );
 
   static final DateTime _fallbackExpiry = DateTime.utc(2099, 1, 1);
@@ -59,6 +116,13 @@ class RemoteConfig {
       return parsed.clamp(min, max);
     }
 
+    List<RemoteContentItem> items(dynamic value) => value is List
+        ? value
+            .map(RemoteContentItem.fromJson)
+            .where((item) => item.title.isNotEmpty || item.imageUrl.isNotEmpty)
+            .toList()
+        : <RemoteContentItem>[];
+
     return RemoteConfig(
       configVersion: boundedInt(json['config_version'], 1, 1, 1 << 31),
       expiresAt: expiresAt.toUtc(),
@@ -67,6 +131,14 @@ class RemoteConfig {
       webFallback: flags['web_fallback'] != false,
       maxBufferMs: boundedInt(player['max_buffer_ms'], 30000, 5000, 120000),
       retryCount: boundedInt(player['retry_count'], 2, 0, 5),
+      slider: items(json['slider']),
+      news: items(json['news']),
+      matches: items(json['matches'] ?? json['match_center']),
+      maintenance: json['maintenance'] == true,
+      latestVersion: json['latest_version']?.toString() ??
+          json['app_version']?.toString() ??
+          '',
+      downloadUrl: json['apk_url']?.toString() ?? '',
     );
   }
 
@@ -83,6 +155,12 @@ class RemoteConfig {
           'max_buffer_ms': maxBufferMs,
           'retry_count': retryCount,
         },
+        'slider': slider.map((item) => item.toJson()).toList(),
+        'news': news.map((item) => item.toJson()).toList(),
+        'matches': matches.map((item) => item.toJson()).toList(),
+        'maintenance': maintenance,
+        'latest_version': latestVersion,
+        'apk_url': downloadUrl,
       };
 }
 

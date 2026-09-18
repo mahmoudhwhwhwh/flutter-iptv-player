@@ -1707,12 +1707,39 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Future<void> _fetchBanners() async {
     try {
       final url = Uri.parse(
-          "https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json?t=${DateTime.now().millisecondsSinceEpoch}");
+          "https://iptv-subscription-api.tvkora56.workers.dev/v1/config?t=${DateTime.now().millisecondsSinceEpoch}");
       final res = await http.get(url);
       if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body);
+        final decoded = json.decode(res.body);
+        final raw = decoded is Map ? decoded['slider'] : decoded;
+        final List<dynamic> data = raw is List ? raw : const <dynamic>[];
+        var banners = data
+            .map((e) {
+              if (e is Map) {
+                return (e['image_url'] ?? e['image'] ?? e['url'] ?? '')
+                    .toString()
+                    .trim();
+              }
+              return e.toString().trim();
+            })
+            .where((url) => url.isNotEmpty)
+            .toList();
+        if (banners.isEmpty) {
+          final legacy = await http.get(Uri.parse(
+              'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json'));
+          if (legacy.statusCode == 200) {
+            final legacyData = json.decode(legacy.body);
+            if (legacyData is List) {
+              banners = legacyData
+                  .map((e) => e.toString().trim())
+                  .where((url) => url.isNotEmpty)
+                  .toList();
+            }
+          }
+        }
+        if (!mounted) return;
         setState(() {
-          _banners = data.map((e) => e.toString().trim()).toList();
+          _banners = banners;
           _isLoadingBanners = false;
         });
         _startTimer();

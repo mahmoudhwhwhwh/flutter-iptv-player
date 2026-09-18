@@ -840,7 +840,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
       _activePlaylistId = _savedPlaylists.first.id;
-      loadPlaylistStreams(_activePlaylistId!);
+      await loadPlaylistStreams(_activePlaylistId!);
     }
 
     // تفعيل إعدادات بروكسي الحماية الصارمة

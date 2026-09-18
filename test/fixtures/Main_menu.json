@@ -1,0 +1,8 @@
+[
+  {"name":"SPORTS 1","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/0.ts?code=2027"},
+  {"name":"SPORTS 2","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/1.ts?code=2027"},
+  {"name":"SPORTS 3","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/2.ts?code=2027"},
+  {"name":"SPORTS 4","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/3.ts?code=2027"},
+  {"name":"SPORTS 5","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/4.ts?code=2027"},
+  {"name":"SPORTS 6","url":"https://iptv-subscription-api.tvkora56.workers.dev/v1/custom/stream/5.ts?code=2027"}
+]

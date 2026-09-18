@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Main_menu.json exposes six safe TS proxy entries for SPORTS', () {
-    final file = File('Main_menu.json');
+    final file = File('test/fixtures/Main_menu.json');
     expect(file.existsSync(), isTrue);
 
     final decoded = jsonDecode(file.readAsStringSync());

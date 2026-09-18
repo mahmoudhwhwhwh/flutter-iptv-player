@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/iptv_provider.dart';
 import '../widgets/pin_dialog.dart';
@@ -79,7 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
-      _performanceProfile = prefs.getString('device_performance_profile') ?? "medium";
+      _performanceProfile =
+          prefs.getString('device_performance_profile') ?? "medium";
     });
   }
 
@@ -104,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           "إعدادات LIVE STREAM PREMIUM",
-          style: GoogleFonts.cairo(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 17,
@@ -688,7 +688,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _setPerformanceProfile(IPTVProvider provider, String profile) async {
+  Future<void> _setPerformanceProfile(
+      IPTVProvider provider, String profile) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('device_performance_profile', profile);
     setState(() => _performanceProfile = profile);
@@ -724,7 +725,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم تطبيق نمط الأداء: ${names[profile] ?? profile} بنجاح'),
+          content:
+              Text('تم تطبيق نمط الأداء: ${names[profile] ?? profile} بنجاح'),
           backgroundColor: const Color(0xFF00E5FF),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -739,7 +741,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'id': 'low',
         'title': 'هاتف ضعيف',
         'badge': 'أجهزة خفيفة',
-        'desc': 'يوفر الذاكرة والبطارية، يقلل التأثيرات الثقيلة ويمنع التهنيج على الأجهزة القديمة.',
+        'desc':
+            'يوفر الذاكرة والبطارية، يقلل التأثيرات الثقيلة ويمنع التهنيج على الأجهزة القديمة.',
         'icon': Icons.battery_charging_full_rounded,
         'color': _SettingsPalette.gold,
       },
@@ -747,7 +750,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'id': 'medium',
         'title': 'هاتف متوسط',
         'badge': 'متوازن',
-        'desc': 'النمط الافتراضي لمعظم الهواتف: تنقل سريع وسلاسة تامة في التصفح والبث.',
+        'desc':
+            'النمط الافتراضي لمعظم الهواتف: تنقل سريع وسلاسة تامة في التصفح والبث.',
         'icon': Icons.phone_android_rounded,
         'color': _SettingsPalette.cyan,
       },
@@ -755,7 +759,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'id': 'high',
         'title': 'هاتف قوي',
         'badge': 'أداء فائق',
-        'desc': 'تسريع عتادي كامل (Hardware Acceleration)، استجابة فورية، وتنقل خاطف بين القنوات.',
+        'desc':
+            'تسريع عتادي كامل (Hardware Acceleration)، استجابة فورية، وتنقل خاطف بين القنوات.',
         'icon': Icons.bolt_rounded,
         'color': _SettingsPalette.purpleBright,
       },
@@ -763,7 +768,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'id': 'tv_ultra',
         'title': 'شاشات وتلفاز / أعلى جودة',
         'badge': 'تابلت & TV Box',
-        'desc': 'شاشات التلفزيون وأجهزة TV Box والتابلت: بافر موسّع للبث 4K/FHD، ودعم كامل للريموت.',
+        'desc':
+            'شاشات التلفزيون وأجهزة TV Box والتابلت: بافر موسّع للبث 4K/FHD، ودعم كامل للريموت.',
         'icon': Icons.tv_rounded,
         'color': const Color(0xFF00E676),
       },
@@ -827,7 +833,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: InkWell(
-                onTap: () => _setPerformanceProfile(provider, p['id'] as String),
+                onTap: () =>
+                    _setPerformanceProfile(provider, p['id'] as String),
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -837,9 +844,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : _SettingsPalette.surface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected
-                          ? pColor
-                          : _SettingsPalette.divider,
+                      color: isSelected ? pColor : _SettingsPalette.divider,
                       width: isSelected ? 1.5 : 1.0,
                     ),
                   ),
@@ -860,7 +865,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: pColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(p['icon'] as IconData, color: pColor, size: 20),
+                        child: Icon(p['icon'] as IconData,
+                            color: pColor, size: 20),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -873,7 +879,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 Text(
                                   p['title'] as String,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.white70,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14,
                                   ),
@@ -929,7 +937,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: _SettingsPalette.surfaceElevated,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _SettingsPalette.purple.withOpacity(0.48), width: 1.5),
+        border: Border.all(
+            color: _SettingsPalette.purple.withOpacity(0.48), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: _SettingsPalette.purple.withOpacity(0.12),
@@ -981,16 +990,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               ElevatedButton.icon(
                 onPressed: () => _showAddSavedCodeDialog(provider),
-                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.black),
+                icon: const Icon(Icons.add_rounded,
+                    size: 18, color: Colors.black),
                 label: const Text(
                   'إضافة',
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _SettingsPalette.cyan,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ],
@@ -1008,18 +1023,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 textDirection: TextDirection.rtl,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline_rounded, color: _SettingsPalette.textMuted, size: 18),
+                  Icon(Icons.info_outline_rounded,
+                      color: _SettingsPalette.textMuted, size: 18),
                   SizedBox(width: 8),
                   Text(
                     'لا توجد اشتراكات محفوظة بعد. انقر على إضافة لحفظ كود جديد.',
-                    style: TextStyle(color: _SettingsPalette.textMuted, fontSize: 12),
+                    style: TextStyle(
+                        color: _SettingsPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             )
           else
             ...codes.map((saved) {
-              final isActive = saved.code == provider.activationCode && provider.isLoggedIn;
+              final isActive =
+                  saved.code == provider.activationCode && provider.isLoggedIn;
               final title = saved.label.isEmpty ? saved.code : saved.label;
               final statusText = saved.status == 'checking'
                   ? 'جاري التحقق...'
@@ -1063,8 +1081,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        isActive ? Icons.check_circle_rounded : Icons.confirmation_number_outlined,
-                        color: isActive ? _SettingsPalette.cyan : Colors.white70,
+                        isActive
+                            ? Icons.check_circle_rounded
+                            : Icons.confirmation_number_outlined,
+                        color:
+                            isActive ? _SettingsPalette.cyan : Colors.white70,
                         size: 20,
                       ),
                     ),
@@ -1085,10 +1106,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   fontSize: 14,
                                 ),
                               ),
-                              if (saved.label.isNotEmpty && saved.label != saved.code) ...[
+                              if (saved.label.isNotEmpty &&
+                                  saved.label != saved.code) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.black38,
                                     borderRadius: BorderRadius.circular(6),
@@ -1122,17 +1145,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ElevatedButton(
                         onPressed: provider.isLoading
                             ? null
-                            : () => provider.switchToSavedSubscription(saved.code),
+                            : () =>
+                                provider.switchToSavedSubscription(saved.code),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _SettingsPalette.purpleBright,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('تبديل', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        child: const Text('تبديل',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                       )
                     else
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: _SettingsPalette.cyan.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
@@ -1148,10 +1177,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     PopupMenuButton<String>(
                       color: _SettingsPalette.surfaceElevated,
-                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
+                      icon: const Icon(Icons.more_vert_rounded,
+                          color: Colors.white54, size: 20),
                       onSelected: (value) {
                         if (value == 'rename') {
-                          _showRenameSavedCodeDialog(provider, saved.code, title);
+                          _showRenameSavedCodeDialog(
+                              provider, saved.code, title);
                         } else if (value == 'delete') {
                           provider.removeSavedSubscriptionCode(saved.code);
                         }
@@ -1159,11 +1190,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       itemBuilder: (context) => const [
                         PopupMenuItem(
                           value: 'rename',
-                          child: Text('إعادة تسمية', style: TextStyle(color: Colors.white)),
+                          child: Text('إعادة تسمية',
+                              style: TextStyle(color: Colors.white)),
                         ),
                         PopupMenuItem(
                           value: 'delete',
-                          child: Text('حذف الكود', style: TextStyle(color: Colors.redAccent)),
+                          child: Text('حذف الكود',
+                              style: TextStyle(color: Colors.redAccent)),
                         ),
                       ],
                     ),
@@ -1175,7 +1208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-  
+
   Future<void> _showAddSavedCodeDialog(IPTVProvider provider) async {
     final codeController = TextEditingController();
     final labelController = TextEditingController();

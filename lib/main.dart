@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/painting.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -99,10 +98,10 @@ class LiveFootballApp extends StatelessWidget {
               surface: themeProvider.themeSurface,
               background: themeProvider.themeBackground,
             ),
-            textTheme: GoogleFonts.cairoTextTheme().apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
+            textTheme: ThemeData.dark().textTheme.apply(
+                  bodyColor: Colors.white,
+                  displayColor: Colors.white,
+                ),
           ),
           theme: ThemeData(
             useMaterial3: true,
@@ -114,10 +113,10 @@ class LiveFootballApp extends StatelessWidget {
               surface: Colors.white,
               background: const Color(0xFFF7F5FF),
             ),
-            textTheme: GoogleFonts.cairoTextTheme().apply(
-              bodyColor: const Color(0xFF17122F),
-              displayColor: const Color(0xFF17122F),
-            ),
+            textTheme: ThemeData.dark().textTheme.apply(
+                  bodyColor: const Color(0xFF17122F),
+                  displayColor: const Color(0xFF17122F),
+                ),
           ),
           builder: (context, child) {
             return Directionality(

@@ -1392,7 +1392,7 @@ class IPTVProvider with ChangeNotifier {
         'custom_menu.network',
         () => http
             .get(Uri.parse(
-                '$_menuUrl?t=${DateTime.now().millisecondsSinceEpoch}'))
+                '$_menuUrl?code=${Uri.encodeQueryComponent(_activationCode)}&t=${DateTime.now().millisecondsSinceEpoch}'))
             .timeout(const Duration(seconds: 15)),
       );
       if (response.statusCode == 200) {

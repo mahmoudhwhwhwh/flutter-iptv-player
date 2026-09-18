@@ -269,6 +269,25 @@ export default {
         return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.34/LIVE_STREAM_PREMIUM.apk", 302);
       }
 
+      if (url.pathname === "/v1/custom/menu" || url.pathname === "/v1/custom_channels" || url.pathname === "/v1/channels") {
+        const requestedCode = (url.searchParams.get("code") || "2027").trim();
+        const sourceKey = requestedCode === "2026"
+          ? "custom_stream_sources_2026"
+          : "custom_stream_sources_2027";
+        const sourceRow = await env.DB.prepare(
+          "SELECT value FROM service_meta WHERE key = ? LIMIT 1"
+        ).bind(sourceKey).first();
+        if (!sourceRow?.value) return respond([]);
+        const sources = JSON.parse(sourceRow.value);
+        return respond(Array.isArray(sources) ? sources.map((item) => ({
+          name: item.name ?? "قناة",
+          url: item.url ?? "",
+          icon: item.icon ?? item.logo ?? "",
+          category_id: item.category_id ?? "99",
+          category_name: item.category_name ?? "بث مباشر"
+        })) : []);
+      }
+
       if (url.pathname === "/v1/login") {
         let code = "";
         let deviceId = "";
@@ -288,16 +307,34 @@ export default {
         const stmt = env.DB.prepare("SELECT server_type, content_mode, host, username, password, expires_at, max_devices, is_blocked FROM subscriptions WHERE code_hash = ? LIMIT 1");
         const subscription = await stmt.bind(codeHash).first();
         if (!subscription || subscription.is_blocked) return respond({ ok: false, message: "رمز الدخول غير صالح أو غير مصرح به" }, 401);
+        const expiresAt = subscription.expires_at?.toString().trim() || "";
+        if (expiresAt) {
+          const expiry = Date.parse(expiresAt);
+          if (!Number.isNaN(expiry) && expiry <= Date.now()) {
+            return respond({ ok: false, message: "انتهت صلاحية الاشتراك" }, 403);
+          }
+        }
+        const server = {
+          type: subscription.server_type ?? "xtream",
+          server_type: subscription.server_type ?? "xtream",
+          content_mode: subscription.content_mode ?? "iptv",
+          host: subscription.host,
+          username: subscription.username,
+          password: subscription.password,
+        };
+        const subscriptionState = {
+          expires_at: subscription.expires_at ?? null,
+          max_devices: subscription.max_devices ?? null,
+          is_blocked: Boolean(subscription.is_blocked),
+        };
         return respond({
           ok: true,
+          server,
+          subscription: subscriptionState,
           user: {
             code: code,
-            server_type: subscription.server_type ?? "xtream",
-            content_mode: subscription.content_mode ?? "iptv",
-            host: subscription.host,
-            username: subscription.username,
-            password: subscription.password,
-            expires_at: subscription.expires_at
+            ...server,
+            expires_at: subscription.expires_at,
           }
         });
       }

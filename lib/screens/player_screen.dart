@@ -728,6 +728,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       // Leave formatHint unset for progressive TS. ExoPlayer can infer MPEG-TS
       // from the .ts URL/content type; forcing `other` bypasses that inference.
       format = null;
+    } else if (_stream.type == 'live' &&
+        isLikelyLiveTransportStreamUrl(finalUrl)) {
+      // Some IPTV servers expose raw MPEG-TS at an extensionless URL.
+      format = null;
     }
 
     bool isAsms = format == BetterPlayerVideoFormat.hls ||
@@ -738,7 +742,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       finalUrl,
       liveStream: _stream.type == 'live',
       videoFormat: format,
-      videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
+      videoExtension: (isProgressiveTsUrl(finalUrl) ||
+              (_stream.type == 'live' &&
+                  isLikelyLiveTransportStreamUrl(finalUrl)))
+          ? 'ts'
+          : null,
       headers: headers,
       useAsmsTracks: isAsms,
       useAsmsSubtitles: isAsms,

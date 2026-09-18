@@ -35,6 +35,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const MethodChannel _securityChannel =
+      MethodChannel('com.mahmoud.iptv/security');
+  bool _vpnActive = false;
   bool _bioLink = false;
   bool _quantumEntanglement = true;
   bool _selfHealing = true;
@@ -81,6 +84,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _performanceProfile =
           prefs.getString('device_performance_profile') ?? "medium";
     });
+    await _refreshVpnStatus();
+  }
+
+  Future<void> _refreshVpnStatus() async {
+    try {
+      final result =
+          await _securityChannel.invokeMethod<dynamic>('checkSecurity');
+      if (!mounted) return;
+      setState(() => _vpnActive = result is Map && result['vpnActive'] == true);
+    } catch (_) {}
+  }
+
+  Future<void> _openWarp() async {
+    try {
+      await _securityChannel.invokeMethod<bool>('openWarp');
+    } catch (_) {}
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: _SettingsPalette.surfaceElevated,
+        title: const Text('Cloudflare WARP',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+            'افتح تطبيق WARP وفعّل الاتصال، ثم ارجع إلى التطبيق واضغط تحديث الحالة. لا يتم تشغيل VPN بصمت من داخل التطبيق.',
+            textAlign: TextAlign.right,
+            style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _refreshVpnStatus();
+            },
+            child: const Text('تحديث الحالة',
+                style: TextStyle(color: _SettingsPalette.purpleBright)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveSetting(String key, bool value) async {
@@ -167,6 +209,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (_) => provider.toggleTheme(),
                   );
                 },
+              ),
+              const SizedBox(height: 12),
+              _buildActionButtonSettingCard(
+                title: 'Cloudflare WARP VPN',
+                description: _vpnActive
+                    ? 'VPN متصل حاليًا. افتح WARP لإيقافه أو تغيير وضعه.'
+                    : 'افتح تطبيق WARP الرسمي ثم فعّل الاتصال لحماية مسار الشبكة.',
+                actionLabel: _vpnActive ? 'متصل' : 'فتح WARP',
+                icon: _vpnActive ? Icons.vpn_lock : Icons.vpn_key_rounded,
+                onTap: _openWarp,
               ),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(

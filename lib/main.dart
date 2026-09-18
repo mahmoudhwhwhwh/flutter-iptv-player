@@ -1474,6 +1474,51 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   String _globalSearchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _news = const [];
+  List<Map<String, dynamic>> _matches = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadNewsAndMatches());
+  }
+
+  Future<void> _loadNewsAndMatches() async {
+    try {
+      final responses = await Future.wait([
+        http.get(Uri.parse(
+            'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false')),
+        http.get(Uri.parse(
+            'https://api-ar.ysscores.com/api/matches/matches_date_get/2026-09-06/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180')),
+      ]).timeout(const Duration(seconds: 20));
+      final nextNews = <Map<String, dynamic>>[];
+      if (responses[0].statusCode == 200) {
+        final decoded = json.decode(responses[0].body);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) nextNews.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+      final nextMatches = <Map<String, dynamic>>[];
+      if (responses[1].statusCode == 200) {
+        final decoded = json.decode(responses[1].body);
+        final data = decoded is Map ? decoded['data'] : null;
+        if (data is List) {
+          for (final item in data) {
+            if (item is Map) nextMatches.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _news = nextNews;
+        _matches = nextMatches;
+      });
+    } catch (_) {
+      // Hide the sections on network failure; never show fabricated data.
+    }
+  }
 
   @override
   void dispose() {
@@ -1539,8 +1584,95 @@ class _HomeTabState extends State<HomeTab> {
                 cardWidth: isMobile ? 118 : 152,
                 cardHeight: isMobile ? 174 : 226,
               ),
+            if (_news.isNotEmpty) _buildNewsSection(context, isMobile),
+            if (_matches.isNotEmpty) _buildMatchesSection(context, isMobile),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNewsSection(BuildContext context, bool isMobile) {
+    return _buildInfoRowSection(
+      context,
+      title: 'آخر الأخبار',
+      height: isMobile ? 176 : 202,
+      children: _news.take(14).map((item) {
+        final picture = item['Picture'] is Map
+            ? Map<String, dynamic>.from(item['Picture'])
+            : const <String, dynamic>{};
+        return _NewsCard(
+          title: (item['Title'] ?? 'خبر رياضي').toString(),
+          date: (item['Date'] ?? '').toString(),
+          imageUrl:
+              (picture['SmallPath'] ?? picture['MeduimPath'] ?? '').toString(),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMatchesSection(BuildContext context, bool isMobile) {
+    return _buildInfoRowSection(
+      context,
+      title: 'جدول المباريات',
+      height: isMobile ? 166 : 190,
+      children: _matches.take(14).map((item) {
+        final home = item['home_team'] is Map
+            ? Map<String, dynamic>.from(item['home_team'])
+            : const <String, dynamic>{};
+        final away = item['away_team'] is Map
+            ? Map<String, dynamic>.from(item['away_team'])
+            : const <String, dynamic>{};
+        final league = item['championship'] is Map
+            ? Map<String, dynamic>.from(item['championship'])
+            : const <String, dynamic>{};
+        return _MatchCard(
+          home: (home['title'] ?? 'الفريق الأول').toString(),
+          away: (away['title'] ?? 'الفريق الثاني').toString(),
+          homeLogo: (home['image'] ?? '').toString(),
+          awayLogo: (away['image'] ?? '').toString(),
+          league: (league['title'] ?? 'مباراة').toString(),
+          time: (item['match_time'] ?? '').toString(),
+          homeScore: item['home_scores']?.toString(),
+          awayScore: item['away_scores']?.toString(),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInfoRowSection(BuildContext context,
+      {required String title,
+      required double height,
+      required List<Widget> children}) {
+    if (children.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(title,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: height,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              itemCount: children.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (_, index) => children[index],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1679,6 +1811,141 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NewsCard extends StatelessWidget {
+  final String title;
+  final String date;
+  final String imageUrl;
+
+  const _NewsCard(
+      {required this.title, required this.date, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 250,
+      child: Card(
+        color: Theme.of(context).colorScheme.surface,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: imageUrl.isEmpty
+                  ? const ColoredBox(color: Color(0xFF211C42))
+                  : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Text(title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+            if (date.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                child: Text(date.replaceFirst('T', ' '),
+                    maxLines: 1,
+                    textAlign: TextAlign.right,
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 10)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MatchCard extends StatelessWidget {
+  final String home;
+  final String away;
+  final String homeLogo;
+  final String awayLogo;
+  final String league;
+  final String time;
+  final String? homeScore;
+  final String? awayScore;
+
+  const _MatchCard({
+    required this.home,
+    required this.away,
+    required this.homeLogo,
+    required this.awayLogo,
+    required this.league,
+    required this.time,
+    required this.homeScore,
+    required this.awayScore,
+  });
+
+  Widget _logo(String url) => url.isEmpty
+      ? const Icon(Icons.shield_outlined, color: Colors.white54, size: 28)
+      : CachedNetworkImage(imageUrl: url, width: 28, height: 28);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 260,
+      child: Card(
+        color: Theme.of(context).colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(league,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Expanded(
+                      child: Column(children: [
+                    _logo(homeLogo),
+                    const SizedBox(height: 5),
+                    Text(home,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12))
+                  ])),
+                  Text(
+                      (homeScore != null && awayScore != null)
+                          ? '$homeScore - $awayScore'
+                          : time,
+                      style: const TextStyle(
+                          color: Color(0xFFFFC857),
+                          fontWeight: FontWeight.bold)),
+                  Expanded(
+                      child: Column(children: [
+                    _logo(awayLogo),
+                    const SizedBox(height: 5),
+                    Text(away,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12))
+                  ])),
+                ],
+              ),
+              if (time.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Text(time,
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 10)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

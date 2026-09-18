@@ -1,5 +1,7 @@
 String stripFfmpegPrefix(String url) {
-  return url.replaceFirst(RegExp(r'^\s*ffmpeg\s+', caseSensitive: false), '').trim();
+  return url
+      .replaceFirst(RegExp(r'^\s*ffmpeg\s+', caseSensitive: false), '')
+      .trim();
 }
 
 String _formatSearchText(String url) {
@@ -68,6 +70,17 @@ bool isProgressiveTsUrl(String url) {
       lower.contains('extension=ts') ||
       lower.contains('format=ts') ||
       isWorkerStalkerStreamUrl(url);
+}
+
+/// Some IPTV servers return raw MPEG-TS from an extensionless live endpoint.
+bool isLikelyLiveTransportStreamUrl(String url) {
+  final lower = _formatSearchText(url);
+  if (isHlsPlaybackUrl(url) ||
+      isDashPlaybackUrl(url) ||
+      isProgressiveFileUrl(url)) {
+    return false;
+  }
+  return lower.startsWith('http://') || lower.startsWith('https://');
 }
 
 bool isProgressiveFileUrl(String url) {

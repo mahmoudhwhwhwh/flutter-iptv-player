@@ -333,6 +333,7 @@ class IPTVProvider with ChangeNotifier {
   List<String> _favorites = [];
   bool _isLoading = false;
   bool _isFetchingData = false;
+  int _playlistLoadGeneration = 0;
   bool get isFetchingData => _isFetchingData;
   String _activeTab = "live";
   String _selectedCategory = "all";
@@ -1494,6 +1495,9 @@ class IPTVProvider with ChangeNotifier {
 
   Future<void> loadPlaylistStreams(String id,
       {bool forceRefresh = false}) async {
+    final loadGeneration = ++_playlistLoadGeneration;
+    bool isCurrentLoad() =>
+        loadGeneration == _playlistLoadGeneration && _activePlaylistId == id;
     _isFetchingData = true;
     notifyListeners();
 
@@ -1510,6 +1514,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (playlist.type == 'custom') {
       await _loadCuratedGitHubContent();
+      if (!isCurrentLoad()) return;
       _isFetchingData = false;
       notifyListeners();
       return;
@@ -1604,6 +1609,7 @@ class IPTVProvider with ChangeNotifier {
         final vodCats = await _fetchStalkerCategories(host, headers, 'vod');
         final seriesCats =
             await _fetchStalkerCategories(host, headers, 'series');
+        if (!isCurrentLoad()) return;
         _movieCategories = FilterService.interceptAndFilterCategories(vodCats,
             blockAdult: _blockAdultContent);
         _seriesCategories = FilterService.interceptAndFilterCategories(
@@ -1613,6 +1619,7 @@ class IPTVProvider with ChangeNotifier {
         final vodItems = await _fetchStalkerOrderedList(host, headers, 'vod');
         final seriesItems =
             await _fetchStalkerOrderedList(host, headers, 'series');
+        if (!isCurrentLoad()) return;
         final movieStreams = <PlaylistItem>[];
         for (final item in vodItems) {
           final streamId =
@@ -1797,6 +1804,7 @@ class IPTVProvider with ChangeNotifier {
         }
 
         final vodCategories = await getXtreamList('get_vod_categories');
+        if (!isCurrentLoad()) return;
         _movieCategories = FilterService.interceptAndFilterCategories(
           vodCategories
               .whereType<Map>()
@@ -1810,6 +1818,7 @@ class IPTVProvider with ChangeNotifier {
 
         final vodItems = await getXtreamList('get_vod_streams',
             timeout: const Duration(seconds: 120));
+        if (!isCurrentLoad()) return;
         final tempMovies = <PlaylistItem>[];
         for (final raw in vodItems) {
           if (raw is! Map) continue;
@@ -1839,6 +1848,7 @@ class IPTVProvider with ChangeNotifier {
         }
 
         final seriesCategories = await getXtreamList('get_series_categories');
+        if (!isCurrentLoad()) return;
         _seriesCategories = FilterService.interceptAndFilterCategories(
           seriesCategories
               .whereType<Map>()
@@ -1852,6 +1862,7 @@ class IPTVProvider with ChangeNotifier {
 
         final seriesItems = await getXtreamList('get_series',
             timeout: const Duration(seconds: 120));
+        if (!isCurrentLoad()) return;
         final tempSeries = <PlaylistItem>[];
         for (final raw in seriesItems) {
           if (raw is! Map) continue;

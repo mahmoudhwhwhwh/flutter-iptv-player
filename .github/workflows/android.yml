@@ -45,7 +45,7 @@ jobs:
           echo "Building ${VERSION} (${TAG_VERSION})"
 
       - name: Build one production APK
-        run: flutter build apk --release --build-name="$VERSION_NAME" --build-number="$VERSION_CODE"
+        run: flutter build apk --release --obfuscate --split-debug-info=build/symbols --build-name="$VERSION_NAME" --build-number="$VERSION_CODE"
 
       - name: Prepare release APK
         run: cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
@@ -55,6 +55,7 @@ jobs:
           test -s "$APK_NAME"
           ls -lh "$APK_NAME"
           sha256sum "$APK_NAME"
+          unzip -l "$APK_NAME" | sort -k1,1nr | head -30
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -997,7 +997,15 @@ class IPTVProvider with ChangeNotifier {
         _activePlaylistId != refreshed.id;
     _activationDurationHours = durationHours;
     if (changed) {
-      _savedPlaylists = [refreshed];
+      final index =
+          _savedPlaylists.indexWhere((item) => item.id == refreshed.id);
+      if (index >= 0) {
+        final next = List<UserPlaylist>.from(_savedPlaylists);
+        next[index] = refreshed;
+        _savedPlaylists = next;
+      } else {
+        _savedPlaylists = [..._savedPlaylists, refreshed];
+      }
       _activePlaylistId = refreshed.id;
       final prefs = await SharedPreferences.getInstance();
       await _persistSavedPlaylists();
@@ -1293,7 +1301,15 @@ class IPTVProvider with ChangeNotifier {
           host: host,
           username: username,
           password: type == 'stalker' ? '' : password);
-      _savedPlaylists = [list];
+      final existingIndex =
+          _savedPlaylists.indexWhere((item) => item.id == list.id);
+      if (existingIndex >= 0) {
+        final next = List<UserPlaylist>.from(_savedPlaylists);
+        next[existingIndex] = list;
+        _savedPlaylists = next;
+      } else {
+        _savedPlaylists = [..._savedPlaylists, list];
+      }
       _activePlaylistId = list.id;
       await _writeSensitiveValue('active_code', cleanCode);
       await prefs.setInt('active_code_activated_at', now);
@@ -1801,10 +1817,13 @@ class IPTVProvider with ChangeNotifier {
           final streamId = item['stream_id']?.toString() ?? '';
           if (streamId.isEmpty) continue;
           final catId = item['category_id']?.toString() ?? '';
-          final cat = _movieCategories.firstWhere(
-              (c) => c['category_id'] == catId, orElse: () => {});
+          final cat = _movieCategories
+              .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
           final extension = normalizeXtreamMediaExtension(
-            item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4',
+            item['container_extension'] ??
+                item['stream_type'] ??
+                item['extension'] ??
+                'mp4',
           );
           tempMovies.add(PlaylistItem(
             num: int.tryParse(item['num']?.toString() ?? ''),
@@ -1813,7 +1832,8 @@ class IPTVProvider with ChangeNotifier {
             streamIcon: item['stream_icon']?.toString() ?? '',
             categoryId: catId,
             categoryName: cat['category_name'] ?? 'أفلام',
-            url: '$host/movie/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+            url:
+                '$host/movie/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
             type: 'movie',
           ));
         }
@@ -1839,10 +1859,13 @@ class IPTVProvider with ChangeNotifier {
           final streamId = item['series_id']?.toString() ?? '';
           if (streamId.isEmpty) continue;
           final catId = item['category_id']?.toString() ?? '';
-          final cat = _seriesCategories.firstWhere(
-              (c) => c['category_id'] == catId, orElse: () => {});
+          final cat = _seriesCategories
+              .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
           final extension = normalizeXtreamMediaExtension(
-            item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4',
+            item['container_extension'] ??
+                item['stream_type'] ??
+                item['extension'] ??
+                'mp4',
           );
           tempSeries.add(PlaylistItem(
             num: int.tryParse(item['num']?.toString() ?? ''),
@@ -1851,7 +1874,8 @@ class IPTVProvider with ChangeNotifier {
             streamIcon: item['cover']?.toString() ?? '',
             categoryId: catId,
             categoryName: cat['category_name'] ?? 'مسلسلات',
-            url: '$host/series/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+            url:
+                '$host/series/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
             type: 'series',
           ));
         }

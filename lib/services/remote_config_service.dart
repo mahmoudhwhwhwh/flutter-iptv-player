@@ -35,13 +35,23 @@ class RemoteConfig {
   static final DateTime _fallbackExpiry = DateTime.utc(2099, 1, 1);
 
   factory RemoteConfig.fromJson(Map<String, dynamic> json) {
-    final flags = json['flags'];
-    final player = json['player'];
-    if (json['schema_version'] != 1 || flags is! Map || player is! Map) {
+    // Accept both the versioned schema and the current Worker /v1/config
+    // response so a backend config rollout does not break older clients.
+    final flags = json['flags'] is Map
+        ? Map<String, dynamic>.from(json['flags'] as Map)
+        : <String, dynamic>{};
+    final player = json['player'] is Map
+        ? Map<String, dynamic>.from(json['player'] as Map)
+        : <String, dynamic>{};
+    final hasLegacyWorkerShape = json.containsKey('app_name') ||
+        json.containsKey('app_version') ||
+        json.containsKey('slider');
+    if (json['schema_version'] != 1 && !hasLegacyWorkerShape) {
       throw const FormatException('Unsupported remote config schema');
     }
-    final expiresAt = DateTime.tryParse('${json['expires_at']}');
-    if (expiresAt == null || !expiresAt.isAfter(DateTime.now().toUtc())) {
+    final expiresAt = DateTime.tryParse('${json['expires_at']}') ??
+        DateTime.now().toUtc().add(const Duration(hours: 12));
+    if (!expiresAt.isAfter(DateTime.now().toUtc())) {
       throw const FormatException('Expired remote config');
     }
     int boundedInt(dynamic value, int fallbackValue, int min, int max) {
@@ -82,7 +92,7 @@ class RemoteConfigService {
 
   static const _cacheKey = 'remote_config_v1';
   static const _endpoint =
-      'https://iptv-subscription-api.tvkora56.workers.dev/v1/remote-config';
+      'https://iptv-subscription-api.tvkora56.workers.dev/v1/config';
   final http.Client _client;
 
   Future<RemoteConfig> load({bool forceRefresh = false}) async {

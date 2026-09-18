@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android Release APK
 on:
   workflow_dispatch:
   push:
@@ -6,6 +6,10 @@ on:
       - main
 permissions:
   contents: write
+
+env:
+  APK_NAME: LIVE_STREAM_PREMIUM.apk
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,34 +19,50 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
+          cache: gradle
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: stable
+          cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Extract Version
+      - name: Extract version
         id: version
+        shell: bash
         run: |
-          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
-          TAG_VERSION="v$(echo $VERSION | cut -d '+' -f 1)"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
-          echo "Building version $VERSION (Tag: $TAG_VERSION)"
-      - name: Build Android APK
+          VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml | tr -d '\r')"
+          VERSION_NAME="${VERSION%%+*}"
+          VERSION_CODE="${VERSION##*+}"
+          TAG_VERSION="v${VERSION_NAME}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
+          echo "TAG_VERSION=${TAG_VERSION}" >> "$GITHUB_ENV"
+          echo "Building ${VERSION} (${TAG_VERSION})"
+
+      - name: Build one production APK
+        run: flutter build apk --release --build-name="$VERSION_NAME" --build-number="$VERSION_CODE"
+
+      - name: Prepare release APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
+
+      - name: Verify release artifact
         run: |
-          flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk LIVE_STREAM_PREMIUM.apk
-      - name: Create Release
+          test -s "$APK_NAME"
+          ls -lh "$APK_NAME"
+          sha256sum "$APK_NAME"
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
           name: Release ${{ env.TAG_VERSION }}
-          files: LIVE_STREAM_PREMIUM.apk
-          draft: false
-          prerelease: false
+          files: ${{ env.APK_NAME }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

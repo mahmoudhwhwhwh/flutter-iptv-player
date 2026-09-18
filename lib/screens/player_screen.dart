@@ -702,6 +702,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     if (_betterController != null) {
+      try {
+        _betterController!.setVolume(0.0);
+        _betterController!.pause();
+      } catch (_) {}
       _betterController!.dispose();
       _betterController = null;
     }
@@ -769,10 +773,22 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     newBetterController.addEventsListener((BetterPlayerEvent event) {
       if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
+        if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) {
+          try {
+            newBetterController.setVolume(0.0);
+            newBetterController.pause();
+          } catch (_) {}
+          newBetterController.dispose();
+          return;
+        }
         if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
           setState(() {
             if (_betterController != null &&
                 _betterController != newBetterController) {
+              try {
+                _betterController!.setVolume(0.0);
+                _betterController!.pause();
+              } catch (_) {}
               _betterController!.dispose();
             }
             _betterController = newBetterController;
@@ -1043,7 +1059,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     }).catchError((_) {});
 
     if (_betterController != null) {
+      try {
+        _betterController!.setVolume(0.0);
+        _betterController!.pause();
+      } catch (_) {}
       _betterController!.dispose();
+      _betterController = null;
     }
     super.dispose();
   }
@@ -1082,6 +1103,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     _reconnectTimer?.cancel();
 
     if (_betterController != null) {
+      try {
+        _betterController!.setVolume(0.0);
+        _betterController!.pause();
+      } catch (_) {}
       _betterController!.dispose();
       _betterController = null;
     }

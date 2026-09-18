@@ -107,7 +107,10 @@ class MainActivity : FlutterActivity() {
                     val debugger = Debug.isDebuggerConnected()
                     val signatureValid = checkSignature()
 
-                    val shouldBlock = sniffer || debugger || rooted || !signatureValid
+                    // CI/Play signing can legitimately differ from the local
+                    // development certificate. Report the result for telemetry,
+                    // but do not block an otherwise clean production install.
+                    val shouldBlock = sniffer || debugger || rooted
 
                     result.success(
                         mapOf(

@@ -393,7 +393,12 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
   }
 
   void _initPlayer() async {
+    try {
+      _controller?.setVolume(0.0);
+      _controller?.pause();
+    } catch (_) {}
     _controller?.dispose();
+    _controller = null;
 
     double subSizeVal = 16.0;
     Color subColorVal = Colors.white;
@@ -655,7 +660,12 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    try {
+      _controller?.setVolume(0.0);
+      _controller?.pause();
+    } catch (_) {}
     _controller?.dispose();
+    _controller = null;
     super.dispose();
   }
 

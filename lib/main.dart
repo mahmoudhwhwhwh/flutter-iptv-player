@@ -127,7 +127,6 @@ class LiveFootballApp extends StatelessWidget {
               child: Consumer<IPTVProvider>(
                 builder: (context, provider, _) {
                   if (provider.snifferDetected ||
-                      provider.vpnDetected ||
                       provider.isVersionBlocked ||
                       !provider.isSecured) {
                     String message = "";
@@ -138,9 +137,6 @@ class LiveFootballApp extends StatelessWidget {
                       message = provider.securityMessage.isNotEmpty
                           ? provider.securityMessage
                           : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
-                    } else if (provider.vpnDetected) {
-                      message =
-                          "🚨 يرجى إيقاف تشغيل VPN أو البروكسي للاستمرار!";
                     } else if (provider.isVersionBlocked) {
                       message = provider.remoteBlockMessage;
                     }

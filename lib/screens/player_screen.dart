@@ -591,7 +591,17 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     String finalUrl = urlStr;
     final sourceDescriptor = classifyPlaybackUrl(finalUrl);
-    if (!sourceDescriptor.isDirectMedia) {
+    final isIptvMediaCandidate = _stream.type == 'live' ||
+        _stream.type == 'movie' ||
+        _stream.type == 'series' ||
+        _stream.type == 'channel' ||
+        _stream.type.startsWith('stalker_');
+    if (!sourceDescriptor.isDirectMedia && isIptvMediaCandidate) {
+      // Xtream/Stalker VOD endpoints often omit the extension and return the
+      // media MIME type only after the request. Keep these URLs in ExoPlayer
+      // instead of incorrectly treating them as HTML pages.
+      finalUrl = sourceDescriptor.normalizedUrl;
+    } else if (!sourceDescriptor.isDirectMedia) {
       final isWebSource =
           sourceDescriptor.kind == PlaybackSourceKind.youtubePage ||
               sourceDescriptor.kind == PlaybackSourceKind.webPage;

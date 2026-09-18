@@ -467,8 +467,10 @@ class IPTVProvider with ChangeNotifier {
   // New additions: Announcement & Security remote override controls
   String _announcementText = "";
   String get announcementText => _announcementText;
-  bool _disableVpnCheck = false;
-  bool _disableSnifferCheck = false;
+  // VPN/proxy apps are valid transport options for IPTV users. Keep the
+  // telemetry fields, but never block playback because of the network path.
+  static const bool _disableVpnCheck = true;
+  static const bool _disableSnifferCheck = true;
 
   // New addition: Recently Played/Continue Watching
   List<PlaylistItem> _recentlyPlayed = [];

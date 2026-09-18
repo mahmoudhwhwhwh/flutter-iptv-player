@@ -3,8 +3,6 @@ package com.mahmoud.iptv
 import android.os.Bundle
 import android.view.WindowManager
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -125,24 +123,6 @@ class MainActivity : FlutterActivity() {
                             "signatureValid" to signatureValid
                         )
                     )
-                }
-                "openWarp" -> {
-                    try {
-                        val launchIntent = packageManager.getLaunchIntentForPackage(
-                            "com.cloudflare.onedotonedotonedotone"
-                        )
-                        if (launchIntent != null) {
-                            startActivity(launchIntent)
-                            result.success(true)
-                        } else {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                                "https://play.google.com/store/apps/details?id=com.cloudflare.onedotonedotonedotone"
-                            )))
-                            result.success(false)
-                        }
-                    } catch (_: Exception) {
-                        result.success(false)
-                    }
                 }
                 else -> result.notImplemented()
             }

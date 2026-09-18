@@ -1765,129 +1765,113 @@ class IPTVProvider with ChangeNotifier {
             blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
 
-        // Fetch VOD and Series
-        http
-            .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_vod_categories$refreshQuery"))
-            .then((vodCatsRes) {
-          if (vodCatsRes.statusCode == 200) {
-            final List decoded = json.decode(vodCatsRes.body);
-            final List<Map<String, String>> parsedCats = decoded
-                .map<Map<String, String>>((item) => {
-                      'category_id': item['category_id']?.toString() ?? '',
-                      'category_name': item['category_name']?.toString() ?? '',
-                    })
-                .toList();
-            // اعتراض وتصفية فئات الأفلام
-            _movieCategories = FilterService.interceptAndFilterCategories(
-                parsedCats,
-                blockAdult: _blockAdultContent);
-          }
-          http
+        // Fetch VOD and Series before publishing the final playlist. The old
+        // implementation started nested, un-awaited requests and marked the
+        // playlist as ready immediately; users could open Movies/Series while
+        // those lists were still empty, and late responses could mix playlists.
+        Future<List<dynamic>> getXtreamList(String action,
+            {Duration timeout = const Duration(seconds: 90)}) async {
+          final response = await http
               .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_vod_streams$refreshQuery"))
-              .timeout(const Duration(seconds: 120))
-              .then((vodStreamsRes) {
-            if (vodStreamsRes.statusCode == 200) {
-              final List decoded = json.decode(vodStreamsRes.body);
-              List<PlaylistItem> tempMovies = [];
-              for (final item in decoded) {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _movieCategories.firstWhere(
-                    (c) => c['category_id'] == catId,
-                    orElse: () => {});
-                final catName =
-                    cat.isNotEmpty ? cat['category_name']! : 'أفلام';
-                final streamId = item['stream_id']?.toString() ?? '';
-                final container = normalizeXtreamMediaExtension(
-                  item['container_extension'] ??
-                      item['stream_type'] ??
-                      item['extension'] ??
-                      'mp4',
-                );
-                tempMovies.add(PlaylistItem(
-                  num: item['num'] is int ? item['num'] : null,
-                  streamId: "movie_$streamId",
-                  name: item['name']?.toString() ?? '',
-                  streamIcon: item['stream_icon']?.toString() ?? '',
-                  categoryId: catId,
-                  categoryName: catName,
-                  url:
-                      "$host/movie/$user/$pass/$streamId.${container.isEmpty ? 'mp4' : container}",
-                  type: "movie",
-                ));
-              }
-              // اعتراض وتصفية قنوات الأفلام
-              final filteredMovies = FilterService.interceptAndFilterStreams(
-                  tempMovies,
-                  blockAdult: _blockAdultContent,
-                  channelFilter: _channelFilter,
-                  applyChannelFilter: false);
-              _allStreams.addAll(filteredMovies);
-            }
-            _applyFilters();
-            notifyListeners();
-          });
-        });
+                  "$host/player_api.php?username=$user&password=$pass&action=$action$refreshQuery"))
+              .timeout(timeout);
+          if (response.statusCode != 200) return <dynamic>[];
+          final decoded = json.decode(response.body);
+          return decoded is List ? decoded : <dynamic>[];
+        }
 
-        http
-            .get(Uri.parse(
-                "$host/player_api.php?username=$user&password=$pass&action=get_series_categories$refreshQuery"))
-            .timeout(const Duration(seconds: 60))
-            .then((seriesCatsRes) {
-          if (seriesCatsRes.statusCode == 200) {
-            final List decoded = json.decode(seriesCatsRes.body);
-            final List<Map<String, String>> parsedCats = decoded
-                .map<Map<String, String>>((item) => {
-                      'category_id': item['category_id']?.toString() ?? '',
-                      'category_name': item['category_name']?.toString() ?? '',
-                    })
-                .toList();
-            // اعتراض وتصفية فئات المسلسلات
-            _seriesCategories = FilterService.interceptAndFilterCategories(
-                parsedCats,
-                blockAdult: _blockAdultContent);
-          }
-          http
-              .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_series$refreshQuery"))
-              .timeout(const Duration(seconds: 120))
-              .then((seriesRes) {
-            if (seriesRes.statusCode == 200) {
-              final List decoded = json.decode(seriesRes.body);
-              List<PlaylistItem> tempSeries = [];
-              for (final item in decoded) {
-                final catId = item['category_id']?.toString() ?? '';
-                final cat = _seriesCategories.firstWhere(
-                    (c) => c['category_id'] == catId,
-                    orElse: () => {});
-                final catName =
-                    cat.isNotEmpty ? cat['category_name']! : 'مسلسلات';
-                final streamId = item['series_id']?.toString() ?? '';
-                tempSeries.add(PlaylistItem(
-                  num: item['num'] is int ? item['num'] : null,
-                  streamId: "series_$streamId",
-                  name: item['name']?.toString() ?? '',
-                  streamIcon: item['cover']?.toString() ?? '',
-                  categoryId: catId,
-                  categoryName: catName,
-                  url:
-                      "$host/series/$user/$pass/$streamId.${normalizeXtreamMediaExtension(item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4').isEmpty ? 'mp4' : normalizeXtreamMediaExtension(item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4')}",
-                  type: "series",
-                ));
-              }
-              // اعتراض وتصفية قنوات المسلسلات
-              final filteredSeries = FilterService.interceptAndFilterStreams(
-                  tempSeries,
-                  blockAdult: _blockAdultContent,
-                  channelFilter: _channelFilter,
-                  applyChannelFilter: false);
-              _allStreams.addAll(filteredSeries);
-            }
-            _applyFilters();
-            notifyListeners();
-          });
-        });
+        final vodCategories = await getXtreamList('get_vod_categories');
+        _movieCategories = FilterService.interceptAndFilterCategories(
+          vodCategories
+              .whereType<Map>()
+              .map<Map<String, String>>((item) => {
+                    'category_id': item['category_id']?.toString() ?? '',
+                    'category_name': item['category_name']?.toString() ?? '',
+                  })
+              .toList(),
+          blockAdult: _blockAdultContent,
+        );
+
+        final vodItems = await getXtreamList('get_vod_streams',
+            timeout: const Duration(seconds: 120));
+        final tempMovies = <PlaylistItem>[];
+        for (final raw in vodItems) {
+          if (raw is! Map) continue;
+          final item = Map<String, dynamic>.from(raw);
+          final streamId = item['stream_id']?.toString() ?? '';
+          if (streamId.isEmpty) continue;
+          final catId = item['category_id']?.toString() ?? '';
+          final cat = _movieCategories.firstWhere(
+              (c) => c['category_id'] == catId, orElse: () => {});
+          final extension = normalizeXtreamMediaExtension(
+            item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4',
+          );
+          tempMovies.add(PlaylistItem(
+            num: int.tryParse(item['num']?.toString() ?? ''),
+            streamId: 'movie_$streamId',
+            name: item['name']?.toString() ?? '',
+            streamIcon: item['stream_icon']?.toString() ?? '',
+            categoryId: catId,
+            categoryName: cat['category_name'] ?? 'أفلام',
+            url: '$host/movie/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+            type: 'movie',
+          ));
+        }
+
+        final seriesCategories = await getXtreamList('get_series_categories');
+        _seriesCategories = FilterService.interceptAndFilterCategories(
+          seriesCategories
+              .whereType<Map>()
+              .map<Map<String, String>>((item) => {
+                    'category_id': item['category_id']?.toString() ?? '',
+                    'category_name': item['category_name']?.toString() ?? '',
+                  })
+              .toList(),
+          blockAdult: _blockAdultContent,
+        );
+
+        final seriesItems = await getXtreamList('get_series',
+            timeout: const Duration(seconds: 120));
+        final tempSeries = <PlaylistItem>[];
+        for (final raw in seriesItems) {
+          if (raw is! Map) continue;
+          final item = Map<String, dynamic>.from(raw);
+          final streamId = item['series_id']?.toString() ?? '';
+          if (streamId.isEmpty) continue;
+          final catId = item['category_id']?.toString() ?? '';
+          final cat = _seriesCategories.firstWhere(
+              (c) => c['category_id'] == catId, orElse: () => {});
+          final extension = normalizeXtreamMediaExtension(
+            item['container_extension'] ?? item['stream_type'] ?? item['extension'] ?? 'mp4',
+          );
+          tempSeries.add(PlaylistItem(
+            num: int.tryParse(item['num']?.toString() ?? ''),
+            streamId: 'series_$streamId',
+            name: item['name']?.toString() ?? '',
+            streamIcon: item['cover']?.toString() ?? '',
+            categoryId: catId,
+            categoryName: cat['category_name'] ?? 'مسلسلات',
+            url: '$host/series/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+            type: 'series',
+          ));
+        }
+
+        _allStreams.addAll(FilterService.interceptAndFilterStreams(
+          tempMovies,
+          blockAdult: _blockAdultContent,
+          channelFilter: _channelFilter,
+          applyChannelFilter: false,
+        ));
+        _allStreams.addAll(FilterService.interceptAndFilterStreams(
+          tempSeries,
+          blockAdult: _blockAdultContent,
+          channelFilter: _channelFilter,
+          applyChannelFilter: false,
+        ));
+        _applyFilters();
+        _isFetchingData = false;
+        notifyListeners();
+        return;
       }
     } catch (e) {
       debugPrint("Streams could not be loaded");

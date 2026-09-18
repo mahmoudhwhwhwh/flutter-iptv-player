@@ -479,13 +479,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  void _disposeActiveController() {
+    final controller = _betterController;
+    _betterController = null;
+    _initialized = false;
+    _positionTimer?.cancel();
+    _positionTimer = null;
+    if (controller == null) return;
+    try {
+      controller.setVolume(0.0);
+      controller.pause();
+    } catch (_) {}
+    try {
+      controller.dispose();
+    } catch (_) {}
+  }
+
   void _initializeController({bool isRetry = false, int? generation}) async {
     final loadGeneration = generation ?? _channelSwitchGuard.begin();
     int? savedPosition;
-    if (widget.stream.type != 'live') {
+    if (_stream.type != 'live') {
       try {
         final prefs = await SharedPreferences.getInstance();
-        savedPosition = prefs.getInt('vod_pos_${widget.stream.streamId}');
+        savedPosition = prefs.getInt('vod_pos_${_stream.streamId}');
       } catch (e) {
         debugPrint("Error loading saved position: ${redactDiagnostic(e)}");
       }
@@ -701,14 +717,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
-    if (_betterController != null) {
-      try {
-        _betterController!.setVolume(0.0);
-        _betterController!.pause();
-      } catch (_) {}
-      _betterController!.dispose();
-      _betterController = null;
-    }
+    _disposeActiveController();
 
     BetterPlayerVideoFormat? format;
     if (isHlsPlaybackUrl(finalUrl)) {
@@ -1058,14 +1067,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     }).catchError((_) {});
 
-    if (_betterController != null) {
-      try {
-        _betterController!.setVolume(0.0);
-        _betterController!.pause();
-      } catch (_) {}
-      _betterController!.dispose();
-      _betterController = null;
-    }
+    _channelSwitchGuard.begin();
+    _disposeActiveController();
     super.dispose();
   }
 
@@ -1102,14 +1105,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     provider.selectStream(targetStream);
     _reconnectTimer?.cancel();
 
-    if (_betterController != null) {
-      try {
-        _betterController!.setVolume(0.0);
-        _betterController!.pause();
-      } catch (_) {}
-      _betterController!.dispose();
-      _betterController = null;
-    }
+    _disposeActiveController();
 
     setState(() {
       _stream = targetStream;

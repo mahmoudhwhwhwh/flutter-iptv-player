@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- اتصالات التطبيق تمر عبر Worker آمن؛ يمنع cleartext اعتراض بيانات الجلسة. -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- بعض قوائم IPTV ترجع مقاطع TS عبر HTTP؛ واجهات الحساب تبقى HTTPS. -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 
-    <domain-config cleartextTrafficPermitted="false">
+    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">github.com</domain>
         <domain includeSubdomains="true">api.github.com</domain>
         <domain includeSubdomains="true">raw.githubusercontent.com</domain>

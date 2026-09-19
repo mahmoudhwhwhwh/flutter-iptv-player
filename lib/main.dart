@@ -15,7 +15,6 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
-import 'screens/catalog_webview_screen.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
 import 'services/performance_metrics.dart';
@@ -1205,24 +1204,16 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Widget _buildContent() {
-    final code = context.read<IPTVProvider>().activationCode;
-    final integratedCatalog = supportsIntegratedCatalog(code);
     switch (_selectedIndex) {
       case 0:
         return const HomeTab();
       case 1:
         return const StreamsListScreen(title: "البث المباشر", tab: "live");
       case 2:
-        return integratedCatalog
-            ? CatalogWebViewScreen(
-                title: catalogTitle('movie'), url: catalogUrl('movie'))
-            : const StreamsListScreen(title: "الأفلام", tab: "movie");
+        return const StreamsListScreen(title: "الأفلام", tab: "movie");
       case 3:
-        return integratedCatalog
-            ? CatalogWebViewScreen(
-                title: catalogTitle('series'), url: catalogUrl('series'))
-            : const StreamsListScreen(
-                title: "المسلسلات", tab: "series", isSeries: true);
+        return const StreamsListScreen(
+            title: "المسلسلات", tab: "series", isSeries: true);
       case 4:
         return const FavoritesScreen();
       default:

@@ -14,6 +14,7 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
@@ -251,6 +252,35 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   bool get _isDrm => _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty;
 
+  Future<String?> _malformedHlsTsFallback(String url) async {
+    try {
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final body = response.body;
+      if (RegExp(r'^#EXTM3U', multiLine: true).allMatches(body).length < 2) {
+        return null;
+      }
+      final mediaUrls = body
+          .split(RegExp(r'\r?\n'))
+          .map((line) => line.trim())
+          .where((line) =>
+              (line.startsWith('http://') || line.startsWith('https://')) &&
+              !line.startsWith('#'))
+          .toList();
+      if (mediaUrls.isEmpty) return null;
+      final candidate = mediaUrls.last;
+      final candidateUri = Uri.tryParse(candidate);
+      final embedded = candidateUri?.queryParameters['url'];
+      if (embedded != null && embedded.startsWith('http')) {
+        return embedded;
+      }
+      return candidate;
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _prepareClearKeyString(Map<String, String> keys) {
     try {
       final List<Map<String, dynamic>> jwkList = [];
@@ -392,6 +422,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+    WakelockPlus.enable();
     _loadSubSettings();
     _stream = widget.stream;
 
@@ -590,6 +621,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     String finalUrl = urlStr;
+    if (isHlsPlaybackUrl(finalUrl)) {
+      final malformedFallback = await _malformedHlsTsFallback(finalUrl);
+      if (malformedFallback != null && malformedFallback.isNotEmpty) {
+        finalUrl = malformedFallback;
+        urlStr = finalUrl;
+      }
+    }
     final sourceDescriptor = classifyPlaybackUrl(finalUrl);
     final isIptvMediaCandidate = _stream.type == 'live' ||
         _stream.type == 'movie' ||
@@ -750,10 +788,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
-      liveStream: _stream.type == 'live',
+      liveStream: _stream.type == 'live' || _stream.type == 'stalker',
       videoFormat: format,
       videoExtension: (isProgressiveTsUrl(finalUrl) ||
-              (_stream.type == 'live' &&
+              ((_stream.type == 'live' || _stream.type == 'stalker') &&
                   isLikelyLiveTransportStreamUrl(finalUrl)))
           ? 'ts'
           : null,
@@ -1086,6 +1124,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }).catchError((_) {});
 
     _channelSwitchGuard.begin();
+    WakelockPlus.disable();
     _disposeActiveController();
     super.dispose();
   }

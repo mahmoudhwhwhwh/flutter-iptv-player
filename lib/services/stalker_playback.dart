@@ -52,7 +52,17 @@ bool isHlsPlaybackUrl(String url) {
   return lower.contains('.m3u8') ||
       lower.contains('extension=m3u8') ||
       lower.contains('format=m3u8') ||
-      lower.contains('format=hls');
+      lower.contains('format=hls') ||
+      _isHlsProxyEndpoint(url);
+}
+
+bool _isHlsProxyEndpoint(String url) {
+  try {
+    final uri = Uri.parse(stripFfmpegPrefix(url));
+    return uri.path == '/tv' && uri.queryParameters.containsKey('url');
+  } catch (_) {
+    return false;
+  }
 }
 
 bool isDashPlaybackUrl(String url) {

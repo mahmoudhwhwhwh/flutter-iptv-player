@@ -448,9 +448,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 212;
-  String _currentVersionStr = "2.2.12";
-  int _currentVersionCode = 212;
+  static const int APP_VERSION_CODE = 287;
+  String _currentVersionStr = "2.2.87";
+  int _currentVersionCode = 287;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -921,7 +921,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.74");
+    return isVersionLowerThan(versionStr, "2.2.87");
   }
 
   bool _isValidatingSubscription = false;

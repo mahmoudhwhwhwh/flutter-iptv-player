@@ -501,12 +501,13 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
           sType = "vod";
         }
         final linkUrl = Uri.parse(
-            "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(finalUrl)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml");
+            "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(finalUrl)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml${provider.stalkerToken.isEmpty ? '' : '&token=${Uri.encodeQueryComponent(provider.stalkerToken)}'}");
         final reqHeaders = {
-          "Cookie": "mac=$mac",
+          "Cookie": "mac=$mac; stb_lang=en; timezone=Europe%2FAmsterdam",
           "Authorization": "Bearer ${provider.stalkerToken}",
           "User-Agent":
-              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
+              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3",
+          "X-User-Agent": "Model: MAG250; Link: WiFi; Conn: WiFi"
         };
 
         final res = await http.get(linkUrl, headers: reqHeaders);

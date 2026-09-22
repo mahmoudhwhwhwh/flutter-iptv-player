@@ -465,9 +465,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 290;
-  String _currentVersionStr = "2.2.90";
-  int _currentVersionCode = 290;
+  static const int APP_VERSION_CODE = 291;
+  String _currentVersionStr = "2.2.91";
+  int _currentVersionCode = 291;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -927,7 +927,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.90");
+    return isVersionLowerThan(versionStr, "2.2.91");
   }
 
   bool _isValidatingSubscription = false;
@@ -1452,6 +1452,8 @@ class IPTVProvider with ChangeNotifier {
           _stalkerToken = token;
           headers['Authorization'] = 'Bearer $token';
           headers['X-User-Agent'] = headers['User-Agent'] ?? '';
+          headers['Cookie'] =
+              '${headers['Cookie'] ?? ''}; stb_lang=en; timezone=Europe%2FAmsterdam';
           return;
         }
       } catch (e) {
@@ -1469,12 +1471,15 @@ class IPTVProvider with ChangeNotifier {
     final actions = type == 'vod'
         ? <String>['get_ordered_list', 'get_vod']
         : <String>['get_ordered_list', 'get_series'];
+    final tokenQuery = _stalkerToken.isEmpty
+        ? ''
+        : '&token=${Uri.encodeQueryComponent(_stalkerToken)}';
     for (final action in actions) {
     try {
       final response = await http
           .get(
             Uri.parse(
-              '$host/server/load.php?type=$type&action=$action&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml',
+              '$host/server/load.php?type=$type&action=$action&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml$tokenQuery',
             ),
             headers: headers,
           )
@@ -1501,11 +1506,14 @@ class IPTVProvider with ChangeNotifier {
 
   Future<List<Map<String, String>>> _fetchStalkerCategories(
       String host, Map<String, String> headers, String type) async {
+    final tokenQuery = _stalkerToken.isEmpty
+        ? ''
+        : '&token=${Uri.encodeQueryComponent(_stalkerToken)}';
     try {
       final response = await http
           .get(
             Uri.parse(
-              '$host/server/load.php?type=$type&action=get_categories&JsHttpRequest=1-xml',
+              '$host/server/load.php?type=$type&action=get_categories&JsHttpRequest=1-xml$tokenQuery',
             ),
             headers: headers,
           )
@@ -1589,10 +1597,13 @@ class IPTVProvider with ChangeNotifier {
 
       if (playlist.type == 'stalker' && host.isNotEmpty && user.isNotEmpty) {
         final headers = {
-          "Cookie": "mac=$user",
+          "Cookie":
+              "mac=$user; stb_lang=en; timezone=Europe%2FAmsterdam",
           "Authorization": "Bearer $_stalkerToken",
           "User-Agent":
-              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
+              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3",
+          "X-User-Agent":
+              "Model: MAG250; Link: WiFi; Conn: WiFi"
         };
         await _handshakeStalker(host, headers);
         final liveResponses = await Future.wait([
@@ -1849,6 +1860,9 @@ class IPTVProvider with ChangeNotifier {
               categoryName: catName,
               url: streamUrl,
               type: "live",
+              fallbackUrl: advertisedUrl.isNotEmpty && advertisedUrl != streamUrl
+                  ? advertisedUrl
+                  : null,
             ));
           }
         }

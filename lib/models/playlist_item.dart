@@ -37,6 +37,7 @@ class PlaylistItem {
   final List<EpgProgram>? epg;
   final String? customUserAgent;
   final String? customReferer;
+  final String? fallbackUrl;
   final Map<String, String>? clearKeys;
 
   PlaylistItem({
@@ -55,6 +56,7 @@ class PlaylistItem {
     this.epg,
     this.customUserAgent,
     this.customReferer,
+    this.fallbackUrl,
     this.clearKeys,
   });
 
@@ -73,6 +75,7 @@ class PlaylistItem {
     'plot': plot,
     'customUserAgent': customUserAgent,
     'customReferer': customReferer,
+    'fallbackUrl': fallbackUrl,
     'clearKeys': clearKeys,
   };
 
@@ -103,6 +106,7 @@ class PlaylistItem {
       plot: json['plot'],
       customUserAgent: json['customUserAgent'],
       customReferer: json['customReferer'],
+      fallbackUrl: json['fallbackUrl'],
       clearKeys: parsedKeys,
     );
   }

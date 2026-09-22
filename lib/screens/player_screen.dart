@@ -572,7 +572,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    String urlStr = stripFfmpegPrefix(_stream.url.trim());
+    final preferredUrl = isRetry && _retryCount >= 2
+        ? (_stream.fallbackUrl?.trim().isNotEmpty == true
+            ? _stream.fallbackUrl!.trim()
+            : _stream.url.trim())
+        : _stream.url.trim();
+    String urlStr = stripFfmpegPrefix(preferredUrl);
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
       orElse: () => UserPlaylist(id: '', name: '', type: ''),
@@ -599,12 +604,13 @@ class _PlayerScreenState extends State<PlayerScreen>
           sType = "vod";
         }
         final linkUrl = Uri.parse(
-            "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(urlStr)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml");
+            "$host/server/load.php?type=$sType&action=create_link&cmd=${Uri.encodeComponent(urlStr)}&series=0&forced_storage=0&disable_ad=0&JsHttpRequest=1-xml${provider.stalkerToken.isEmpty ? '' : '&token=${Uri.encodeQueryComponent(provider.stalkerToken)}'}");
         final reqHeaders = {
-          "Cookie": "mac=$mac",
+          "Cookie": "mac=$mac; stb_lang=en; timezone=Europe%2FAmsterdam",
           "Authorization": "Bearer ${provider.stalkerToken}",
           "User-Agent":
-              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
+              "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3",
+          "X-User-Agent": "Model: MAG250; Link: WiFi; Conn: WiFi"
         };
 
         final res = await http.get(linkUrl, headers: reqHeaders);

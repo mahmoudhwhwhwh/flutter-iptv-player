@@ -112,7 +112,7 @@ Future<http.Response> getXtreamApiWithFallback(Uri primary,
     }
   }
   if (lastResponse != null) return lastResponse;
-  throw lastError ?? const http.ClientException('Xtream server unavailable');
+  throw lastError ?? http.ClientException('Xtream server unavailable');
 }
 
 class IPTVProvider with ChangeNotifier {

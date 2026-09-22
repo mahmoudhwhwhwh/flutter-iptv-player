@@ -465,9 +465,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 289;
-  String _currentVersionStr = "2.2.89";
-  int _currentVersionCode = 289;
+  static const int APP_VERSION_CODE = 290;
+  String _currentVersionStr = "2.2.90";
+  int _currentVersionCode = 290;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -927,7 +927,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.89");
+    return isVersionLowerThan(versionStr, "2.2.90");
   }
 
   bool _isValidatingSubscription = false;
@@ -1828,24 +1828,18 @@ class IPTVProvider with ChangeNotifier {
                     : advertisedUrl.toLowerCase().contains('.mpd')
                         ? 'mpd'
                         : 'ts');
-            // Prefer a valid absolute source advertised by the provider for
-            // CDN/HLS/DASH accounts; otherwise use the standard Xtream route.
+            // Xtream APIs frequently return stream_source as an unauthenticated
+            // CDN hint. It is not a playable contract for all providers, so
+            // always use the authenticated standard route for live channels.
             // Credentials are URI-encoded so reserved characters do not break
             // the resulting media URL.
-            final advertisedUri = Uri.tryParse(advertisedUrl);
-            final hasAbsoluteAdvertisedSource = advertisedUri != null &&
-                (advertisedUri.scheme == 'http' ||
-                    advertisedUri.scheme == 'https') &&
-                advertisedUri.host.isNotEmpty;
-            final streamUrl = hasAbsoluteAdvertisedSource
-                ? advertisedUrl
-                : buildXtreamLiveUrl(
-                    host: host,
-                    username: user,
-                    password: pass,
-                    streamId: streamId,
-                    extension: extension,
-                  );
+            final streamUrl = buildXtreamLiveUrl(
+              host: host,
+              username: user,
+              password: pass,
+              streamId: streamId,
+              extension: extension,
+            );
             tempStreams.add(PlaylistItem(
               num: item['num'] is int ? item['num'] : null,
               streamId: "live_$streamId",

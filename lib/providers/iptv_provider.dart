@@ -87,6 +87,34 @@ Uri buildXtreamApiUri({
   });
 }
 
+Future<http.Response> getXtreamApiWithFallback(Uri primary,
+    {Duration timeout = const Duration(seconds: 60)}) async {
+  final candidates = <Uri>[primary];
+  if (primary.scheme == 'http') {
+    candidates.add(primary.replace(scheme: 'https'));
+  } else if (primary.scheme == 'https') {
+    candidates.add(primary.replace(scheme: 'http'));
+  }
+  http.Response? lastResponse;
+  Object? lastError;
+  for (final uri in candidates) {
+    try {
+      final response = await http.get(uri, headers: const {
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'LIVE-STREAM-PRO/2.2',
+      }).timeout(timeout);
+      lastResponse = response;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastResponse != null) return lastResponse;
+  throw lastError ?? const http.ClientException('Xtream server unavailable');
+}
+
 class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
@@ -485,9 +513,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 293;
-  String _currentVersionStr = "2.2.92";
-  int _currentVersionCode = 292;
+  static const int APP_VERSION_CODE = 294;
+  String _currentVersionStr = "2.2.94";
+  int _currentVersionCode = 294;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -947,7 +975,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.92");
+    return isVersionLowerThan(versionStr, "2.2.94");
   }
 
   bool _isValidatingSubscription = false;
@@ -1808,20 +1836,17 @@ class IPTVProvider with ChangeNotifier {
         return;
       } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
         final liveResponses = await Future.wait([
-          http
-              .get(buildXtreamApiUri(
-                  host: host,
-                  username: user,
-                  password: pass,
-                  action: 'get_live_categories'))
-              .timeout(const Duration(seconds: 60)),
-          http
-              .get(buildXtreamApiUri(
-                  host: host,
-                  username: user,
-                  password: pass,
-                  action: 'get_live_streams'))
-              .timeout(const Duration(seconds: 90)),
+          getXtreamApiWithFallback(buildXtreamApiUri(
+              host: host,
+              username: user,
+              password: pass,
+              action: 'get_live_categories')),
+          getXtreamApiWithFallback(buildXtreamApiUri(
+              host: host,
+              username: user,
+              password: pass,
+              action: 'get_live_streams'),
+              timeout: const Duration(seconds: 90)),
         ]);
         final liveCatsRes = liveResponses[0];
         final liveStreamsRes = liveResponses[1];
@@ -1877,6 +1902,15 @@ class IPTVProvider with ChangeNotifier {
               streamId: streamId,
               extension: extension,
             );
+            final secureStreamUrl = host.startsWith('http://')
+                ? buildXtreamLiveUrl(
+                    host: host.replaceFirst('http://', 'https://'),
+                    username: user,
+                    password: pass,
+                    streamId: streamId,
+                    extension: extension,
+                  )
+                : null;
             tempStreams.add(PlaylistItem(
               num: item['num'] is int ? item['num'] : null,
               streamId: "live_$streamId",
@@ -1888,7 +1922,7 @@ class IPTVProvider with ChangeNotifier {
               type: "live",
               fallbackUrl: advertisedUrl.isNotEmpty && advertisedUrl != streamUrl
                   ? advertisedUrl
-                  : null,
+                  : (secureStreamUrl != streamUrl ? secureStreamUrl : null),
             ));
           }
         }
@@ -1904,13 +1938,15 @@ class IPTVProvider with ChangeNotifier {
         // those lists were still empty, and late responses could mix playlists.
         Future<List<dynamic>> getXtreamList(String action,
             {Duration timeout = const Duration(seconds: 90)}) async {
-          final response = await http
-              .get(buildXtreamApiUri(
-                  host: host,
-                  username: user,
-                  password: pass,
-                  action: action))
-              .timeout(timeout);
+          final response = await getXtreamApiWithFallback(
+            buildXtreamApiUri(
+              host: host,
+              username: user,
+              password: pass,
+              action: action,
+            ),
+            timeout: timeout,
+          );
           if (response.statusCode != 200) return <dynamic>[];
           final decoded = json.decode(response.body);
           return decoded is List ? decoded : <dynamic>[];

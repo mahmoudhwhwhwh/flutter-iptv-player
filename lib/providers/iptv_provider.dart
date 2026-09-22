@@ -513,9 +513,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 294;
-  String _currentVersionStr = "2.2.94";
-  int _currentVersionCode = 294;
+  static const int APP_VERSION_CODE = 295;
+  String _currentVersionStr = "2.2.95";
+  int _currentVersionCode = 295;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -975,7 +975,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.94");
+    return isVersionLowerThan(versionStr, "2.2.95");
   }
 
   bool _isValidatingSubscription = false;
@@ -1300,6 +1300,7 @@ class IPTVProvider with ChangeNotifier {
               body: json.encode({
                 'code': cleanCode,
                 'device_id': deviceId,
+                'version_code': APP_VERSION_CODE,
                 'security_risk_score': _securityRiskScore
               }))
           .timeout(const Duration(seconds: 20));

@@ -99,7 +99,7 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
           app_name: "LIVE STREAM PRO",
-          app_version: "2.2.94",
+          app_version: "2.2.95",
           disable_vpn_check: true,
           disable_sniffer_check: true,
           slider: sliderImages,
@@ -323,18 +323,18 @@ export default {
           blocking: {
             min_version_code: 234,
             blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.94 للاستمرار."
+            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.95 للاستمرار."
           },
           update: {
-            latest_version: "v2.2.94",
+            latest_version: "v2.2.95",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "نسخة جديدة متاحة (v2.2.94). يرجى التحديث الآن."
+            update_message: "نسخة جديدة متاحة (v2.2.95). يرجى التحديث الآن."
           }
         });
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.94/LIVE_STREAM_PREMIUM.apk", 302);
+        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.95/LIVE_STREAM_PREMIUM.apk", 302);
       }
 
       if (url.pathname === "/v1/custom/menu" || url.pathname === "/v1/custom_channels" || url.pathname === "/v1/channels") {
@@ -372,6 +372,24 @@ export default {
         }
         if (!code) return respond({ ok: false, message: "رمز الدخول مطلوب" }, 401);
         const codeHash = await sha256(code);
+        const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+        const identityHash = await sha256(`${codeHash}:${deviceId}:${clientIp}`);
+        const now = Date.now();
+        const attempt = await env.DB.prepare(
+          "SELECT window_started_at, attempts FROM login_attempts WHERE identity_hash = ? LIMIT 1"
+        ).bind(identityHash).first();
+        const windowMs = 15 * 60 * 1000;
+        const inWindow = attempt && now - Number(attempt.window_started_at) < windowMs;
+        const attempts = inWindow ? Number(attempt.attempts || 0) : 0;
+        if (attempts >= 20) {
+          return new Response(JSON.stringify({ ok: false, message: "محاولات كثيرة، حاول لاحقاً" }), {
+            status: 429,
+            headers: { ...corsHeaders, "Retry-After": "900" }
+          });
+        }
+        await env.DB.prepare(
+          "INSERT INTO login_attempts(identity_hash, window_started_at, attempts) VALUES(?,?,?) ON CONFLICT(identity_hash) DO UPDATE SET window_started_at=excluded.window_started_at, attempts=excluded.attempts"
+        ).bind(identityHash, inWindow ? attempt.window_started_at : now, attempts + 1).run();
         const stmt = env.DB.prepare("SELECT server_type, content_mode, host, username, password, expires_at, max_devices, is_blocked FROM subscriptions WHERE code_hash = ? LIMIT 1");
         const subscription = await stmt.bind(codeHash).first();
         if (!subscription || subscription.is_blocked) return respond({ ok: false, message: "رمز الدخول غير صالح أو غير مصرح به" }, 401);
@@ -381,6 +399,21 @@ export default {
           if (!Number.isNaN(expiry) && expiry <= Date.now()) {
             return respond({ ok: false, message: "انتهت صلاحية الاشتراك" }, 403);
           }
+        }
+        if (deviceId) {
+          const deviceCount = await env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM devices WHERE code_hash = ?"
+          ).bind(codeHash).first();
+          const maxDevices = Math.max(1, Number(subscription.max_devices || 1));
+          const knownDevice = await env.DB.prepare(
+            "SELECT 1 AS found FROM devices WHERE code_hash = ? AND device_id = ? LIMIT 1"
+          ).bind(codeHash, deviceId).first();
+          if (!knownDevice && Number(deviceCount?.count || 0) >= maxDevices) {
+            return respond({ ok: false, message: "تم الوصول إلى حد الأجهزة المسموح" }, 403);
+          }
+          await env.DB.prepare(
+            "INSERT INTO devices(code_hash, device_id, last_seen_at) VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(code_hash,device_id) DO UPDATE SET last_seen_at=CURRENT_TIMESTAMP"
+          ).bind(codeHash, deviceId).run();
         }
         const server = {
           type: subscription.server_type ?? "xtream",
@@ -400,7 +433,6 @@ export default {
           server,
           subscription: subscriptionState,
           user: {
-            code: code,
             ...server,
             expires_at: subscription.expires_at,
           }

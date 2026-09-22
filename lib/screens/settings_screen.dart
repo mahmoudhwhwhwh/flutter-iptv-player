@@ -11,7 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// لوحة موحّدة لشاشة الإعدادات؛ تبقي واجهة LIVE STREAM PREMIUM متسقة.
+/// لوحة موحّدة لشاشة الإعدادات؛ تبقي واجهة LIVE STREAM PRO متسقة.
 class _SettingsPalette {
   const _SettingsPalette._();
 
@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          "إعدادات LIVE STREAM PREMIUM",
+          "إعدادات LIVE STREAM PRO",
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
@@ -477,7 +477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const Center(
                 child: Text(
-                  "LIVE STREAM PREMIUM",
+                  "LIVE STREAM PRO",
                   style: TextStyle(
                     color: Colors.white24,
                     fontSize: 14,
@@ -2071,7 +2071,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("LIVE STREAM PREMIUM",
+                    const Text("LIVE STREAM PRO",
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,

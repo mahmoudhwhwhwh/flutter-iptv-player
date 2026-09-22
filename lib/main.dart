@@ -83,7 +83,7 @@ class LiveFootballApp extends StatelessWidget {
     return Consumer<IPTVProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'LIVE STREAM PREMIUM',
+          title: 'LIVE STREAM PRO',
           debugShowCheckedModeBanner: false,
           locale: Locale(themeProvider.appLanguage == 'English' ? 'en' : 'ar'),
           themeMode:
@@ -352,8 +352,17 @@ class _StartupGateState extends State<StartupGate> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: Image.asset(
+                      'assets/live_stream_pro_logo.png',
+                      width: 210,
+                      height: 210,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   const Text(
-                    'أهلاً بك في\nLIVE STREAM PREMIUM',
+                    'أهلاً بك في\nLIVE STREAM PRO',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -483,7 +492,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(width: 16),
                         const Expanded(
                           child: Text(
-                            "LIVE STREAM PREMIUM",
+                            "LIVE STREAM PRO",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -802,7 +811,7 @@ class _MainDashboardState extends State<MainDashboard> {
                       color: Colors.black, size: 50),
                 ),
                 const SizedBox(height: 18),
-                const Text('أهلاً بك في LIVE STREAM PREMIUM',
+                const Text('أهلاً بك في LIVE STREAM PRO',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.white,
@@ -939,7 +948,7 @@ class _MainDashboardState extends State<MainDashboard> {
           children: [
             const Expanded(
               child: Text(
-                "LIVE STREAM PREMIUM",
+                "LIVE STREAM PRO",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -2104,7 +2113,7 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'LIVE STREAM PREMIUM',
+                          'LIVE STREAM PRO',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

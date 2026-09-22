@@ -98,7 +98,7 @@ export default {
 
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
-          app_name: "LIVE STREAM PREMIUM",
+          app_name: "LIVE STREAM PRO",
           app_version: "2.2.92",
           disable_vpn_check: true,
           disable_sniffer_check: true,
@@ -409,7 +409,7 @@ export default {
 
       if (url.pathname === "/v1/slider") return respond(sliderImages);
 
-      return respond({ ok: true, service: "LIVE STREAM PREMIUM API" });
+      return respond({ ok: true, service: "LIVE STREAM PRO API" });
     } catch (e) {
       return respond({ ok: false, message: "Server error: " + e.message }, 500);
     }

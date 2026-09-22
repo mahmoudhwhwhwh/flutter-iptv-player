@@ -2262,7 +2262,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ],
                         ),
                         child: const Text(
-                          'LIVE STREAM PREMIUM',
+                          'LIVE STREAM PRO',
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -2295,7 +2295,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                               border: Border.all(color: Colors.white24),
                             ),
                             child: const Text(
-                              'LIVE STREAM PREMIUM',
+                              'LIVE STREAM PRO',
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -2592,7 +2592,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
-                        "LIVE STREAM PREMIUM",
+                        "LIVE STREAM PRO",
                         style: TextStyle(
                           color: Colors.white60,
                           fontSize: 14,
@@ -3038,7 +3038,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                       width: 0.8),
                                 ),
                                 child: const Text(
-                                  "LIVE STREAM PREMIUM",
+                                  "LIVE STREAM PRO",
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 10,

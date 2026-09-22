@@ -263,7 +263,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                           color: Colors.white, size: 20)),
                   const SizedBox(width: 7),
                   const Expanded(
-                      child: Text('LIVE STREAM PREMIUM',
+                      child: Text('LIVE STREAM PRO',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,

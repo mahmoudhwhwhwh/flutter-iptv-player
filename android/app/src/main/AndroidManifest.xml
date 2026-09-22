@@ -53,7 +53,7 @@
     <uses-feature android:name="android.hardware.faketouch" android:required="false" />
 
     <application
-        android:label="live strem pro"
+        android:label="LIVE STREAM PRO"
         android:name="${applicationName}"
         android:icon="@drawable/live_stream_logo"
         android:banner="@drawable/ic_launcher"

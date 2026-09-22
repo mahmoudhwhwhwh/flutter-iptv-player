@@ -1481,11 +1481,14 @@ class _HomeTabState extends State<HomeTab> {
 
   Future<void> _loadNewsAndMatches() async {
     try {
+      final today = DateTime.now();
+      final date =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
       final responses = await Future.wait([
         http.get(Uri.parse(
             'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false')),
         http.get(Uri.parse(
-            'https://api-ar.ysscores.com/api/matches/matches_date_get/2026-09-06/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180')),
+            'https://api-ar.ysscores.com/api/matches/matches_date_get/$date/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180')),
       ]).timeout(const Duration(seconds: 20));
       final nextNews = <Map<String, dynamic>>[];
       if (responses[0].statusCode == 200) {

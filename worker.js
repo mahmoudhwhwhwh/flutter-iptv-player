@@ -31,7 +31,7 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         return respond({
           app_name: "LIVE STREAM PREMIUM",
-          app_version: "2.2.88",
+          app_version: "2.2.89",
           disable_vpn_check: true,
           disable_sniffer_check: true,
           slider: sliderImages,
@@ -255,18 +255,18 @@ export default {
           blocking: {
             min_version_code: 234,
             blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.88 للاستمرار."
+            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.89 للاستمرار."
           },
           update: {
-            latest_version: "v2.2.88",
+            latest_version: "v2.2.89",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "نسخة جديدة متاحة (v2.2.88). يرجى التحديث الآن."
+            update_message: "نسخة جديدة متاحة (v2.2.89). يرجى التحديث الآن."
           }
         });
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.88/LIVE_STREAM_PREMIUM.apk", 302);
+        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.89/LIVE_STREAM_PREMIUM.apk", 302);
       }
 
       if (url.pathname === "/v1/custom/menu" || url.pathname === "/v1/custom_channels" || url.pathname === "/v1/channels") {

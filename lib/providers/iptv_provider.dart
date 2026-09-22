@@ -57,6 +57,22 @@ String normalizeXtreamMediaExtension(Object? raw) {
   }
 }
 
+String buildXtreamLiveUrl({
+  required String host,
+  required String username,
+  required String password,
+  required String streamId,
+  required String extension,
+}) {
+  final cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
+  final encodedUser = Uri.encodeComponent(username.trim());
+  final encodedPassword = Uri.encodeComponent(password.trim());
+  final cleanExtension = normalizeXtreamMediaExtension(extension).isEmpty
+      ? 'ts'
+      : normalizeXtreamMediaExtension(extension);
+  return '$cleanHost/live/$encodedUser/$encodedPassword/${streamId.trim()}.$cleanExtension';
+}
+
 class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
@@ -449,9 +465,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 288;
-  String _currentVersionStr = "2.2.88";
-  int _currentVersionCode = 288;
+  static const int APP_VERSION_CODE = 289;
+  String _currentVersionStr = "2.2.89";
+  int _currentVersionCode = 289;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -911,7 +927,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.88");
+    return isVersionLowerThan(versionStr, "2.2.89");
   }
 
   bool _isValidatingSubscription = false;
@@ -1812,10 +1828,24 @@ class IPTVProvider with ChangeNotifier {
                     : advertisedUrl.toLowerCase().contains('.mpd')
                         ? 'mpd'
                         : 'ts');
-            // Keep playback behind the authenticated Worker even when the
-            // upstream advertises an absolute HTTP/CDN URL. The extension is
-            // preserved so HLS/DASH manifests remain discoverable by the player.
-            final streamUrl = "$host/live/$user/$pass/$streamId.$extension";
+            // Prefer a valid absolute source advertised by the provider for
+            // CDN/HLS/DASH accounts; otherwise use the standard Xtream route.
+            // Credentials are URI-encoded so reserved characters do not break
+            // the resulting media URL.
+            final advertisedUri = Uri.tryParse(advertisedUrl);
+            final hasAbsoluteAdvertisedSource = advertisedUri != null &&
+                (advertisedUri.scheme == 'http' ||
+                    advertisedUri.scheme == 'https') &&
+                advertisedUri.host.isNotEmpty;
+            final streamUrl = hasAbsoluteAdvertisedSource
+                ? advertisedUrl
+                : buildXtreamLiveUrl(
+                    host: host,
+                    username: user,
+                    password: pass,
+                    streamId: streamId,
+                    extension: extension,
+                  );
             tempStreams.add(PlaylistItem(
               num: item['num'] is int ? item['num'] : null,
               streamId: "live_$streamId",

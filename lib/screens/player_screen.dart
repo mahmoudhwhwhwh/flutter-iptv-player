@@ -2215,7 +2215,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 color: Colors.cyanAccent, strokeWidth: 2.5),
                           ),
                           SizedBox(width: 10),
-                          Text('جارِ تحميل البث…',
+                          Text('جاري تحميل البث يا صديقي، لا تتعصب…',
                               style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold)),

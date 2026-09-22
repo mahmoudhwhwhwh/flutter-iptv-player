@@ -62,6 +62,7 @@ class IPTVProvider with ChangeNotifier {
       'https://iptv-subscription-api.tvkora56.workers.dev';
   static const String _loginUrl = '$_workerBase/v1/login';
   static const String _savedSubscriptionCodesKey = 'saved_subscription_codes';
+  static const String _activePlaylistIdKey = 'active_playlist_id';
   static const SecurePlaylistStore _securePlaylistStore = SecurePlaylistStore();
   final RemoteConfigService _remoteConfigService = RemoteConfigService();
   RemoteConfig _remoteConfig = RemoteConfig.fallback;
@@ -448,9 +449,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 287;
-  String _currentVersionStr = "2.2.87";
-  int _currentVersionCode = 287;
+  static const int APP_VERSION_CODE = 288;
+  String _currentVersionStr = "2.2.88";
+  int _currentVersionCode = 288;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -720,7 +721,6 @@ class IPTVProvider with ChangeNotifier {
     // فحص الحماية مرة واحدة عند بدء الجلسة؛ المؤقت الدوري أزيل لتقليل الثقل وإعادة البناء
     _checkVpnAndProxyStatus();
     checkSecurity();
-    checkRemoteBlocking();
 
     final prefs = await SharedPreferences.getInstance();
     _liteModeUserSet = prefs.getBool('lite_mode_user_set') ?? false;
@@ -765,46 +765,25 @@ class IPTVProvider with ChangeNotifier {
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
     _activationCode = await _readSensitiveValue(prefs, 'active_code') ?? '';
+    _activePlaylistId = prefs.getString(_activePlaylistIdKey);
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
 
-    // Migrate legacy saved origins to the HTTPS Worker gateway. Older APKs
-    // persisted raw HTTP Xtream/Stalker hosts; Android 9+ blocks those URLs.
-    // Xtream sessions also need the managed code/password expected by Worker.
-    var playlistsMigrated = false;
+    // Preserve the validated origin returned by the subscription service.
+    // Do not rewrite it to a Worker gateway unless that gateway is known to
+    // implement the complete Xtream/Stalker contract for this account.
     _savedPlaylists = _savedPlaylists.map((playlist) {
       final host =
           (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
       final isXtream = playlist.type.toLowerCase() == 'xtream';
       final isStalker = playlist.type.toLowerCase() == 'stalker';
       if (!isXtream && !isStalker) return playlist;
-      final gateway =
-          isStalker ? '$_workerBase/v1/stalker' : '$_workerBase/v1/xtream';
-      final isWorkerHost = host.startsWith(_workerBase);
-      if (isWorkerHost &&
-          (!isXtream ||
-              (playlist.username == _activationCode &&
-                  playlist.password == 'managed'))) {
-        return playlist;
-      }
-      playlistsMigrated = true;
-      return UserPlaylist(
-        id: playlist.id,
-        name: playlist.name,
-        type: playlist.type,
-        url: playlist.url,
-        host: gateway,
-        username: isXtream && _activationCode.isNotEmpty
-            ? _activationCode
-            : playlist.username,
-        password: isXtream ? 'managed' : playlist.password,
-      );
+      if (host.isEmpty || host.startsWith(_workerBase)) return playlist;
+      // Keep the origin. The app must not silently replace a working server
+      // with a route that may not exist on the deployed Worker.
+      return playlist;
     }).toList();
-    if (playlistsMigrated) {
-      await _persistSavedPlaylists();
-    }
-
     final savedCodesJson =
         await _readSensitiveValue(prefs, _savedSubscriptionCodesKey);
     if (savedCodesJson != null) {
@@ -841,8 +820,19 @@ class IPTVProvider with ChangeNotifier {
       _isVersionBlocked = true;
     }
 
+    if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
+      await checkRemoteBlocking();
+    }
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
-      _activePlaylistId = _savedPlaylists.first.id;
+      final preferredId = _activePlaylistId ??
+          (_activationCode.isNotEmpty
+              ? 'subscription_${_activationCode.trim()}'
+              : null);
+      final matching = preferredId == null
+          ? <UserPlaylist>[]
+          : _savedPlaylists.where((item) => item.id == preferredId).toList();
+      final restored = matching.isEmpty ? null : matching.first;
+      _activePlaylistId = restored?.id ?? _savedPlaylists.first.id;
       await loadPlaylistStreams(_activePlaylistId!);
     }
 
@@ -921,7 +911,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.87");
+    return isVersionLowerThan(versionStr, "2.2.88");
   }
 
   bool _isValidatingSubscription = false;
@@ -990,7 +980,11 @@ class IPTVProvider with ChangeNotifier {
       username: username,
       password: type == 'stalker' ? '' : password,
     );
-    final current = _savedPlaylists.isNotEmpty ? _savedPlaylists.first : null;
+    final current = _activePlaylistId == null
+        ? null
+        : _savedPlaylists.where((item) => item.id == _activePlaylistId).isEmpty
+            ? null
+            : _savedPlaylists.firstWhere((item) => item.id == _activePlaylistId);
     final changed = current == null ||
         current.id != refreshed.id ||
         current.type != refreshed.type ||
@@ -1012,6 +1006,7 @@ class IPTVProvider with ChangeNotifier {
       _activePlaylistId = refreshed.id;
       final prefs = await SharedPreferences.getInstance();
       await _persistSavedPlaylists();
+      await prefs.setString(_activePlaylistIdKey, refreshed.id);
       await prefs.setInt('active_code_duration_hours', durationHours);
       notifyListeners();
     }
@@ -1315,6 +1310,7 @@ class IPTVProvider with ChangeNotifier {
       }
       _activePlaylistId = list.id;
       await _writeSensitiveValue('active_code', cleanCode);
+      await prefs.setString(_activePlaylistIdKey, list.id);
       await prefs.setInt('active_code_activated_at', now);
       await prefs.setInt('active_code_duration_hours', durationHours);
       await prefs.setString('active_code_sub_name', _subscriptionType);
@@ -1411,18 +1407,63 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _handshakeStalker(
+      String host, Map<String, String> headers) async {
+    final endpoints = <Uri>[
+      Uri.parse('$host/server/load.php').replace(queryParameters: {
+        'type': 'stb',
+        'action': 'handshake',
+        'token': '',
+        'JsHttpRequest': '1-xml',
+      }),
+      Uri.parse('$host/portal.php').replace(queryParameters: {
+        'type': 'stb',
+        'action': 'handshake',
+        'token': '',
+        'JsHttpRequest': '1-xml',
+      }),
+    ];
+    for (final endpoint in endpoints) {
+      try {
+        final response = await http
+            .get(endpoint, headers: headers)
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode != 200) continue;
+        final decoded = json.decode(response.body);
+        final js = decoded is Map ? decoded['js'] : null;
+        final token = js is Map ? js['token']?.toString().trim() : null;
+        if (token != null && token.isNotEmpty) {
+          _stalkerToken = token;
+          headers['Authorization'] = 'Bearer $token';
+          headers['X-User-Agent'] = headers['User-Agent'] ?? '';
+          return;
+        }
+      } catch (e) {
+        debugPrint('Stalker handshake unavailable: ${redactDiagnostic(e)}');
+      }
+    }
+    // Some portals allow catalogue reads with MAC cookie only. Keep the
+    // request path usable instead of failing the live section completely.
+    _stalkerToken = '';
+    headers.remove('Authorization');
+  }
+
   Future<List<Map<String, dynamic>>> _fetchStalkerOrderedList(
       String host, Map<String, String> headers, String type) async {
+    final actions = type == 'vod'
+        ? <String>['get_ordered_list', 'get_vod']
+        : <String>['get_ordered_list', 'get_series'];
+    for (final action in actions) {
     try {
       final response = await http
           .get(
             Uri.parse(
-              '$host/server/load.php?type=$type&action=get_ordered_list&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml',
+              '$host/server/load.php?type=$type&action=$action&genre=0&force_ch_link_check=0&p=1&JsHttpRequest=1-xml',
             ),
             headers: headers,
           )
           .timeout(const Duration(seconds: 25));
-      if (response.statusCode != 200) return [];
+      if (response.statusCode != 200) continue;
       final decoded = json.decode(response.body);
       final raw = decoded is Map ? decoded['js'] : null;
       final items = raw is List
@@ -1430,14 +1471,16 @@ class IPTVProvider with ChangeNotifier {
           : raw is Map && raw['data'] is List
               ? raw['data']
               : const [];
-      return items
+      final parsed = items
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+      if (parsed.isNotEmpty || action == actions.last) return parsed;
     } catch (e) {
-      debugPrint('Stalker $type list unavailable: ${redactDiagnostic(e)}');
-      return [];
+      debugPrint('Stalker $type $action unavailable: ${redactDiagnostic(e)}');
     }
+    }
+    return [];
   }
 
   Future<List<Map<String, String>>> _fetchStalkerCategories(
@@ -1535,6 +1578,7 @@ class IPTVProvider with ChangeNotifier {
           "User-Agent":
               "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3"
         };
+        await _handshakeStalker(host, headers);
         final liveResponses = await Future.wait([
           http
               .get(

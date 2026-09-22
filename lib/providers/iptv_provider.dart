@@ -73,6 +73,20 @@ String buildXtreamLiveUrl({
   return '$cleanHost/live/$encodedUser/$encodedPassword/${streamId.trim()}.$cleanExtension';
 }
 
+Uri buildXtreamApiUri({
+  required String host,
+  required String username,
+  required String password,
+  required String action,
+}) {
+  final cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
+  return Uri.parse('$cleanHost/player_api.php').replace(queryParameters: {
+    'username': username.trim(),
+    'password': password.trim(),
+    'action': action,
+  });
+}
+
 class IPTVProvider with ChangeNotifier {
   static const String _workerBase =
       'https://iptv-subscription-api.tvkora56.workers.dev';
@@ -109,9 +123,15 @@ class IPTVProvider with ChangeNotifier {
   }
 
   Future<void> _persistSavedPlaylists() async {
-    await _securePlaylistStore.write(_savedPlaylists);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('saved_playlists');
+    // Secure storage remains the primary store. Keep a recovery copy as well:
+    // some Android vendors clear or restore secure-storage keys differently
+    // after an app restart/restore, which used to make subscriptions vanish.
+    await _securePlaylistStore.write(_savedPlaylists);
+    await prefs.setString(
+      'saved_playlists',
+      jsonEncode(_savedPlaylists.map((playlist) => playlist.toJson()).toList()),
+    );
   }
 
   Future<String?> _readSensitiveValue(
@@ -465,9 +485,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 291;
-  String _currentVersionStr = "2.2.91";
-  int _currentVersionCode = 291;
+  static const int APP_VERSION_CODE = 292;
+  String _currentVersionStr = "2.2.92";
+  int _currentVersionCode = 292;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -927,7 +947,7 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
     }
-    return isVersionLowerThan(versionStr, "2.2.91");
+    return isVersionLowerThan(versionStr, "2.2.92");
   }
 
   bool _isValidatingSubscription = false;
@@ -1789,12 +1809,18 @@ class IPTVProvider with ChangeNotifier {
       } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
         final liveResponses = await Future.wait([
           http
-              .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_live_categories$refreshQuery"))
+              .get(buildXtreamApiUri(
+                  host: host,
+                  username: user,
+                  password: pass,
+                  action: 'get_live_categories'))
               .timeout(const Duration(seconds: 60)),
           http
-              .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=get_live_streams$refreshQuery"))
+              .get(buildXtreamApiUri(
+                  host: host,
+                  username: user,
+                  password: pass,
+                  action: 'get_live_streams'))
               .timeout(const Duration(seconds: 90)),
         ]);
         final liveCatsRes = liveResponses[0];
@@ -1879,8 +1905,11 @@ class IPTVProvider with ChangeNotifier {
         Future<List<dynamic>> getXtreamList(String action,
             {Duration timeout = const Duration(seconds: 90)}) async {
           final response = await http
-              .get(Uri.parse(
-                  "$host/player_api.php?username=$user&password=$pass&action=$action$refreshQuery"))
+              .get(buildXtreamApiUri(
+                  host: host,
+                  username: user,
+                  password: pass,
+                  action: action))
               .timeout(timeout);
           if (response.statusCode != 200) return <dynamic>[];
           final decoded = json.decode(response.body);
@@ -1926,7 +1955,7 @@ class IPTVProvider with ChangeNotifier {
             categoryId: catId,
             categoryName: cat['category_name'] ?? 'أفلام',
             url:
-                '$host/movie/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+                '$host/movie/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$streamId.${extension.isEmpty ? 'mp4' : extension}',
             type: 'movie',
           ));
         }
@@ -1970,7 +1999,7 @@ class IPTVProvider with ChangeNotifier {
             categoryId: catId,
             categoryName: cat['category_name'] ?? 'مسلسلات',
             url:
-                '$host/series/$user/$pass/$streamId.${extension.isEmpty ? 'mp4' : extension}',
+                '$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$streamId.${extension.isEmpty ? 'mp4' : extension}',
             type: 'series',
           ));
         }

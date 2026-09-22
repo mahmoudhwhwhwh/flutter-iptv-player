@@ -1,8 +1,8 @@
 const cors = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Token",
 };
 
 const respond = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
@@ -13,12 +13,80 @@ async function sha256(value) {
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function adminOk(request, env) {
+  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ||
+    request.headers.get("X-Admin-Token") || "";
+  if (!token) return false;
+  if (env.ADMIN_TOKEN) return token === env.ADMIN_TOKEN;
+  return (await sha256(token)) === "708fc596de7dd824d23a7e36712ebfa3dd3f44079c013d5ffffbf48532b34f39";
+}
+
+const adminHtml = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>إدارة الاشتراكات</title><style>body{font-family:Arial;background:#08101f;color:#eef;padding:20px;max-width:1050px;margin:auto}.card{background:#111c32;border:1px solid #304364;border-radius:14px;padding:16px;margin:12px 0}input,select,button{padding:10px;margin:4px;border-radius:8px;border:1px solid #405579;background:#0b1426;color:#fff}button{background:#2563eb;cursor:pointer}.danger{background:#991b1b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.row{border-top:1px solid #304364;padding:12px 0;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.muted{color:#aab8d6}</style><h1>إدارة الاشتراكات</h1><p class="muted">أي اشتراك تضيفه هنا يعمل داخل التطبيق بدون إصدار جديد.</p><div class="card"><input id="t" type="password" placeholder="رمز الإدارة"><button onclick="login()">دخول</button><b id="m"></b></div><div id="app" hidden><div class="card"><h2>إضافة / تعديل</h2><div class="grid"><input id="c" placeholder="رمز التفعيل"><select id="y"><option value="xtream">Xtream</option><option value="stalker">MAC / Stalker</option></select><select id="z"><option value="all">كل المحتوى</option><option value="iptv">IPTV</option></select><input id="h" placeholder="رابط السيرفر"><input id="u" placeholder="المستخدم أو MAC"><input id="p" placeholder="كلمة المرور"><input id="e" type="datetime-local" placeholder="الانتهاء"><input id="d" type="number" min="1" value="1" placeholder="الأجهزة"></div><button onclick="save()">حفظ</button><button onclick="clr()">تفريغ</button></div><div class="card"><h2>الاشتراكات</h2><div id="l"></div></div></div><script>const $=x=>document.getElementById(x),H=()=>({Authorization:'Bearer '+$('t').value,'Content-Type':'application/json'}),A=async(u,o={})=>{o.headers=H();let r=await fetch(u,o),j=await r.json();if(!r.ok)throw Error(j.message||'فشل الطلب');return j};async function login(){try{$('app').hidden=false;draw(await A('/admin/api/subscriptions'));$('m').textContent=' تم الدخول'}catch(e){$('m').textContent=' '+e.message}}async function draw(j){$('l').innerHTML=(j.items||[]).map(x=>'<div class="row"><span><b>'+x.code_masked+'</b> · '+x.server_type+' · '+(x.expires_at||'بدون انتهاء')+'<br><small>'+x.host+'</small></span><span><button onclick="ed('+JSON.stringify(x).replace(/"/g,'&quot;')+')">تعديل</button><button class="danger" onclick="del(\''+x.id+'\')">حذف</button></span></div>').join('')||'لا توجد اشتراكات'}function ed(x){$('c').value=x.code||'';$('y').value=x.server_type;$('z').value=x.content_mode;$('h').value=x.host||'';$('u').value=x.username||'';$('p').value='';$('e').value=x.expires_at?x.expires_at.slice(0,16):'';$('d').value=x.max_devices||1}async function save(){try{await A('/admin/api/subscriptions',{method:'POST',body:JSON.stringify({code:$('c').value,server_type:$('y').value,content_mode:$('z').value,host:$('h').value,username:$('u').value,password:$('p').value,expires_at:$('e').value?new Date($('e').value).toISOString():null,max_devices:+$('d').value||1})});draw(await A('/admin/api/subscriptions'));$('m').textContent=' تم الحفظ'}catch(e){$('m').textContent=' '+e.message}}async function del(id){if(confirm('حذف الاشتراك؟')){await A('/admin/api/subscriptions/'+id,{method:'DELETE'});draw(await A('/admin/api/subscriptions'))}}function clr(){['c','h','u','p','e'].forEach(x=>$(x).value='')}</script>`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
     if (!env.DB) return respond({ ok: false, message: "Database binding missing" }, 503);
     try {
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS subscriptions (
+        code_hash TEXT PRIMARY KEY,
+        server_type TEXT NOT NULL DEFAULT 'xtream',
+        content_mode TEXT NOT NULL DEFAULT 'all',
+        host TEXT NOT NULL,
+        username TEXT NOT NULL,
+        password TEXT NOT NULL DEFAULT '',
+        expires_at TEXT,
+        max_devices INTEGER NOT NULL DEFAULT 1,
+        is_blocked INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );`).run();
+      try { await env.DB.prepare("ALTER TABLE subscriptions ADD COLUMN code_tail TEXT").run(); } catch (_) {}
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS service_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`).run();
+
+      if (url.pathname === "/admin") {
+        return new Response(adminHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+      }
+      if (url.pathname.startsWith("/admin/api/")) {
+        if (!await adminOk(request, env)) return respond({ ok: false, message: "رمز لوحة الإدارة غير صحيح" }, 401);
+        if (url.pathname === "/admin/api/subscriptions" && request.method === "GET") {
+          const rows = await env.DB.prepare("SELECT code_hash, code_tail, server_type, content_mode, host, username, expires_at, max_devices, is_blocked, updated_at FROM subscriptions ORDER BY updated_at DESC").all();
+          return respond({ ok: true, items: (rows.results || []).map(row => ({
+            id: row.code_hash,
+            code_masked: `••••${row.code_tail || String(row.code_hash).slice(-4)}`,
+            server_type: row.server_type, content_mode: row.content_mode, host: row.host,
+            username: row.username, expires_at: row.expires_at, max_devices: row.max_devices,
+            is_blocked: Boolean(row.is_blocked), updated_at: row.updated_at
+          })) });
+        }
+        if (url.pathname === "/admin/api/subscriptions" && request.method === "POST") {
+          const body = await request.json();
+          const code = String(body.code || "").trim();
+          const type = String(body.server_type || "xtream").toLowerCase() === "stalker" ? "stalker" : "xtream";
+          const host = String(body.host || "").trim().replace(/\/+$/, "");
+          const username = String(body.username || "").trim();
+          if (!code || !host || !username) return respond({ ok: false, message: "الرمز والرابط وبيانات الدخول مطلوبة" }, 400);
+          const codeHash = await sha256(code);
+          const old = await env.DB.prepare("SELECT password FROM subscriptions WHERE code_hash = ?").bind(codeHash).first();
+          const password = String(body.password || old?.password || "");
+          await env.DB.prepare(`INSERT INTO subscriptions
+            (code_hash, code_tail, server_type, content_mode, host, username, password, expires_at, max_devices, is_blocked, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+            ON CONFLICT(code_hash) DO UPDATE SET server_type=excluded.server_type, content_mode=excluded.content_mode,
+            host=excluded.host, username=excluded.username, password=excluded.password, expires_at=excluded.expires_at,
+            code_tail=excluded.code_tail, max_devices=excluded.max_devices, is_blocked=0, updated_at=CURRENT_TIMESTAMP`)
+            .bind(codeHash, code.slice(-4), type, String(body.content_mode || "all"), host, username, password,
+              body.expires_at ? String(body.expires_at) : null, Math.max(1, Number(body.max_devices || 1))).run();
+          return respond({ ok: true });
+        }
+        const match = url.pathname.match(/^\/admin\/api\/subscriptions\/([a-f0-9]{64})$/);
+        if (match && request.method === "DELETE") {
+          await env.DB.prepare("DELETE FROM subscriptions WHERE code_hash = ?").bind(match[1]).run();
+          return respond({ ok: true });
+        }
+        return respond({ ok: false, message: "مسار الإدارة غير معروف" }, 404);
+      }
       let versionCode = parseInt(url.searchParams.get("vc")) || 0;
       const sliderImages = [
         "https://iili.io/CP8fO4n.jpg",

@@ -485,7 +485,7 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 292;
+  static const int APP_VERSION_CODE = 293;
   String _currentVersionStr = "2.2.92";
   int _currentVersionCode = 292;
 

@@ -35,13 +35,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _bioLink = false;
-  bool _quantumEntanglement = true;
-  bool _selfHealing = true;
-  bool _quantumRouting = true;
-
-  bool _hwAcceleration = true;
-  bool _autoPlay = true;
   String _subSize = "متوسط";
   String _subFont = 'Cairo';
   String _subColor = "أبيض";
@@ -62,13 +55,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _bioLink = prefs.getBool('bio_link') ?? false;
-      _quantumEntanglement = prefs.getBool('quantum_entanglement') ?? true;
-      _selfHealing = prefs.getBool('self_healing') ?? true;
-      _quantumRouting = prefs.getBool('quantum_routing') ?? true;
-
-      _hwAcceleration = prefs.getBool('hw_acceleration') ?? true;
-      _autoPlay = prefs.getBool('auto_play') ?? true;
       _subSize = prefs.getString('sub_size') ?? "متوسط";
       _subFont = prefs.getString('sub_font') ?? 'Cairo';
       _subColor = prefs.getString('sub_color') ?? "أبيض";
@@ -192,29 +178,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
               _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "تسريع الأجهزة (HW Acceleration)",
-                description:
-                    "استخدام أجهزة الجهاز لتشغيل الفيديو بسلاسة أكبر وتقليل استهلاك البطارية.",
-                value: _hwAcceleration,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _hwAcceleration = val);
-                  _saveSetting('hw_acceleration', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "التشغيل التلقائي",
-                description: "تشغيل القناة أو الفيلم تلقائياً عند فتحه.",
-                value: _autoPlay,
-                activeColor: _SettingsPalette.gold,
-                onChanged: (val) {
-                  setState(() => _autoPlay = val);
-                  _saveSetting('auto_play', val);
-                },
-              ),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildSettingItem(
@@ -512,89 +475,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(color: _SettingsPalette.divider),
               const SizedBox(height: 24),
 
-              _buildSectionHeader("live stream premium", ""),
-              const SizedBox(height: 12),
-
-              // Warning box
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _SettingsPalette.cyan.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                      color: _SettingsPalette.cyan.withOpacity(0.58)),
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      "تحذير: تفعيل هذه الخيارات يؤدي الى زيادة استهلاك البطارية",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: _SettingsPalette.cyan,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "للحصول على أفضل اداء قم بتفعيل كافة المميزات يمكنك الغاء اي شيء حسب الذي تفضله واختيار الطريقة الانسب لك.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white70, fontSize: 13, height: 1.5),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildSettingItem(
-                title: "1. تقنية الربط الحيوي المتقدم (Bio-Link)",
-                description:
-                    "تعمل على تحسين استجابة الخادم بشكل فوري لضمان عدم تأخير البث المباشر.",
-                value: _bioLink,
-                activeColor: _SettingsPalette.purple,
-                onChanged: (val) {
-                  setState(() => _bioLink = val);
-                  _saveSetting('bio_link', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "2. التشابك الكمي للبث (Quantum Entanglement)",
-                description:
-                    "ميزة ثورية تزيد من سرعة تدفق البيانات لضمان أعلى جودة ممكنة دون انقطاع.",
-                value: _quantumEntanglement,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _quantumEntanglement = val);
-                  _saveSetting('quantum_entanglement', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "3. نواة المعالجة الذاتية (Self-Healing)",
-                description:
-                    "نظام ذكي يقوم باكتشاف وإصلاح أعطال البث تلقائياً دون أي تدخل يدوي.",
-                value: _selfHealing,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _selfHealing = val);
-                  _saveSetting('self_healing', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: "4. توجيه المسارات الكمي (Quantum Routing)",
-                description:
-                    "يعيد توجيه اتصالك عبر أسرع المسارات العالمية المتاحة لفتح القنوات في أقل من ثانية.",
-                value: _quantumRouting,
-                activeColor: _SettingsPalette.purpleBright,
-                onChanged: (val) {
-                  setState(() => _quantumRouting = val);
-                  _saveSetting('quantum_routing', val);
-                },
-              ),
-              const SizedBox(height: 32),
               const Center(
                 child: Text(
                   "LIVE STREAM PREMIUM",
@@ -695,24 +575,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _performanceProfile = profile);
     if (profile == 'low') {
       await provider.setLiteMode(true);
-      setState(() => _hwAcceleration = false);
-      await prefs.setBool('hw_acceleration', false);
     } else if (profile == 'medium') {
       await provider.setLiteMode(false);
-      setState(() => _hwAcceleration = true);
-      await prefs.setBool('hw_acceleration', true);
     } else if (profile == 'high') {
       await provider.setLiteMode(false);
-      setState(() => _hwAcceleration = true);
-      await prefs.setBool('hw_acceleration', true);
     } else if (profile == 'tv_ultra') {
       await provider.setLiteMode(false);
       setState(() {
-        _hwAcceleration = true;
         _tvBoxFocusEnabled = true;
         _remoteControlEnabled = true;
       });
-      await prefs.setBool('hw_acceleration', true);
       await prefs.setBool('tv_box_focus_enabled', true);
       await prefs.setBool('remote_control_enabled', true);
     }

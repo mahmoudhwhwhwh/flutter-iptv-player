@@ -10,6 +10,7 @@ import '../models/playlist_item.dart';
 import '../widgets/pin_dialog.dart';
 import 'multi_screen_layout.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class MultiScreenPlayer extends StatefulWidget {
   final MultiScreenType layoutType;
@@ -30,6 +31,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _screenCount = _getScreenCount(widget.layoutType);
     _streams = List.filled(_screenCount, null);
     if (widget.initialStream != null && _screenCount > 0) {
@@ -287,6 +289,12 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    super.dispose();
   }
 }
 

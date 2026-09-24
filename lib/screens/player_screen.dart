@@ -1079,6 +1079,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         _betterController?.pause();
       }
     } else if (state == AppLifecycleState.resumed) {
+      // Re-assert the wake lock after returning from notifications, calls, or
+      // system overlays; some Android vendors clear it on resume.
+      WakelockPlus.enable();
       _isPortrait = false;
       _rotationMode = RotationMode.landscapeOnly;
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);

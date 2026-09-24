@@ -534,8 +534,8 @@ class IPTVProvider with ChangeNotifier {
   String get announcementText => _announcementText;
   // VPN/proxy apps are valid transport options for IPTV users. Keep the
   // telemetry fields, but never block playback because of the network path.
-  static const bool _disableVpnCheck = true;
-  static const bool _disableSnifferCheck = true;
+  static const bool _disableVpnCheck = false;
+  static const bool _disableSnifferCheck = false;
 
   // New addition: Recently Played/Continue Watching
   List<PlaylistItem> _recentlyPlayed = [];

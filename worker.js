@@ -5,7 +5,17 @@ const cors = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Token",
 };
 
-const respond = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
+const securityHeaders = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+const respond = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...cors, ...securityHeaders, ...extraHeaders },
+});
 
 async function sha256(value) {
   const data = new TextEncoder().encode(value);
@@ -44,9 +54,25 @@ export default {
       );`).run();
       try { await env.DB.prepare("ALTER TABLE subscriptions ADD COLUMN code_tail TEXT").run(); } catch (_) {}
       await env.DB.prepare(`CREATE TABLE IF NOT EXISTS service_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`).run();
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS login_attempts (
+        identity_hash TEXT PRIMARY KEY,
+        window_started_at INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0
+      );`).run();
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS login_ip_attempts (
+        ip_hash TEXT PRIMARY KEY,
+        window_started_at INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0
+      );`).run();
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS devices (
+        code_hash TEXT NOT NULL,
+        device_id TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(code_hash, device_id)
+      );`).run();
 
       if (url.pathname === "/admin") {
-        return new Response(adminHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+        return new Response(adminHtml, { headers: { "Content-Type": "text/html; charset=utf-8", ...securityHeaders } });
       }
       if (url.pathname.startsWith("/admin/api/")) {
         if (!await adminOk(request, env)) return respond({ ok: false, message: "رمز لوحة الإدارة غير صحيح" }, 401);
@@ -61,11 +87,16 @@ export default {
           })) });
         }
         if (url.pathname === "/admin/api/subscriptions" && request.method === "POST") {
+          const length = Number(request.headers.get("Content-Length") || 0);
+          if (length > 16 * 1024) return respond({ ok: false, message: "الطلب كبير جداً" }, 413);
           const body = await request.json();
           const code = String(body.code || "").trim();
           const type = String(body.server_type || "xtream").toLowerCase() === "stalker" ? "stalker" : "xtream";
           const host = String(body.host || "").trim().replace(/\/+$/, "");
           const username = String(body.username || "").trim();
+          if (code.length > 128 || host.length > 512 || username.length > 256) {
+            return respond({ ok: false, message: "بيانات الاشتراك غير صالحة" }, 400);
+          }
           if (!code || !host || !username) return respond({ ok: false, message: "الرمز والرابط وبيانات الدخول مطلوبة" }, 400);
           const codeHash = await sha256(code);
           const old = await env.DB.prepare("SELECT password FROM subscriptions WHERE code_hash = ?").bind(codeHash).first();
@@ -100,226 +131,11 @@ export default {
         return respond({
           app_name: "LIVE STREAM PRO",
           app_version: "2.2.95",
-          disable_vpn_check: true,
-          disable_sniffer_check: true,
+          disable_vpn_check: false,
+          disable_sniffer_check: false,
           slider: sliderImages,
-          servers: [
-            {
-              "name": "مجاني دجلة 9",
-              "host": "http://megatv.shop:2052",
-              "username": "52705199363828",
-              "password": "24129350577560",
-              "users": {
-                "mahmoud2027": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 2",
-              "host": "http://2@cliccck52258.club:2082",
-              "username": "khaledsliman",
-              "password": "755246419856",
-              "users": {
-                "02389": {
-                  "expiry_date": "بلا بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 3",
-              "host": "http://1@cliccck52258.club:2082",
-              "username": "251878975765",
-              "password": "924893245689",
-              "users": {
-                "s3_code1": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 4",
-              "host": "http://marveliptv.life",
-              "username": "01112727740kh",
-              "password": "khiary7740",
-              "users": {
-                "96827": {
-                  "expiry_date": "بلا حدود ",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 5",
-              "host": "http://4kpro2.com",
-              "type": "stalker",
-              "users": {
-                "999499": {
-                  "username": "00:1A:79:70:9D:14",
-                  "expiry_date": "2026-08-03T00:00:00Z",
-                  "devices": ["UKQ1.240624.001", "RKQ1.211119.001"],
-                  "blocked": true
-                }
-              }
-            },
-            {
-              "name": "Server 6",
-              "host": "http://4kpro2.com",
-              "type": "stalker",
-              "users": {
-                "s6_code1": {
-                  "expiry_date": "2027-01-01T00:00:00Z",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "Server 7",
-              "host": "http://line.tvdsz.cc",
-              "type": "stalker",
-              "users": {
-                "joker01": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 1",
-              "host": "http://31.220.41.178",
-              "username": "marv90746918",
-              "password": "khaled974635",
-              "users": {
-                "joker02": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 2",
-              "host": "http://app.upsdo.me:8080",
-              "username": "PCJ7KCNU0AX6",
-              "password": "36508313",
-              "users": {
-                "joker03": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 3",
-              "host": "http://185.191.126.127:8080",
-              "username": "b0:99:d7:15:88:50",
-              "password": "3090914536649669",
-              "users": {
-                "joker04": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 4",
-              "host": "http://dhoomtv.xyz",
-              "username": "8zpo3GsVY7",
-              "password": "beneficial2concern",
-              "users": {
-                "joker05": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 5",
-              "host": "http://filex.me:8080",
-              "username": "@boss1751",
-              "password": "rS27a9QKeT",
-              "users": {
-                "joker06": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 6",
-              "host": "http://cli2345.live:2082",
-              "username": "162228198272",
-              "password": "847259919147",
-              "users": {
-                "joker07": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 7",
-              "host": "http://alliptvapp.com:8080",
-              "username": "575612159628",
-              "password": "210763093616",
-              "users": {
-                "joker08": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 8",
-              "host": "http://atlaspro.live",
-              "username": "3525480303377768",
-              "password": "3525480303377768",
-              "users": {
-                "joker09": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة 10",
-              "host": "http://luxipgold.xyz:8080",
-              "username": "15034094901029",
-              "password": "18800196589372",
-              "users": {
-                "joker10": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "دجلة مجاني 11",
-              "host": "http://mypythonpremium.com:8789",
-              "username": "wilderd",
-              "password": "tFeWsYW",
-              "users": {
-                "joker11": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            },
-            {
-              "name": "مجاني دجلة  12",
-              "host": "http://falcon-sa.xyz",
-              "username": "wSGGTNJH",
-              "password": "32CC849A",
-              "users": {
-                "joker12": {
-                  "expiry_date": "بلا حدود",
-                  "devices": ["UKQ1.240624.001"]
-                }
-              }
-            }
-          ],
+          // Credentials are delivered only after a successful device-bound login.
+          servers: [],
           blocking: {
             min_version_code: 234,
             blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
@@ -371,21 +187,33 @@ export default {
           deviceId = url.searchParams.get("device_id")?.trim() || url.searchParams.get("mac")?.trim() || "";
         }
         if (!code) return respond({ ok: false, message: "رمز الدخول مطلوب" }, 401);
+        if (code.length > 128 || deviceId.length > 256) {
+          return respond({ ok: false, message: "بيانات الدخول غير صالحة" }, 400);
+        }
         const codeHash = await sha256(code);
         const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+        const ipHash = await sha256(clientIp);
         const identityHash = await sha256(`${codeHash}:${deviceId}:${clientIp}`);
         const now = Date.now();
+        const windowMs = 15 * 60 * 1000;
+        const ipAttempt = await env.DB.prepare(
+          "SELECT window_started_at, attempts FROM login_ip_attempts WHERE ip_hash = ? LIMIT 1"
+        ).bind(ipHash).first();
+        const ipInWindow = ipAttempt && now - Number(ipAttempt.window_started_at) < windowMs;
+        const ipAttempts = ipInWindow ? Number(ipAttempt.attempts || 0) : 0;
+        if (ipAttempts >= 60) {
+          return respond({ ok: false, message: "محاولات كثيرة، حاول لاحقاً" }, 429, { "Retry-After": "900" });
+        }
+        await env.DB.prepare(
+          "INSERT INTO login_ip_attempts(ip_hash, window_started_at, attempts) VALUES(?,?,?) ON CONFLICT(ip_hash) DO UPDATE SET window_started_at=excluded.window_started_at, attempts=excluded.attempts"
+        ).bind(ipHash, ipInWindow ? ipAttempt.window_started_at : now, ipAttempts + 1).run();
         const attempt = await env.DB.prepare(
           "SELECT window_started_at, attempts FROM login_attempts WHERE identity_hash = ? LIMIT 1"
         ).bind(identityHash).first();
-        const windowMs = 15 * 60 * 1000;
         const inWindow = attempt && now - Number(attempt.window_started_at) < windowMs;
         const attempts = inWindow ? Number(attempt.attempts || 0) : 0;
         if (attempts >= 20) {
-          return new Response(JSON.stringify({ ok: false, message: "محاولات كثيرة، حاول لاحقاً" }), {
-            status: 429,
-            headers: { ...corsHeaders, "Retry-After": "900" }
-          });
+          return respond({ ok: false, message: "محاولات كثيرة، حاول لاحقاً" }, 429, { "Retry-After": "900" });
         }
         await env.DB.prepare(
           "INSERT INTO login_attempts(identity_hash, window_started_at, attempts) VALUES(?,?,?) ON CONFLICT(identity_hash) DO UPDATE SET window_started_at=excluded.window_started_at, attempts=excluded.attempts"

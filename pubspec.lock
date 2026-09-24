@@ -73,14 +73,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
-  chewie:
-    dependency: "direct main"
-    description:
-      name: chewie
-      sha256: "645fbca3f22309381edb5af59a4c8aa544a3d3872d7b7b7c986c2b18b3bdd265"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.10.0"
   clock:
     dependency: transitive
     description:

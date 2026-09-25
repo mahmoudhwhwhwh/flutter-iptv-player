@@ -27,14 +27,44 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun checkSnifferOrProxy(): Boolean {
-        // فحص وجود برامج اقتناص الروابط الشهيرة أو بروكسي محلي
+        // فحص وجود برامج اقتناص الروابط الشهيرة والهندسة العكسية
         val knownPackages = arrayOf(
-            "app.greyshirts.sslcapture",
+            // Reqable & Reqable MAGIC proxy
+            "com.reqable.android",
+            "com.reqable.android.international",
+            "com.reqable.magic",
+            "com.reqable.android.magic",
+            // Http Canary (Blue, Yellow, Black, Pro, Premium)
             "com.guoshi.httpcanary",
             "com.guoshi.httpcanary.premium",
+            "com.guoshi.httpcanary.pro",
+            "com.guoshi.httpcanary.blue",
+            "com.guoshi.httpcanary.yellow",
+            "com.guoshi.httpcanary.black",
+            "com.canary.blue",
+            "com.canary.yellow",
+            "com.canary.black",
+            // PCAPdroid & PCAPdroid MITM addon
+            "com.emanuelef.remote_capture",
+            "com.emanuelef.remote_capture.mitm",
+            "com.emanuelef.remote_capture.debug",
+            // Other Sniffers & Proxies
+            "app.greyshirts.sslcapture",
             "com.charles.proxy",
+            "com.charlesproxy.android",
             "com.packetcapture",
-            "com.minhui.networkcapture"
+            "com.sandro.packetcapture",
+            "org.sandrop.packetcapture",
+            "com.minhui.networkcapture",
+            "com.evozi.networksniffer",
+            "tech.httptoolkit.android",
+            "tech.httptoolkit.android.v1",
+            // Reverse Engineering & Modding Tools
+            "bin.mt.plus",
+            "com.gmail.heagoo.apkeditor",
+            "com.gmail.heagoo.apkeditor.pro",
+            "com.dimonvideo.luckypatcher",
+            "com.chelpus.lackypatch"
         )
         for (pkg in knownPackages) {
             try {
@@ -44,14 +74,36 @@ class MainActivity : FlutterActivity() {
                 // Not found
             }
         }
+        // فحص إعدادات البروكسي للنظام (System Proxy Check)
+        val httpProxy = System.getProperty("http.proxyHost")
+        if (!httpProxy.isNullOrBlank()) return true
+        val httpsProxy = System.getProperty("https.proxyHost")
+        if (!httpsProxy.isNullOrBlank()) return true
+        try {
+            val globalProxy = android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.HTTP_PROXY)
+            if (!globalProxy.isNullOrBlank()) return true
+        } catch (_: Exception) {}
         return false
     }
 
     private fun checkVpnActive(): Boolean {
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true
+        } catch (_: Exception) {}
+        try {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val iface = interfaces.nextElement()
+                val name = iface.name.lowercase()
+                if (iface.isUp && (name.contains("tun") || name.contains("ppp") || name.contains("pcap") || name.contains("canary") || name.contains("reqable") || name.contains("tap") || name.contains("wg"))) {
+                    return true
+                }
+            }
+        } catch (_: Exception) {}
+        return false
     }
 
     private fun checkSignature(): Boolean {

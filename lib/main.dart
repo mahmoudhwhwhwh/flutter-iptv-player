@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
@@ -248,9 +249,9 @@ class StartupGate extends StatefulWidget {
 }
 
 class _StartupGateState extends State<StartupGate> {
+  VideoPlayerController? _controller;
   bool _showIntro = false;
   bool _isFinishing = false;
-  Timer? _introTimer;
 
   @override
   void initState() {
@@ -259,75 +260,135 @@ class _StartupGateState extends State<StartupGate> {
   }
 
   Future<void> _prepareIntro() async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadySeen = prefs.getBool('loading_screen_seen_v2_2_97') ?? false;
-    if (alreadySeen || !mounted) return;
-    await prefs.setBool('loading_screen_seen_v2_2_97', true);
-    setState(() => _showIntro = true);
-    _introTimer = Timer(const Duration(milliseconds: 2600), _finishIntro);
+    final controller = VideoPlayerController.asset('assets/intro_premium.mp4');
+    try {
+      await controller.initialize();
+      controller.addListener(_onVideoTick);
+      await controller.play();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _controller = controller;
+        _showIntro = true;
+      });
+    } catch (_) {
+      await controller.dispose();
+    }
+  }
+
+  void _onVideoTick() {
+    final value = _controller?.value;
+    if (value == null || !value.isInitialized) return;
+    if (!value.isPlaying && value.position >= value.duration - const Duration(milliseconds: 200)) {
+      _finishIntro();
+    }
   }
 
   Future<void> _finishIntro() async {
     if (_isFinishing) return;
     _isFinishing = true;
-    _introTimer?.cancel();
     final isLiteMode =
         Provider.of<IPTVProvider>(context, listen: false).liteMode;
     final transitionDuration = startupIntroTransitionDuration(isLiteMode);
     if (mounted) setState(() {});
     await Future<void>.delayed(transitionDuration);
+
+    final controller = _controller;
+    _controller = null;
     if (mounted) setState(() => _showIntro = false);
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      await controller.dispose();
+    }
   }
 
   @override
   void dispose() {
-    _introTimer?.cancel();
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  Widget _buildIntroView() {
+  Widget _buildIntroView(VideoPlayerController controller) {
     return Scaffold(
       backgroundColor: const Color(0xFF070610),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+          FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: controller.value.size.width > 0 ? controller.value.size.width : 1920,
+              height: controller.value.size.height > 0 ? controller.value.size.height : 1080,
+              child: VideoPlayer(controller),
+            ),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.24)],
+                colors: [
+                  Colors.black.withOpacity(0.15),
+                  const Color(0xFF070610).withOpacity(0.88),
+                ],
               ),
             ),
           ),
-          Center(
-            child: SizedBox(
-              width: 78,
-              height: 78,
-              child: CircularProgressIndicator(
-                strokeWidth: 7,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFF00D9FF)),
-                backgroundColor: Colors.white.withOpacity(0.16),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 44, 24, 26),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Image.asset(
+                      'assets/live_stream_pro_logo.png',
+                      width: 210,
+                      height: 210,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'أهلاً بك في
+LIVE STREAM PRO',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      height: 1.25,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'تجربة مشاهدة فاخرة، سريعة، ومصممة لعشاق الرياضة',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+                  const SizedBox(height: 28),
+                  OutlinedButton(
+                    onPressed: _isFinishing ? null : _finishIntro,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('تخطي المقدمة'),
+                  ),
+                ],
               ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 34,
-            child: OutlinedButton(
-              onPressed: _isFinishing ? null : _finishIntro,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white54),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text('تخطي التحميل'),
             ),
           ),
         ],
@@ -337,7 +398,8 @@ class _StartupGateState extends State<StartupGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_showIntro) return widget.child;
+    if (!_showIntro || _controller == null) return widget.child;
+    final controller = _controller!;
     final isLiteMode =
         Provider.of<IPTVProvider>(context, listen: false).liteMode;
     return Stack(
@@ -348,7 +410,7 @@ class _StartupGateState extends State<StartupGate> {
           opacity: _isFinishing ? 0 : 1,
           duration: startupIntroTransitionDuration(isLiteMode),
           curve: Curves.easeOutCubic,
-          child: _buildIntroView(),
+          child: _buildIntroView(controller),
         ),
       ],
     );

@@ -2,7 +2,7 @@
     package="com.mahmoud.iptv">
     
     <!-- Declare intent configurations for launching browser/Telegram externally on Android 11+ -->
-    <queries>
+        <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
@@ -15,21 +15,39 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="tg" />
         </intent>
+        <!-- Reqable & MAGIC Proxy -->
+        <package android:name="com.reqable.android" />
+        <package android:name="com.reqable.android.international" />
+        <package android:name="com.reqable.magic" />
+        <package android:name="com.reqable.android.magic" />
+        <!-- Http Canary Variations -->
         <package android:name="com.guoshi.httpcanary" />
         <package android:name="com.guoshi.httpcanary.premium" />
         <package android:name="com.guoshi.httpcanary.pro" />
-        <package android:name="com.reqable.android" />
-        <package android:name="com.reqable.android.international" />
+        <package android:name="com.guoshi.httpcanary.blue" />
+        <package android:name="com.guoshi.httpcanary.yellow" />
+        <package android:name="com.guoshi.httpcanary.black" />
+        <package android:name="com.canary.blue" />
+        <package android:name="com.canary.yellow" />
+        <package android:name="com.canary.black" />
+        <!-- PCAPdroid & MITM addon -->
+        <package android:name="com.emanuelef.remote_capture" />
+        <package android:name="com.emanuelef.remote_capture.mitm" />
+        <package android:name="com.emanuelef.remote_capture.debug" />
+        <!-- Other sniffers & interceptors -->
+        <package android:name="app.greyshirts.sslcapture" />
+        <package android:name="com.charlesproxy.android" />
+        <package android:name="com.charles.proxy" />
         <package android:name="com.sandro.packetcapture" />
         <package android:name="org.sandrop.packetcapture" />
         <package android:name="com.minhui.networkcapture" />
         <package android:name="com.evozi.networksniffer" />
         <package android:name="tech.httptoolkit.android" />
         <package android:name="tech.httptoolkit.android.v1" />
-        <package android:name="com.charlesproxy.android" />
+        <!-- Reverse Engineering / Modding Tools -->
+        <package android:name="bin.mt.plus" />
         <package android:name="com.gmail.heagoo.apkeditor" />
         <package android:name="com.gmail.heagoo.apkeditor.pro" />
-        <package android:name="bin.mt.plus" />
         <package android:name="com.dimonvideo.luckypatcher" />
         <package android:name="com.chelpus.lackypatch" />
         <package android:name="com.topjohnwu.magisk" />

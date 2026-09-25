@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  APK_NAME: LIVE_STREAM_PREMIUM.apk
+  APK_NAME: LIVE_STREAM_PRO.apk
 
 jobs:
   build:
@@ -61,7 +61,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
-          name: Release ${{ env.TAG_VERSION }}
+          name: "Live Stream Pro - ${{ env.TAG_VERSION }} 🚀"
           files: ${{ env.APK_NAME }}
           generate_release_notes: true
           fail_on_unmatched_files: true

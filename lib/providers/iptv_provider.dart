@@ -513,9 +513,9 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 295;
-  String _currentVersionStr = "2.2.95";
-  int _currentVersionCode = 295;
+  static const int APP_VERSION_CODE = 298;
+  String _currentVersionStr = "2.2.98";
+  int _currentVersionCode = 298;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -1229,7 +1229,10 @@ class IPTVProvider with ChangeNotifier {
               name.contains('wg0') ||
               name.contains('wg1') ||
               name.contains('tap') ||
-              name.contains('pcap')) {
+              name.contains('pcap') ||
+              name.contains('canary') ||
+              name.contains('reqable') ||
+              name.contains('dummy')) {
             detected = true;
             break;
           }
@@ -1268,7 +1271,7 @@ class IPTVProvider with ChangeNotifier {
 
   // ==========================================
 
-  String _appName = "Live Football";
+  String _appName = "Live Stream Pro";
   String get appName => _appName;
 
   bool _updateAvailable = false;
@@ -1421,11 +1424,32 @@ class IPTVProvider with ChangeNotifier {
         _liveCategories
             .add({'category_id': categoryId, 'category_name': categoryName});
       }
+      final rawIcon = (raw['logo'] ??
+              raw['stream_icon'] ??
+              raw['icon'] ??
+              raw['tvg_logo'] ??
+              raw['tvg-logo'] ??
+              raw['icon_url'] ??
+              raw['pic'] ??
+              raw['cover'] ??
+              '')
+          .toString()
+          .trim();
+      String cleanIcon = rawIcon;
+      if (cleanIcon.startsWith('//')) {
+        cleanIcon = "https:" + cleanIcon;
+      }
+      if (cleanIcon.isNotEmpty) {
+        try {
+          cleanIcon = Uri.encodeFull(cleanIcon);
+        } catch (_) {}
+      }
+
       _allStreams.add(PlaylistItem(
         num: null,
         streamId: _allStreams.length.toString(),
         name: raw['name']?.toString() ?? 'قناة',
-        streamIcon: raw['icon']?.toString() ?? '',
+        streamIcon: cleanIcon,
         categoryId: categoryId,
         categoryName: categoryName,
         url: raw['url']?.toString() ?? '',

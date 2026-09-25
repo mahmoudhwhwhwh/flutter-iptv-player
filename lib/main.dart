@@ -357,8 +357,7 @@ class _StartupGateState extends State<StartupGate> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'أهلاً بك في
-LIVE STREAM PRO',
+                    'أهلاً بك في\nLIVE STREAM PRO',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,

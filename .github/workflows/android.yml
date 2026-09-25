@@ -57,6 +57,13 @@ jobs:
           sha256sum "$APK_NAME"
           unzip -l "$APK_NAME" | sort -k1,1nr | head -30
 
+      - name: Upload APK to GitHub Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Live-Stream-Pro-${{ env.TAG_VERSION }}-APK
+          path: ${{ env.APK_NAME }}
+          retention-days: 30
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

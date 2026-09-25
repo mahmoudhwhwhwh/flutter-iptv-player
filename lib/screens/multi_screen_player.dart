@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -27,11 +28,15 @@ class MultiScreenPlayer extends StatefulWidget {
 class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   late int _screenCount;
   List<PlaylistItem?> _streams = [];
+  Timer? _screenOnTimer;
 
   @override
   void initState() {
     super.initState();
     WakelockPlus.enable();
+    _screenOnTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) WakelockPlus.enable();
+    });
     _screenCount = _getScreenCount(widget.layoutType);
     _streams = List.filled(_screenCount, null);
     if (widget.initialStream != null && _screenCount > 0) {
@@ -293,6 +298,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
 
   @override
   void dispose() {
+    _screenOnTimer?.cancel();
+    _screenOnTimer = null;
     WakelockPlus.disable();
     super.dispose();
   }
@@ -680,8 +687,15 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null)
-      return const Center(child: CircularProgressIndicator());
+    if (_controller == null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+          Container(color: Colors.black.withOpacity(0.10)),
+        ],
+      );
+    }
     return BetterPlayer(controller: _controller!);
   }
 }

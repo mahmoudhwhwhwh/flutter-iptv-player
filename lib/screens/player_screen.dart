@@ -9,7 +9,6 @@ import 'multi_screen_player.dart';
 
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:video_player/video_player.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -183,6 +182,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Timer? _swipeToastTimer;
 
   Timer? _zoomIndicatorTimer;
+  Timer? _screenOnTimer;
 
   // Brightness simulation overlay (0.0 means normal/bright, 0.8 means dim)
   double _brightnessFactor = 0.0;
@@ -279,6 +279,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (_) {
       return null;
     }
+  }
+
+  List<String> _playbackCandidates(String primary) {
+    final candidates = <String>[];
+    void add(String value) {
+      final normalized = stripFfmpegPrefix(value.trim());
+      if (normalized.isNotEmpty && !candidates.contains(normalized)) {
+        candidates.add(normalized);
+      }
+    }
+    add(primary);
+    final uri = Uri.tryParse(primary);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      add(uri.replace(scheme: uri.scheme == 'http' ? 'https' : 'http').toString());
+      final path = uri.path.toLowerCase();
+      if (path.endsWith('.ts')) {
+        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8').toString());
+      } else if (path.endsWith('.m3u8')) {
+        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
+      }
+    }
+    if (_stream.fallbackUrl?.trim().isNotEmpty == true) add(_stream.fallbackUrl!);
+    return candidates;
   }
 
   String _prepareClearKeyString(Map<String, String> keys) {
@@ -423,6 +446,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     WidgetsBinding.instance.addObserver(this);
     super.initState();
     WakelockPlus.enable();
+    _screenOnTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) WakelockPlus.enable();
+    });
     _loadSubSettings();
     _stream = widget.stream;
 
@@ -572,12 +598,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    final preferredUrl = isRetry && _retryCount >= 2
-        ? (_stream.fallbackUrl?.trim().isNotEmpty == true
-            ? _stream.fallbackUrl!.trim()
-            : _stream.url.trim())
-        : _stream.url.trim();
-    String urlStr = stripFfmpegPrefix(preferredUrl);
+    final candidates = _playbackCandidates(_stream.url);
+    final candidateIndex = isRetry && candidates.isNotEmpty
+        ? _retryCount % candidates.length
+        : 0;
+    String urlStr = candidates.isEmpty
+        ? stripFfmpegPrefix(_stream.url)
+        : candidates[candidateIndex];
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
       orElse: () => UserPlaylist(id: '', name: '', type: ''),
@@ -1113,6 +1140,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     _lockToggleTimer?.cancel();
     _sleepTimer?.cancel();
     _sidebarSearchDebounce?.cancel();
+    _screenOnTimer?.cancel();
+    _screenOnTimer = null;
     _firstButtonFocusNode.dispose();
     _sidebarSearchFocusNode.dispose();
 
@@ -2195,10 +2224,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             key: _betterPlayerKey,
                                             controller: _betterController!),
                                   )
-                                : const Center(
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 3),
-                                  ),
+                                : _buildPlayerLoading(),
                   ),
                 ),
               ),
@@ -2206,32 +2232,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               // Buffering indicator remains visible without blocking controls.
               if (_isBuffering && !_hasError)
                 IgnorePointer(
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.72),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                color: Colors.cyanAccent, strokeWidth: 2.5),
-                          ),
-                          SizedBox(width: 10),
-                          Text('جاري تحميل البث يا صديقي، لا تتعصب…',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: _buildPlayerLoading(),
                 ),
               // 2. Brightness shade Overlay (Simulated Dimming)
               if (_brightnessFactor > 0.0)
@@ -2438,6 +2439,16 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPlayerLoading() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+        Container(color: Colors.black.withOpacity(0.10)),
+      ],
     );
   }
 

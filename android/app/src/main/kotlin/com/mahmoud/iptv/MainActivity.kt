@@ -18,8 +18,12 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // السماح الصريح بالتقاط الشاشة وتسجيل الفيديو.
-        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // Prevent screenshots and screen recording of subscription credentials
+        // and playback. This has no meaningful APK-size impact.
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
     }
 
     private fun checkSnifferOrProxy(): Boolean {

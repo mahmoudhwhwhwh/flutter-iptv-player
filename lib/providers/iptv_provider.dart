@@ -1390,6 +1390,9 @@ class IPTVProvider with ChangeNotifier {
       notifyListeners();
       if (mode == 'custom_menu') {
         await _loadCuratedGitHubContent();
+        if (cleanCode == '2027') {
+          await _appendXtreamVodFromCode('55669977');
+        }
       } else {
         await loadPlaylistStreams(list.id);
       }
@@ -1472,6 +1475,95 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _appendXtreamVodFromCode(String code) async {
+    try {
+      final deviceId = await _getDeviceId();
+      final response = await http.post(
+        Uri.parse(_loginUrl),
+        headers: const {'Content-Type': 'application/json'},
+        body: json.encode({'code': code, 'device_id': deviceId}),
+      ).timeout(const Duration(seconds: 20));
+      if (response.statusCode != 200) return;
+      final decoded = json.decode(response.body);
+      if (decoded is! Map || decoded['ok'] != true) return;
+      final rawServer = decoded['server'] ?? decoded['user'];
+      if (rawServer is! Map) return;
+      final server = Map<String, dynamic>.from(rawServer);
+      final host = (server['host']?.toString() ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
+      final user = server['username']?.toString() ?? '';
+      final pass = server['password']?.toString() ?? '';
+      if (host.isEmpty || user.isEmpty || pass.isEmpty) return;
+
+      Future<List<dynamic>> getList(String action) async {
+        final result = await getXtreamApiWithFallback(
+          buildXtreamApiUri(host: host, username: user, password: pass, action: action),
+          timeout: const Duration(seconds: 90),
+        );
+        if (result.statusCode != 200) return <dynamic>[];
+        final body = json.decode(result.body);
+        return body is List ? body : <dynamic>[];
+      }
+
+      final vodCats = await getList('get_vod_categories');
+      final seriesCats = await getList('get_series_categories');
+      final movieCategories = vodCats.whereType<Map>().map<Map<String, String>>((item) => {
+        'category_id': item['category_id']?.toString() ?? '',
+        'category_name': item['category_name']?.toString() ?? 'أفلام',
+      }).toList();
+      final seriesCategories = seriesCats.whereType<Map>().map<Map<String, String>>((item) => {
+        'category_id': item['category_id']?.toString() ?? '',
+        'category_name': item['category_name']?.toString() ?? 'مسلسلات',
+      }).toList();
+      _movieCategories = FilterService.interceptAndFilterCategories(movieCategories, blockAdult: _blockAdultContent);
+      _seriesCategories = FilterService.interceptAndFilterCategories(seriesCategories, blockAdult: _blockAdultContent);
+
+      final movies = <PlaylistItem>[];
+      for (final raw in await getList('get_vod_streams')) {
+        if (raw is! Map) continue;
+        final item = Map<String, dynamic>.from(raw);
+        final id = item['stream_id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        final categoryId = item['category_id']?.toString() ?? '';
+        final category = _movieCategories.firstWhere((x) => x['category_id'] == categoryId, orElse: () => {'category_name': 'أفلام'});
+        final extension = normalizeXtreamMediaExtension(item['container_extension'] ?? item['stream_type'] ?? 'mp4');
+        movies.add(PlaylistItem(
+          num: int.tryParse(item['num']?.toString() ?? ''),
+          streamId: 'vod556_movie_$id',
+          name: item['name']?.toString() ?? 'فيلم',
+          streamIcon: item['stream_icon']?.toString() ?? '',
+          categoryId: categoryId,
+          categoryName: category['category_name'] ?? 'أفلام',
+          url: '$host/movie/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$id.${extension.isEmpty ? 'mp4' : extension}',
+          type: 'movie',
+        ));
+      }
+
+      final series = <PlaylistItem>[];
+      for (final raw in await getList('get_series')) {
+        if (raw is! Map) continue;
+        final item = Map<String, dynamic>.from(raw);
+        final id = item['series_id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        final categoryId = item['category_id']?.toString() ?? '';
+        final category = _seriesCategories.firstWhere((x) => x['category_id'] == categoryId, orElse: () => {'category_name': 'مسلسلات'});
+        series.add(PlaylistItem(
+          num: int.tryParse(item['num']?.toString() ?? ''),
+          streamId: 'vod556_series_$id',
+          name: item['name']?.toString() ?? 'مسلسل',
+          streamIcon: item['cover']?.toString() ?? item['stream_icon']?.toString() ?? '',
+          categoryId: categoryId,
+          categoryName: category['category_name'] ?? 'مسلسلات',
+          url: '$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$id',
+          type: 'series',
+        ));
+      }
+      _allStreams = [..._allStreams, ...movies, ...series];
+      _applyFilters();
+      notifyListeners();
+    } catch (error) {
+      debugPrint('Secondary VOD source unavailable: ${redactDiagnostic(error)}');
+    }
+  }
   Future<void> _handshakeStalker(
       String host, Map<String, String> headers) async {
     final endpoints = <Uri>[
@@ -1632,6 +1724,9 @@ class IPTVProvider with ChangeNotifier {
 
     if (playlist.type == 'custom') {
       await _loadCuratedGitHubContent();
+      if (_activationCode == '2027') {
+        await _appendXtreamVodFromCode('55669977');
+      }
       if (!isCurrentLoad()) return;
       _isFetchingData = false;
       notifyListeners();

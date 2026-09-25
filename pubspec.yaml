@@ -1,6 +1,6 @@
 name: flutter_iptv_player
 description: "A modern IPTV Stream Player supporting M3U, Xtream Codes, and ExoPlayer playback on Android systems."
-version: 2.2.96+296
+version: 2.2.97+297
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
@@ -14,8 +14,7 @@ dependencies:
   # Network & API Connections
   http: ^1.2.1
   
-  # Video Playback (Utilizes ExoPlayer internally on Android systems)
-  video_player: ^2.8.2
+  # BetterPlayer uses video_player internally for platform playback.
   better_player_plus: ^1.0.7
   
   # Client side database persistence for favorites/playlists
@@ -48,5 +47,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/intro_premium.mp4
+    - assets/loading_screen.png
     - assets/live_stream_pro_logo.png

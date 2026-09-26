@@ -2003,8 +2003,8 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     if (provider.snifferDetected || provider.vpnDetected || provider.isBlackScreenBlocked || !provider.isSecured) {
       try {
-        _betterPlayerController?.pause();
-        _betterPlayerController?.clearCache();
+        _betterController?.pause();
+        _betterController?.clearCache();
       } catch (_) {}
       return const Scaffold(
         backgroundColor: Colors.black,

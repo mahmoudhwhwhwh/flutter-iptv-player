@@ -1183,9 +1183,9 @@ class IPTVProvider with ChangeNotifier {
           _blackScreenBlocked = true;
           _snifferDetected = true;
           _vpnDetected = true;
-          _channels.clear();
-          _categories.clear();
-          _savedSubscriptions.clear();
+          _allStreams.clear();
+          _filteredStreams.clear();
+          _subscriptionType = '';
         }
 
         bool updated = false;

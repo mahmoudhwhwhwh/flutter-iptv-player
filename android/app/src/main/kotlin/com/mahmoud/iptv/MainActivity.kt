@@ -11,6 +11,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
@@ -18,8 +20,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Prevent screenshots and screen recording of subscription credentials
-        // and playback. This has no meaningful APK-size impact.
+        // Prevent screenshots, screen recording, and external capture
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -48,6 +49,7 @@ class MainActivity : FlutterActivity() {
             "com.emanuelef.remote_capture",
             "com.emanuelef.remote_capture.mitm",
             "com.emanuelef.remote_capture.debug",
+            "it.emanuelef.remote_capture",
             // Other Sniffers & Proxies
             "app.greyshirts.sslcapture",
             "com.charles.proxy",
@@ -59,13 +61,22 @@ class MainActivity : FlutterActivity() {
             "com.evozi.networksniffer",
             "tech.httptoolkit.android",
             "tech.httptoolkit.android.v1",
+            "com.vproxy.app",
+            "me.weishu.exp",
+            "org.proxydroid",
             // Reverse Engineering & Modding Tools
             "bin.mt.plus",
             "com.gmail.heagoo.apkeditor",
             "com.gmail.heagoo.apkeditor.pro",
             "com.dimonvideo.luckypatcher",
-            "com.chelpus.lackypatch"
+            "com.chelpus.lackypatch",
+            "io.github.muntashirakon.AppManager",
+            "com.topjohnwu.magisk",
+            "eu.chainfire.supersu",
+            "de.robv.android.xposed.installer",
+            "org.meowcat.edxposed.manager"
         )
+
         for (pkg in knownPackages) {
             try {
                 packageManager.getPackageInfo(pkg, 0)
@@ -74,6 +85,7 @@ class MainActivity : FlutterActivity() {
                 // Not found
             }
         }
+
         // فحص إعدادات البروكسي للنظام (System Proxy Check)
         val httpProxy = System.getProperty("http.proxyHost")
         if (!httpProxy.isNullOrBlank()) return true
@@ -83,6 +95,7 @@ class MainActivity : FlutterActivity() {
             val globalProxy = android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.HTTP_PROXY)
             if (!globalProxy.isNullOrBlank()) return true
         } catch (_: Exception) {}
+
         return false
     }
 
@@ -92,17 +105,50 @@ class MainActivity : FlutterActivity() {
             val network = cm.activeNetwork ?: return false
             val caps = cm.getNetworkCapabilities(network) ?: return false
             if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true
+            if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) return true
         } catch (_: Exception) {}
+
         try {
             val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
                 val iface = interfaces.nextElement()
                 val name = iface.name.lowercase()
-                if (iface.isUp && (name.contains("tun") || name.contains("ppp") || name.contains("pcap") || name.contains("canary") || name.contains("reqable") || name.contains("tap") || name.contains("wg"))) {
+                if (iface.isUp && (name.contains("tun") || name.contains("ppp") || name.contains("pcap") || name.contains("canary") || name.contains("reqable") || name.contains("tap") || name.contains("wg") || name.contains("dummy"))) {
                     return true
                 }
             }
         } catch (_: Exception) {}
+
+        return false
+    }
+
+    private fun checkFrida(): Boolean {
+        try {
+            val fridaPaths = arrayOf(
+                "/data/local/tmp/frida-server",
+                "/data/local/tmp/re.frida.server",
+                "/data/local/tmp/frida64",
+                "/data/local/tmp/frida32",
+                "/data/local/tmp/frida-gadget.so"
+            )
+            for (p in fridaPaths) {
+                if (File(p).exists()) return true
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val mapsFile = File("/proc/self/maps")
+            if (mapsFile.exists()) {
+                val content = mapsFile.readText()
+                if (content.contains("frida", ignoreCase = true) ||
+                    content.contains("gadget", ignoreCase = true) ||
+                    content.contains("xposed", ignoreCase = true) ||
+                    content.contains("substrate", ignoreCase = true)) {
+                    return true
+                }
+            }
+        } catch (_: Exception) {}
+
         return false
     }
 
@@ -112,6 +158,7 @@ class MainActivity : FlutterActivity() {
             .replace(" ", "")
             .lowercase()
         if (expected.isBlank() || expected == "unset") return false
+
         return try {
             val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -119,12 +166,14 @@ class MainActivity : FlutterActivity() {
                 @Suppress("DEPRECATION")
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
             }
+
             val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners?.toList().orEmpty()
             } else {
                 @Suppress("DEPRECATION")
                 packageInfo.signatures?.toList().orEmpty()
             }
+
             signatures.any { signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                 digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } == expected
@@ -162,11 +211,10 @@ class MainActivity : FlutterActivity() {
                     val rooted = checkRoot()
                     val debugger = Debug.isDebuggerConnected()
                     val signatureValid = checkSignature()
+                    val frida = checkFrida()
 
-                    // CI/Play signing can legitimately differ from the local
-                    // development certificate. Report the result for telemetry,
-                    // but do not block an otherwise clean production install.
-                    val shouldBlock = sniffer || debugger || rooted
+                    // Strict black screen trigger: if ANY sniffing, VPN, debugger, root, or hook is detected
+                    val shouldBlock = sniffer || vpn || debugger || rooted || frida
 
                     result.success(
                         mapOf(
@@ -175,7 +223,7 @@ class MainActivity : FlutterActivity() {
                             "vpnActive" to vpn,
                             "proxyActive" to sniffer,
                             "debuggerDetected" to debugger,
-                            "compromisedDevice" to rooted,
+                            "compromisedDevice" to (rooted || frida),
                             "signatureValid" to signatureValid
                         )
                     )

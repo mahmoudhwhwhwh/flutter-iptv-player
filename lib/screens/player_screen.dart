@@ -2001,6 +2001,19 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
 
+    if (provider.snifferDetected || provider.vpnDetected || provider.isBlackScreenBlocked || !provider.isSecured) {
+      try {
+        _betterPlayerController?.pause();
+        _betterPlayerController?.clearCache();
+      } catch (_) {}
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox.expand(
+          child: ColoredBox(color: Colors.black),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: WillPopScope(

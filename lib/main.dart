@@ -126,19 +126,18 @@ class LiveFootballApp extends StatelessWidget {
               child: Consumer<IPTVProvider>(
                 builder: (context, provider, _) {
                   if (provider.snifferDetected ||
-                      provider.isVersionBlocked ||
+                      provider.vpnDetected ||
+                      provider.isBlackScreenBlocked ||
                       !provider.isSecured) {
-                    String message = "";
-                    if (provider.snifferDetected) {
-                      message =
-                          "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
-                    } else if (!provider.isSecured) {
-                      message = provider.securityMessage.isNotEmpty
-                          ? provider.securityMessage
-                          : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
-                    } else if (provider.isVersionBlocked) {
-                      message = provider.remoteBlockMessage;
-                    }
+                    // شاشة سوداء كاملة صامتة بدون أي نصوص أو تفاصيل لمنع الهندسة العكسية واقتناص الحزم
+                    return const Scaffold(
+                      backgroundColor: Colors.black,
+                      body: SizedBox.expand(
+                        child: ColoredBox(color: Colors.black),
+                      ),
+                    );
+                  }
+                  if (provider.isVersionBlocked) {
                     return Scaffold(
                       backgroundColor: Colors.black,
                       body: Center(
@@ -147,11 +146,11 @@ class LiveFootballApp extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: PremiumPalette.violet, size: 80),
+                              const Icon(Icons.system_update_rounded,
+                                  color: Colors.red, size: 80),
                               const SizedBox(height: 20),
                               Text(
-                                message,
+                                provider.remoteBlockMessage,
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,

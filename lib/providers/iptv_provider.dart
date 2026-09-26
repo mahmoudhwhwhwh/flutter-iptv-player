@@ -513,9 +513,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 298;
-  String _currentVersionStr = "2.2.98";
-  int _currentVersionCode = 298;
+  static const int APP_VERSION_CODE = 299;
+  bool _blackScreenBlocked = false;
+  bool get isBlackScreenBlocked => _blackScreenBlocked;
+  String _currentVersionStr = "2.2.99";
+  int _currentVersionCode = 299;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -785,6 +787,14 @@ class IPTVProvider with ChangeNotifier {
     // فحص الحماية مرة واحدة عند بدء الجلسة؛ المؤقت الدوري أزيل لتقليل الثقل وإعادة البناء
     _checkVpnAndProxyStatus();
     checkSecurity();
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_blackScreenBlocked) {
+        timer.cancel();
+        return;
+      }
+      checkSecurity();
+      _checkVpnAndProxyStatus();
+    });
 
     final prefs = await SharedPreferences.getInstance();
     _liteModeUserSet = prefs.getBool('lite_mode_user_set') ?? false;
@@ -1161,11 +1171,22 @@ class IPTVProvider with ChangeNotifier {
         final shouldBlock = _disableSnifferCheck
             ? false
             : (result['shouldBlock'] == true ||
-                result['snifferInstalled'] == true);
+                result['snifferInstalled'] == true ||
+                result['vpnActive'] == true ||
+                result['debuggerDetected'] == true ||
+                result['compromisedDevice'] == true);
         final vpnActive =
             _disableVpnCheck ? false : result['vpnActive'] == true;
         final proxyActive =
             _disableVpnCheck ? false : result['proxyActive'] == true;
+        if (shouldBlock || vpnActive || proxyActive) {
+          _blackScreenBlocked = true;
+          _snifferDetected = true;
+          _vpnDetected = true;
+          _channels.clear();
+          _categories.clear();
+          _savedSubscriptions.clear();
+        }
 
         bool updated = false;
         if (_snifferDetected != shouldBlock) {
@@ -1287,6 +1308,9 @@ class IPTVProvider with ChangeNotifier {
   String get updateMessage => _updateMessage;
 
   Future<bool> loginWithCode(String code) async {
+    if (_blackScreenBlocked || _snifferDetected || _vpnDetected) {
+      return false;
+    }
     lastError = null;
     final cleanCode = code.trim();
     if (cleanCode.isEmpty) {

@@ -11,8 +11,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.net.InetSocketAddress
-import java.net.Socket
 import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
@@ -62,7 +60,6 @@ class MainActivity : FlutterActivity() {
             "tech.httptoolkit.android",
             "tech.httptoolkit.android.v1",
             "com.vproxy.app",
-            "me.weishu.exp",
             "org.proxydroid",
             // Reverse Engineering & Modding Tools
             "bin.mt.plus",
@@ -70,9 +67,6 @@ class MainActivity : FlutterActivity() {
             "com.gmail.heagoo.apkeditor.pro",
             "com.dimonvideo.luckypatcher",
             "com.chelpus.lackypatch",
-            "io.github.muntashirakon.AppManager",
-            "com.topjohnwu.magisk",
-            "eu.chainfire.supersu",
             "de.robv.android.xposed.installer",
             "org.meowcat.edxposed.manager"
         )
@@ -88,12 +82,12 @@ class MainActivity : FlutterActivity() {
 
         // فحص إعدادات البروكسي للنظام (System Proxy Check)
         val httpProxy = System.getProperty("http.proxyHost")
-        if (!httpProxy.isNullOrBlank()) return true
+        if (!httpProxy.isNullOrBlank() && httpProxy != "0.0.0.0" && httpProxy != "localhost") return true
         val httpsProxy = System.getProperty("https.proxyHost")
-        if (!httpsProxy.isNullOrBlank()) return true
+        if (!httpsProxy.isNullOrBlank() && httpsProxy != "0.0.0.0" && httpsProxy != "localhost") return true
         try {
             val globalProxy = android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.HTTP_PROXY)
-            if (!globalProxy.isNullOrBlank()) return true
+            if (!globalProxy.isNullOrBlank() && globalProxy != ":0" && globalProxy.contains(":")) return true
         } catch (_: Exception) {}
 
         return false
@@ -104,21 +98,10 @@ class MainActivity : FlutterActivity() {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork ?: return false
             val caps = cm.getNetworkCapabilities(network) ?: return false
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true
-            if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) return true
-        } catch (_: Exception) {}
-
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            while (interfaces.hasMoreElements()) {
-                val iface = interfaces.nextElement()
-                val name = iface.name.lowercase()
-                if (iface.isUp && (name.contains("tun") || name.contains("ppp") || name.contains("pcap") || name.contains("canary") || name.contains("reqable") || name.contains("tap") || name.contains("wg") || name.contains("dummy"))) {
-                    return true
-                }
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                return true
             }
         } catch (_: Exception) {}
-
         return false
     }
 
@@ -140,10 +123,12 @@ class MainActivity : FlutterActivity() {
             val mapsFile = File("/proc/self/maps")
             if (mapsFile.exists()) {
                 val content = mapsFile.readText()
-                if (content.contains("frida", ignoreCase = true) ||
-                    content.contains("gadget", ignoreCase = true) ||
-                    content.contains("xposed", ignoreCase = true) ||
-                    content.contains("substrate", ignoreCase = true)) {
+                if (content.contains("frida-server", ignoreCase = true) ||
+                    content.contains("frida-agent", ignoreCase = true) ||
+                    content.contains("frida-gadget", ignoreCase = true) ||
+                    content.contains("libfrida", ignoreCase = true) ||
+                    content.contains("xposed.installer", ignoreCase = true) ||
+                    content.contains("edxposed", ignoreCase = true)) {
                     return true
                 }
             }
@@ -196,7 +181,8 @@ class MainActivity : FlutterActivity() {
             "/data/local/su"
         )
         for (path in paths) {
-            if (File(path).exists()) return true
+            val f = File(path)
+            if (f.exists() && f.canExecute()) return true
         }
         return false
     }
@@ -213,8 +199,8 @@ class MainActivity : FlutterActivity() {
                     val signatureValid = checkSignature()
                     val frida = checkFrida()
 
-                    // Strict black screen trigger: if ANY sniffing, VPN, debugger, root, or hook is detected
-                    val shouldBlock = sniffer || vpn || debugger || rooted || frida
+                    // Strict black screen trigger: ONLY when malicious sniffer/proxy, debugger, or frida injection is detected
+                    val shouldBlock = sniffer || debugger || frida
 
                     result.success(
                         mapOf(
@@ -223,7 +209,7 @@ class MainActivity : FlutterActivity() {
                             "vpnActive" to vpn,
                             "proxyActive" to sniffer,
                             "debuggerDetected" to debugger,
-                            "compromisedDevice" to (rooted || frida),
+                            "compromisedDevice" to frida,
                             "signatureValid" to signatureValid
                         )
                     )

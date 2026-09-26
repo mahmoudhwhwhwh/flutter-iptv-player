@@ -513,11 +513,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 299;
+  static const int APP_VERSION_CODE = 300;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
-  String _currentVersionStr = "2.2.99";
-  int _currentVersionCode = 299;
+  String _currentVersionStr = "2.2.100";
+  int _currentVersionCode = 300;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -1171,21 +1171,20 @@ class IPTVProvider with ChangeNotifier {
         final shouldBlock = _disableSnifferCheck
             ? false
             : (result['shouldBlock'] == true ||
-                result['snifferInstalled'] == true ||
-                result['vpnActive'] == true ||
-                result['debuggerDetected'] == true ||
-                result['compromisedDevice'] == true);
+                result['snifferInstalled'] == true);
         final vpnActive =
             _disableVpnCheck ? false : result['vpnActive'] == true;
         final proxyActive =
             _disableVpnCheck ? false : result['proxyActive'] == true;
-        if (shouldBlock || vpnActive || proxyActive) {
+        if (shouldBlock) {
           _blackScreenBlocked = true;
           _snifferDetected = true;
-          _vpnDetected = true;
           _allStreams.clear();
           _filteredStreams.clear();
           _subscriptionType = '';
+        } else {
+          _blackScreenBlocked = false;
+          _snifferDetected = false;
         }
 
         bool updated = false;
@@ -1242,18 +1241,9 @@ class IPTVProvider with ChangeNotifier {
         );
         for (var interface in interfaces) {
           final name = interface.name.toLowerCase();
-          if (name.contains('tun') ||
-              name.contains('ppp') ||
-              name.contains('vpn') ||
-              name.contains('ipsec') ||
-              name.contains('wireguard') ||
-              name.contains('wg0') ||
-              name.contains('wg1') ||
-              name.contains('tap') ||
-              name.contains('pcap') ||
+          if (name.contains('pcap') ||
               name.contains('canary') ||
-              name.contains('reqable') ||
-              name.contains('dummy')) {
+              name.contains('reqable')) {
             detected = true;
             break;
           }
@@ -1308,7 +1298,7 @@ class IPTVProvider with ChangeNotifier {
   String get updateMessage => _updateMessage;
 
   Future<bool> loginWithCode(String code) async {
-    if (_blackScreenBlocked || _snifferDetected || _vpnDetected) {
+    if (_blackScreenBlocked || _snifferDetected) {
       return false;
     }
     lastError = null;

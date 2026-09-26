@@ -2001,7 +2001,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
 
-    if (provider.snifferDetected || provider.vpnDetected || provider.isBlackScreenBlocked || !provider.isSecured) {
+    if (provider.snifferDetected || provider.isBlackScreenBlocked) {
       try {
         _betterController?.pause();
         _betterController?.clearCache();

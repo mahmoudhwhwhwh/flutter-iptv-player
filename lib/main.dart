@@ -126,9 +126,7 @@ class LiveFootballApp extends StatelessWidget {
               child: Consumer<IPTVProvider>(
                 builder: (context, provider, _) {
                   if (provider.snifferDetected ||
-                      provider.vpnDetected ||
-                      provider.isBlackScreenBlocked ||
-                      !provider.isSecured) {
+                      provider.isBlackScreenBlocked) {
                     // شاشة سوداء كاملة صامتة بدون أي نصوص أو تفاصيل لمنع الهندسة العكسية واقتناص الحزم
                     return const Scaffold(
                       backgroundColor: Colors.black,

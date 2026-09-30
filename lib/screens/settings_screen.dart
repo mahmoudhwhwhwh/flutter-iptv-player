@@ -74,6 +74,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool(key, value);
   }
 
+  Widget _buildFormatChip(
+      IPTVProvider provider, String formatKey, String label, String sub) {
+    final isSelected = provider.streamFormat == formatKey;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          provider.setStreamFormat(formatKey);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تم تفعيل صيغة $label للبث المباشر'),
+            duration: const Duration(seconds: 1),
+          ));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? _SettingsPalette.purple.withOpacity(0.3)
+                : Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? _SettingsPalette.purpleBright
+                  : _SettingsPalette.divider,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                sub,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected
+                      ? _SettingsPalette.cyan
+                      : _SettingsPalette.textMuted,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveStringSetting(String key, String value) async {
     await context.read<IPTVProvider>().setPlayerStringPreference(key, value);
   }
@@ -342,23 +399,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
-                  return _buildDropdownItem(
-                    title: "تصفية القنوات (البث المباشر)",
-                    value: provider.channelFilter,
-                    items: const [
-                      "الكل",
-                      "القنوات العربية فقط",
-                      "القنوات الأجنبية فقط",
-                      "قنوات الرياضة فقط",
-                      "القنوات الرياضية العربية فقط",
-                      "القنوات الإخبارية فقط",
-                      "قنوات Alwan فقط"
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        provider.setChannelFilter(val);
-                      }
-                    },
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _SettingsPalette.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _SettingsPalette.divider),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Icon(Icons.tune_rounded,
+                                color: _SettingsPalette.purpleBright, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              "صيغة ومحرك تدفق القنوات (Stream Format)",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          "التبديل بين صيغ البث لتشغيل القنوات المتوقفة وحل بطء الاستجابة في سيرفرات Xtream:",
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(
+                              color: _SettingsPalette.textMuted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            _buildFormatChip(provider, "m3u8", "M3U8 (HLS)",
+                                "استقرار وسرعة"),
+                            const SizedBox(width: 8),
+                            _buildFormatChip(
+                                provider, "ts", "TS (MPEG)", "الصيغة القياسية"),
+                            const SizedBox(width: 8),
+                            _buildFormatChip(
+                                provider, "mpd", "MPD (DASH)", "بث رقمي"),
+                          ],
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),

@@ -147,6 +147,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
   VideoPlayerController? _loadingVideoController;
+  VideoPlayerController? _offlineVideoController;
+
+  void _initOfflineVideo() {
+    if (_offlineVideoController != null &&
+        _offlineVideoController!.value.isInitialized) {
+      return;
+    }
+    try {
+      final ctrl = VideoPlayerController.asset('assets/channel_offline.mp4');
+      ctrl.initialize().then((_) {
+        if (!mounted) {
+          ctrl.dispose();
+          return;
+        }
+        ctrl.setLooping(true);
+        ctrl.setVolume(0.0);
+        ctrl.play();
+        setState(() {
+          _offlineVideoController = ctrl;
+        });
+      }).catchError((_) {});
+    } catch (_) {}
+  }
 
   void _initLoadingVideo() {
     try {
@@ -973,10 +996,17 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted) return;
     _reconnectTimer?.cancel();
     if (_isLiveStream) {
-      // Live is continuous: keep the player screen alive and reconnect in-place.
-      // The source may rotate tokens/segments temporarily; do not show the VOD
-      // failure screen or navigate away while the retry loop is active.
       _retryCount += 1;
+      if (_retryCount >= 4) {
+        _initOfflineVideo();
+        setState(() {
+          _initialized = false;
+          _isBuffering = false;
+          _hasError = true;
+          _errorMessage = "هذه القناة معطلة أو متوقفة من المصدر حالياً";
+        });
+        return;
+      }
       final delay = _liveRetryDelay();
       setState(() {
         _initialized = false;
@@ -1148,6 +1178,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     final loadingCtrl = _loadingVideoController;
     _loadingVideoController = null;
     loadingCtrl?.dispose();
+    final offlineCtrl = _offlineVideoController;
+    _offlineVideoController = null;
+    offlineCtrl?.dispose();
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);
@@ -1403,6 +1436,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _showSubtitlesSelector() {
     if (_betterController == null || !_initialized) return;
+    int activeSubTab = 0;
 
     showDialog(
         context: context,
@@ -1410,54 +1444,56 @@ class _PlayerScreenState extends State<PlayerScreen>
           return Dialog(
             backgroundColor: Colors.transparent,
             insetPadding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: StatefulBuilder(builder: (context, setModalState) {
               final List<BetterPlayerSubtitlesSource> rawSubtitles =
                   _betterController!.betterPlayerSubtitlesSourceList;
               final selectedSub =
                   _betterController!.betterPlayerSubtitlesSource;
 
-              // Filter and sort Arabic to top
               List<BetterPlayerSubtitlesSource> validSubtitles = rawSubtitles
                   .where((s) => s.type != BetterPlayerSubtitlesSourceType.none)
                   .toList();
               validSubtitles.sort((a, b) {
                 final aName = (a.name ?? "").toLowerCase();
                 final bName = (b.name ?? "").toLowerCase();
-                final aLang = "";
-                final bLang = "";
-
-                bool aIsAr = aName.contains("ar") ||
-                    aLang.contains("ar") ||
-                    aName.contains("عرب");
-                bool bIsAr = bName.contains("ar") ||
-                    bLang.contains("ar") ||
-                    bName.contains("عرب");
-
+                bool aIsAr = aName.contains("ar") || aName.contains("عرب");
+                bool bIsAr = bName.contains("ar") || bName.contains("عرب");
                 if (aIsAr && !bIsAr) return -1;
                 if (!aIsAr && bIsAr) return 1;
                 return aName.compareTo(bName);
               });
 
+              Future<void> saveSubPref(String key, String val) async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString(key, val);
+                setState(() {
+                  _betterPlayerKey = GlobalKey();
+                });
+              }
+
               return Directionality(
                 textDirection: TextDirection.rtl,
                 child: Container(
-                  width: 500,
-                  constraints: const BoxConstraints(maxHeight: 500),
+                  width: 520,
+                  constraints: const BoxConstraints(maxHeight: 540),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E20),
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFF13131A),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF2E2E3E)),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Header
                       Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                         child: Row(
                           children: [
                             const Icon(Icons.subtitles_rounded,
-                                color: Colors.amberAccent),
+                                color: Color(0xFFA855F7), size: 24),
                             const SizedBox(width: 8),
-                            const Text("الترجمة",
+                            const Text("إعدادات الترجمة والخط",
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -1471,70 +1507,399 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ],
                         ),
                       ),
-                      const Divider(color: Colors.white12, height: 1),
-                      Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          children: [
-                            ListTile(
-                              title: const Text("إيقاف الترجمة",
-                                  style: TextStyle(color: Colors.white)),
-                              trailing: (selectedSub == null ||
-                                      selectedSub.type ==
-                                          BetterPlayerSubtitlesSourceType.none)
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.amberAccent)
-                                  : null,
-                              onTap: () {
-                                _betterController!.setupSubtitleSource(
-                                    BetterPlayerSubtitlesSource(
-                                        type: BetterPlayerSubtitlesSourceType
-                                            .none));
-                                setModalState(() {});
-                                Navigator.pop(bContext);
-                              },
-                            ),
-                            if (validSubtitles.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                child: Text("الترجمات المدمجة",
-                                    style: TextStyle(
-                                        color: Colors.white54, fontSize: 12)),
-                              ),
-                              ...validSubtitles.map((sub) {
-                                final isSelected = selectedSub == sub;
-                                final name = sub.name ?? "ترجمة (غير معروف)";
-                                return ListTile(
-                                  title: Text(name,
+                      // Tabs: Track vs Font
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2A),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setModalState(() => activeSubTab = 0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: activeSubTab == 0
+                                          ? const Color(0xFFA855F7)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      "مسار الترجمة",
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.amberAccent
-                                              : Colors.white)),
-                                  trailing: isSelected
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.amberAccent)
-                                      : null,
-                                  onTap: () {
-                                    _betterController!.setupSubtitleSource(sub);
-                                    setModalState(() {});
-                                    Navigator.pop(bContext);
-                                  },
-                                );
-                              }).toList(),
-                            ],
-                            if (validSubtitles.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(
-                                  'لا توجد ترجمة مدمجة لهذا البث من خادم Xtream.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: Colors.white60, fontSize: 13),
+                                        color: Colors.white,
+                                        fontWeight: activeSubTab == 0
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                          ],
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setModalState(() => activeSubTab = 1),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: activeSubTab == 1
+                                          ? const Color(0xFFA855F7)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      "أزرار الخط والتصميم",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: activeSubTab == 1
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(color: Colors.white12, height: 1),
+                      // Tab Content
+                      Expanded(
+                        child: activeSubTab == 0
+                            ? ListView(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                children: [
+                                  ListTile(
+                                    title: const Text("إيقاف الترجمة",
+                                        style: TextStyle(color: Colors.white)),
+                                    trailing: (selectedSub == null ||
+                                            selectedSub.type ==
+                                                BetterPlayerSubtitlesSourceType.none)
+                                        ? const Icon(Icons.check_circle,
+                                            color: Color(0xFFA855F7))
+                                        : null,
+                                    onTap: () {
+                                      _betterController!.setupSubtitleSource(
+                                          BetterPlayerSubtitlesSource(
+                                              type: BetterPlayerSubtitlesSourceType
+                                                  .none));
+                                      setModalState(() {});
+                                      Navigator.pop(bContext);
+                                    },
+                                  ),
+                                  if (validSubtitles.isNotEmpty) ...[
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      child: Text("الترجمات المدمجة من السيرفر",
+                                          style: TextStyle(
+                                              color: Colors.white54, fontSize: 12)),
+                                    ),
+                                    ...validSubtitles.map((sub) {
+                                      final isSelected = selectedSub == sub;
+                                      final name = sub.name ?? "ترجمة";
+                                      return ListTile(
+                                        title: Text(name,
+                                            style: TextStyle(
+                                                color: isSelected
+                                                    ? const Color(0xFFA855F7)
+                                                    : Colors.white)),
+                                        trailing: isSelected
+                                            ? const Icon(Icons.check_circle,
+                                                color: Color(0xFFA855F7))
+                                            : null,
+                                        onTap: () {
+                                          _betterController!.setupSubtitleSource(sub);
+                                          setModalState(() {});
+                                          Navigator.pop(bContext);
+                                        },
+                                      );
+                                    }).toList(),
+                                  ],
+                                  if (validSubtitles.isEmpty)
+                                    const Padding(
+                                      padding: EdgeInsets.all(24),
+                                      child: Text(
+                                        'لا توجد ملفات ترجمة مدمجة لهذا البث.
+يمكنك ضبط حجم ونمط الخط من التبويب المجاور.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: Colors.white60, fontSize: 13),
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : ListView(
+                                padding: const EdgeInsets.all(16),
+                                children: [
+                                  // Live Preview Box
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _subBgColorVal == Colors.transparent
+                                          ? Colors.black54
+                                          : _subBgColorVal,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.white24, width: 0.8),
+                                    ),
+                                    child: Text(
+                                      "هذا نموذج لمعاينة خط ولون الترجمة",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: _subColorVal,
+                                        fontSize: _subSizeVal,
+                                        fontFamily: _subFontVal,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Colors.black,
+                                            blurRadius: 3,
+                                            offset: Offset(1, 1),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Font Size Header + Stepper
+                                  Row(
+                                    children: [
+                                      const Text("حجم الخط:",
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold)),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: const Icon(Icons.remove_circle_outline,
+                                            color: Colors.white70, size: 22),
+                                        onPressed: () {
+                                          if (_subSizeVal > 10.0) {
+                                            setModalState(() => _subSizeVal -= 2);
+                                            saveSubPref('sub_size', '${_subSizeVal.toInt()}');
+                                          }
+                                        },
+                                      ),
+                                      Text(
+                                        "${_subSizeVal.toInt()}",
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_circle_outline,
+                                            color: Colors.white70, size: 22),
+                                        onPressed: () {
+                                          if (_subSizeVal < 36.0) {
+                                            setModalState(() => _subSizeVal += 2);
+                                            saveSubPref('sub_size', '${_subSizeVal.toInt()}');
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Size quick preset buttons
+                                  Row(
+                                    children: [
+                                      _buildSubBtn(
+                                        label: "صغير",
+                                        selected: _subSizeVal <= 13.0,
+                                        onTap: () {
+                                          setModalState(() => _subSizeVal = 12.0);
+                                          saveSubPref('sub_size', 'صغير');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "متوسط",
+                                        selected: _subSizeVal > 13.0 && _subSizeVal <= 18.0,
+                                        onTap: () {
+                                          setModalState(() => _subSizeVal = 16.0);
+                                          saveSubPref('sub_size', 'متوسط');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "كبير",
+                                        selected: _subSizeVal > 18.0 && _subSizeVal <= 24.0,
+                                        onTap: () {
+                                          setModalState(() => _subSizeVal = 22.0);
+                                          saveSubPref('sub_size', 'كبير');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "ضخم",
+                                        selected: _subSizeVal > 24.0,
+                                        onTap: () {
+                                          setModalState(() => _subSizeVal = 28.0);
+                                          saveSubPref('sub_size', 'ضخم');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Font Family
+                                  const Text("نوع الخط:",
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      _buildSubBtn(
+                                        label: "Cairo",
+                                        selected: _subFontVal == 'Cairo',
+                                        onTap: () {
+                                          setModalState(() => _subFontVal = 'Cairo');
+                                          saveSubPref('sub_font', 'Cairo');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "Arial",
+                                        selected: _subFontVal == 'Arial',
+                                        onTap: () {
+                                          setModalState(() => _subFontVal = 'Arial');
+                                          saveSubPref('sub_font', 'Arial');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "Tahoma",
+                                        selected: _subFontVal == 'Tahoma',
+                                        onTap: () {
+                                          setModalState(() => _subFontVal = 'Tahoma');
+                                          saveSubPref('sub_font', 'Tahoma');
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSubBtn(
+                                        label: "Roboto",
+                                        selected: _subFontVal == 'Roboto',
+                                        onTap: () {
+                                          setModalState(() => _subFontVal = 'Roboto');
+                                          saveSubPref('sub_font', 'Roboto');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Color Chips
+                                  const Text("لون النص:",
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      _buildColorChip(
+                                        color: Colors.white,
+                                        label: "أبيض",
+                                        selected: _subColorVal == Colors.white,
+                                        onTap: () {
+                                          setModalState(() => _subColorVal = Colors.white);
+                                          saveSubPref('sub_color', 'أبيض');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildColorChip(
+                                        color: Colors.yellow,
+                                        label: "أصفر",
+                                        selected: _subColorVal == Colors.yellow,
+                                        onTap: () {
+                                          setModalState(() => _subColorVal = Colors.yellow);
+                                          saveSubPref('sub_color', 'أصفر');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildColorChip(
+                                        color: Colors.cyanAccent,
+                                        label: "سماوي",
+                                        selected: _subColorVal == Colors.cyanAccent,
+                                        onTap: () {
+                                          setModalState(() => _subColorVal = Colors.cyanAccent);
+                                          saveSubPref('sub_color', 'أزرق سماوي');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildColorChip(
+                                        color: Colors.greenAccent,
+                                        label: "أخضر",
+                                        selected: _subColorVal == Colors.greenAccent,
+                                        onTap: () {
+                                          setModalState(() => _subColorVal = Colors.greenAccent);
+                                          saveSubPref('sub_color', 'أخضر');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildColorChip(
+                                        color: Colors.orange,
+                                        label: "برتقالي",
+                                        selected: _subColorVal == Colors.orange,
+                                        onTap: () {
+                                          setModalState(() => _subColorVal = Colors.orange);
+                                          saveSubPref('sub_color', 'برتقالي');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Background
+                                  const Text("خلفية الترجمة:",
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      _buildSubBtn(
+                                        label: "شفاف",
+                                        selected: _subBgColorVal == Colors.transparent,
+                                        onTap: () {
+                                          setModalState(() => _subBgColorVal = Colors.transparent);
+                                          saveSubPref('sub_bg_color', 'شفاف');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildSubBtn(
+                                        label: "أسود خفيف",
+                                        selected: _subBgColorVal == Colors.black54,
+                                        onTap: () {
+                                          setModalState(() => _subBgColorVal = Colors.black54);
+                                          saveSubPref('sub_bg_color', 'رمادي داكن');
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildSubBtn(
+                                        label: "أسود داكن",
+                                        selected: _subBgColorVal == Colors.black87,
+                                        onTap: () {
+                                          setModalState(() => _subBgColorVal = Colors.black87);
+                                          saveSubPref('sub_bg_color', 'أسود');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
@@ -1545,6 +1910,81 @@ class _PlayerScreenState extends State<PlayerScreen>
         });
   }
 
+  Widget _buildSubBtn({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFFA855F7).withOpacity(0.3)
+                : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? const Color(0xFFA855F7) : Colors.white24,
+              width: selected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.white70,
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorChip({
+    required Color color,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? color : Colors.white24,
+              width: selected ? 2.0 : 1.0,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white60,
+                  fontSize: 10,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   void _showSleepTimerSelector() {
     showDialog(
         context: context,
@@ -2509,82 +2949,174 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _buildErrorScreen(IPTVProvider provider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-      color: const Color(0xFF0C0C0E),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Colors.orangeAccent, size: 55),
-          const SizedBox(height: 12),
-          Text(
-            _stream.type == 'movie'
-                ? "تعذر تشغيل الفيلم حالياً."
-                : _stream.type == 'series'
-                    ? "تعذر تشغيل الحلقة حالياً."
-                    : "تعذر تشغيل القناة حالياً.",
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "قد يكون المصدر مشغولاً أو انتهت جلسة الاشتراك. حاول مرة أخرى.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!.length > 140
-                  ? _errorMessage!.substring(0, 140)
-                  : _errorMessage!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.orangeAccent, fontSize: 11),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                ),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("إعادة المحاولة / RETRY"),
-                onPressed: () {
-                  setState(() {
-                    _retryCount = 0;
-                    _hasError = false;
-                    _errorMessage = null;
-                    _initialized = false;
-                  });
-                  _initializeController();
-                },
+    if (_offlineVideoController == null ||
+        !_offlineVideoController!.value.isInitialized) {
+      _initOfflineVideo();
+    }
+    final isLive = _stream.type == 'live' || _stream.type == 'stalker';
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (_offlineVideoController != null &&
+            _offlineVideoController!.value.isInitialized)
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _offlineVideoController!.value.size.width,
+                height: _offlineVideoController!.value.size.height,
+                child: VideoPlayer(_offlineVideoController!),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                  side: const BorderSide(color: Colors.white38),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-                icon: const Icon(Icons.arrow_back, size: 18),
-                label: const Text("الخروج"),
-                onPressed: () => Navigator.pop(context),
-              )
-            ],
+            ),
           )
-        ],
-      ),
+        else
+          Container(color: const Color(0xFF07070D)),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.72),
+                Colors.black.withOpacity(0.45),
+                Colors.black.withOpacity(0.88),
+              ],
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.redAccent, width: 2),
+                    ),
+                    child: const Icon(Icons.tv_off_rounded,
+                        color: Colors.redAccent, size: 44),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _stream.name.isNotEmpty ? _stream.name : 'القناة المطلوبة',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B0715),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                    ),
+                    child: Text(
+                      isLive
+                          ? 'القناة معطلة أو متوقفة من المصدر حالياً'
+                          : 'المحتوى غير متاح حالياً من السيرفر',
+                      style: const TextStyle(
+                        color: Color(0xFFFCA5A5),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'تعذر استلام البث بعد عدة محاولات. يمكنك التبديل بين صيغ البث أو الانتقال لقناة أخرى.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFA855F7),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 11),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('إعادة المحاولة',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          setState(() {
+                            _retryCount = 0;
+                            _hasError = false;
+                            _errorMessage = null;
+                            _initialized = false;
+                          });
+                          _initializeController();
+                        },
+                      ),
+                      if (isLive)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E293B),
+                            foregroundColor: const Color(0xFF38BDF8),
+                            side: const BorderSide(color: Color(0xFF38BDF8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 11),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: Text(
+                            provider.streamFormat == 'm3u8'
+                                ? 'تجربة بصيغة TS'
+                                : 'تجربة بصيغة M3U8',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () async {
+                            final nextFormat =
+                                provider.streamFormat == 'm3u8' ? 'ts' : 'm3u8';
+                            await provider.setStreamFormat(nextFormat);
+                            setState(() {
+                              _retryCount = 0;
+                              _hasError = false;
+                              _errorMessage = null;
+                              _initialized = false;
+                            });
+                            _initializeController();
+                          },
+                        ),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 11),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('رجوع للقائمة'),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2839,6 +3371,44 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   _showQualitySelector();
                                   _resetHideHUDTimer();
                                 },
+                              ),
+                              // Stream Format Toggle (TS / M3U8)
+                              GestureDetector(
+                                onTap: () async {
+                                  final current = provider.streamFormat;
+                                  final next = current == 'm3u8' ? 'ts' : 'm3u8';
+                                  await provider.setStreamFormat(next);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text('تم التحويل لصيغة ${next.toUpperCase()}'),
+                                      duration: const Duration(seconds: 1),
+                                    ));
+                                    setState(() {
+                                      _retryCount = 0;
+                                      _initialized = false;
+                                      _hasError = false;
+                                    });
+                                    _initializeController(isRetry: true);
+                                  }
+                                  _resetHideHUDTimer();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2E1065),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFA855F7), width: 1.0),
+                                  ),
+                                  child: Text(
+                                    provider.streamFormat.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Color(0xFFE9D5FF),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
                               ),
                               // Subtitles Menu button
                               IconButton(

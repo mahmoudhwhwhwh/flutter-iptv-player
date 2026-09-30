@@ -64,13 +64,18 @@ String buildXtreamLiveUrl({
   required String password,
   required String streamId,
   required String extension,
+  String? preferredFormat,
 }) {
   final cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
   final encodedUser = Uri.encodeComponent(username.trim());
   final encodedPassword = Uri.encodeComponent(password.trim());
-  final cleanExtension = normalizeXtreamMediaExtension(extension).isEmpty
-      ? 'ts'
-      : normalizeXtreamMediaExtension(extension);
+  String ext = extension.trim();
+  if (preferredFormat != null && preferredFormat.isNotEmpty && preferredFormat != 'auto') {
+    ext = preferredFormat;
+  }
+  final cleanExtension = normalizeXtreamMediaExtension(ext).isEmpty
+      ? 'm3u8'
+      : normalizeXtreamMediaExtension(ext);
   return '$cleanHost/live/$encodedUser/$encodedPassword/${streamId.trim()}.$cleanExtension';
 }
 
@@ -509,6 +514,16 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  String _streamFormat = 'm3u8';
+  String get streamFormat => _streamFormat;
+  Future<void> setStreamFormat(String val) async {
+    _streamFormat = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('stream_format', val);
+    _playerSettingsVersion++;
+    notifyListeners();
+  }
+
   String _globalReferer = '';
   String get globalReferer => _globalReferer;
   void setGlobalReferer(String value) {
@@ -523,11 +538,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 301;
+  static const int APP_VERSION_CODE = 302;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
-  String _currentVersionStr = "2.2.101";
-  int _currentVersionCode = 301;
+  String _currentVersionStr = "2.2.102";
+  int _currentVersionCode = 302;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -1113,7 +1128,8 @@ class IPTVProvider with ChangeNotifier {
     // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
     _showMoviesSeries = true;
     await prefs.setBool('filter_show_movies_series', true);
-    _channelFilter = prefs.getString('channel_filter') ?? "الكل";
+    _streamFormat = prefs.getString('stream_format') ?? 'm3u8';
+    _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
     _activationCode = await _readSensitiveValue(prefs, 'active_code') ?? '';
@@ -2320,12 +2336,21 @@ class IPTVProvider with ChangeNotifier {
             // always use the authenticated standard route for live channels.
             // Credentials are URI-encoded so reserved characters do not break
             // the resulting media URL.
+            final formatToUse = _streamFormat == 'auto' ? extension : _streamFormat;
             final streamUrl = buildXtreamLiveUrl(
               host: host,
               username: user,
               password: pass,
               streamId: streamId,
-              extension: extension,
+              extension: formatToUse,
+            );
+            final altExt = (formatToUse == 'm3u8') ? 'ts' : 'm3u8';
+            final altStreamUrl = buildXtreamLiveUrl(
+              host: host,
+              username: user,
+              password: pass,
+              streamId: streamId,
+              extension: altExt,
             );
             final secureStreamUrl = host.startsWith('http://')
                 ? buildXtreamLiveUrl(
@@ -2333,7 +2358,7 @@ class IPTVProvider with ChangeNotifier {
                     username: user,
                     password: pass,
                     streamId: streamId,
-                    extension: extension,
+                    extension: formatToUse,
                   )
                 : null;
             tempStreams.add(PlaylistItem(
@@ -2345,8 +2370,8 @@ class IPTVProvider with ChangeNotifier {
               categoryName: catName,
               url: streamUrl,
               type: "live",
-              fallbackUrl: advertisedUrl.isNotEmpty && advertisedUrl != streamUrl
-                  ? advertisedUrl
+              fallbackUrl: altStreamUrl != streamUrl
+                  ? altStreamUrl
                   : (secureStreamUrl != streamUrl ? secureStreamUrl : null),
             ));
           }

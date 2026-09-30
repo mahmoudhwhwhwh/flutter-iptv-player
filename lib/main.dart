@@ -426,7 +426,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _codeController = TextEditingController();
+  final TextEditingController _xtreamHostController = TextEditingController();
+  final TextEditingController _xtreamUserController = TextEditingController();
+  final TextEditingController _xtreamPassController = TextEditingController();
+  final TextEditingController _xtreamNameController = TextEditingController();
+  bool _isXtreamMode = false;
   bool _obscureCode = true;
+  bool _obscureXtreamPass = true;
 
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
@@ -438,6 +444,10 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _codeController.dispose();
+    _xtreamHostController.dispose();
+    _xtreamUserController.dispose();
+    _xtreamPassController.dispose();
+    _xtreamNameController.dispose();
     super.dispose();
   }
 
@@ -512,49 +522,203 @@ class _LoginScreenState extends State<LoginScreen>
                             style: const TextStyle(
                                 color: Colors.redAccent, fontSize: 13)),
                       ),
-                    TextField(
-                      controller: _codeController,
-                      obscureText: _obscureCode,
-                      style: TextStyle(
-                          color: Colors.white, fontSize: isMobile ? 18 : 20),
-                      decoration: InputDecoration(
-                        hintText: "أدخل كود الاشتراك",
-                        hintStyle: const TextStyle(
-                            color: Color(0xFF74747E), fontSize: 18),
-                        prefixIcon: const Icon(Icons.key_rounded,
-                            color: Color(0xFFD1D1D5), size: 30),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                              _obscureCode
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: const Color(0xFFD1D1D5),
-                              size: 30),
-                          onPressed: () =>
-                              setState(() => _obscureCode = !_obscureCode),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF15151B),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 22, vertical: 23),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFA855F7), width: 1.5)),
+                    // 1. Selector Tab (Code vs Xtream)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 22),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF15151B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF2A2A38)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isXtreamMode = false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !_isXtreamMode ? const Color(0xFFA855F7) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "كود التفعيل",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: !_isXtreamMode ? FontWeight.bold : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isXtreamMode = true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _isXtreamMode ? const Color(0xFFA855F7) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "سيرفر Xtream",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: _isXtreamMode ? FontWeight.bold : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (provider.savedSubscriptionCodes.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Align(
+
+                    // 2. Input Fields based on mode
+                    if (!_isXtreamMode) ...[
+                      TextField(
+                        controller: _codeController,
+                        obscureText: _obscureCode,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 18 : 20),
+                        decoration: InputDecoration(
+                          hintText: "أدخل كود الاشتراك",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 18),
+                          prefixIcon: const Icon(Icons.key_rounded,
+                              color: Color(0xFFD1D1D5), size: 30),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                                _obscureCode
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFFD1D1D5),
+                                size: 30),
+                            onPressed: () =>
+                                setState(() => _obscureCode = !_obscureCode),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 22, vertical: 23),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFA855F7), width: 1.5)),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: _xtreamHostController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "رابط السيرفر: http://domain.com:8080",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.dns_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamUserController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "اسم المستخدم (Username)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.person_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamPassController,
+                        obscureText: _obscureXtreamPass,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "كلمة المرور (Password)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                                _obscureXtreamPass
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFFD1D1D5),
+                                size: 24),
+                            onPressed: () => setState(
+                                () => _obscureXtreamPass = !_obscureXtreamPass),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamNameController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "اسم الاشتراك (اختياري)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.label_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
+
+                    // 3. Saved Subscriptions Chips (Both Xtream and Codes)
+                    if (provider.savedPlaylists.isNotEmpty ||
+                        provider.savedSubscriptionCodes.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      const Align(
                         alignment: Alignment.centerRight,
                         child: Text(
-                          'الأكواد المحفوظة',
+                          'الاشتراكات المحفوظة (اضغط للتبديل الفوري)',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -562,53 +726,98 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Wrap(
                         alignment: WrapAlignment.end,
                         spacing: 8,
                         runSpacing: 8,
-                        children: provider.savedSubscriptionCodes.map((saved) {
-                          final title =
-                              saved.label.isEmpty ? saved.code : saved.label;
-                          final isActive =
-                              saved.code == provider.activationCode;
-                          return ActionChip(
-                            avatar: Icon(
-                              isActive
-                                  ? Icons.check_circle_rounded
-                                  : Icons.key_rounded,
-                              size: 17,
-                              color: isActive
-                                  ? const Color(0xFF5EEAD4)
-                                  : const Color(0xFFD8B4FE),
-                            ),
-                            label: Text(title),
-                            labelStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700),
-                            backgroundColor: isActive
-                                ? const Color(0xFF163B3B)
-                                : const Color(0xFF171321),
-                            side: BorderSide(
+                        children: [
+                          ...provider.savedPlaylists.map((pl) {
+                            final isXtream = pl.type.toLowerCase() == 'xtream';
+                            final title = pl.name.isNotEmpty ? pl.name : 'اشتراك';
+                            final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
+
+                            return ActionChip(
+                              avatar: Icon(
+                                isActive
+                                    ? Icons.check_circle_rounded
+                                    : (isXtream ? Icons.dns_rounded : Icons.live_tv_rounded),
+                                size: 17,
                                 color: isActive
-                                    ? const Color(0xFF2DD4BF)
-                                    : const Color(0xFF493568)),
-                            onPressed: provider.isLoading
-                                ? null
-                                : () async {
-                                    _codeController.text = saved.code;
-                                    final success = await provider
-                                        .switchToSavedSubscription(saved.code);
-                                    if (success && mounted)
-                                      FocusScope.of(context).unfocus();
-                                  },
-                          );
-                        }).toList(),
+                                    ? const Color(0xFF5EEAD4)
+                                    : const Color(0xFFD8B4FE),
+                              ),
+                              label: Text(title),
+                              labelStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700),
+                              backgroundColor: isActive
+                                  ? const Color(0xFF163B3B)
+                                  : const Color(0xFF171321),
+                              side: BorderSide(
+                                  color: isActive
+                                      ? const Color(0xFF2DD4BF)
+                                      : const Color(0xFF493568)),
+                              onPressed: provider.isLoading
+                                  ? null
+                                  : () async {
+                                      final success = await provider
+                                          .switchSubscription(pl.id);
+                                      if (success && mounted) {
+                                        FocusScope.of(context).unfocus();
+                                      }
+                                    },
+                            );
+                          }),
+                          ...provider.savedSubscriptionCodes
+                              .where((c) => !provider.savedPlaylists
+                                  .any((p) => p.id == 'subscription_${c.code}'))
+                              .map((saved) {
+                            final title =
+                                saved.label.isEmpty ? saved.code : saved.label;
+                            final isActive =
+                                saved.code == provider.activationCode && provider.isLoggedIn;
+                            return ActionChip(
+                              avatar: Icon(
+                                isActive
+                                    ? Icons.check_circle_rounded
+                                    : Icons.key_rounded,
+                                size: 17,
+                                color: isActive
+                                    ? const Color(0xFF5EEAD4)
+                                    : const Color(0xFFD8B4FE),
+                              ),
+                              label: Text(title),
+                              labelStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700),
+                              backgroundColor: isActive
+                                  ? const Color(0xFF163B3B)
+                                  : const Color(0xFF171321),
+                              side: BorderSide(
+                                  color: isActive
+                                      ? const Color(0xFF2DD4BF)
+                                      : const Color(0xFF493568)),
+                              onPressed: provider.isLoading
+                                  ? null
+                                  : () async {
+                                      _codeController.text = saved.code;
+                                      final success = await provider
+                                          .switchToSavedSubscription(saved.code);
+                                      if (success && mounted) {
+                                        FocusScope.of(context).unfocus();
+                                      }
+                                    },
+                            );
+                          }),
+                        ],
                       ),
                     ],
+
+                    // 4. Submit Login Button
                     const SizedBox(height: 28),
                     SizedBox(
-                      height: isMobile ? 68 : 74,
+                      height: isMobile ? 60 : 66,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
@@ -621,9 +830,23 @@ class _LoginScreenState extends State<LoginScreen>
                           onPressed: provider.isLoading
                               ? null
                               : () async {
-                                  final success = await provider
-                                      .loginWithCode(_codeController.text);
-                                  if (success) FocusScope.of(context).unfocus();
+                                  if (!_isXtreamMode) {
+                                    final success = await provider
+                                        .loginWithCode(_codeController.text);
+                                    if (success && mounted) {
+                                      FocusScope.of(context).unfocus();
+                                    }
+                                  } else {
+                                    final success = await provider.loginWithXtream(
+                                      host: _xtreamHostController.text,
+                                      username: _xtreamUserController.text,
+                                      password: _xtreamPassController.text,
+                                      name: _xtreamNameController.text,
+                                    );
+                                    if (success && mounted) {
+                                      FocusScope.of(context).unfocus();
+                                    }
+                                  }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
@@ -640,10 +863,13 @@ class _LoginScreenState extends State<LoginScreen>
                                   height: 25,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2.5))
-                              : const Text("تسجيل الدخول",
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.w500)),
+                              : Text(
+                                  !_isXtreamMode
+                                      ? "تسجيل الدخول"
+                                      : "دخول وحفظ اشتراك Xtream",
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -885,6 +1111,194 @@ class _MainDashboardState extends State<MainDashboard> {
     });
   }
 
+  void _showSubscriptionPicker(BuildContext context, IPTVProvider provider) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF13131A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        final playlists = provider.savedPlaylists;
+        final codes = provider.savedSubscriptionCodes;
+        final hasAny = playlists.isNotEmpty || codes.isNotEmpty;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    const Icon(Icons.swap_horiz_rounded,
+                        color: Color(0xFF2DD4BF), size: 24),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'التبديل بين الاشتراكات',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(sheetCtx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SettingsScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.add_rounded,
+                          size: 18, color: Color(0xFFA855F7)),
+                      label: const Text(
+                        'إضافة جديد',
+                        style: TextStyle(
+                            color: Color(0xFFA855F7),
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (!hasAny)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'لا توجد اشتراكات محفوظة. اضغط على إضافة جديد لإدخال بيانات اشتراكك.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white60, fontSize: 13),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        ...playlists.map((pl) {
+                          final isActive = pl.id == provider.activePlaylistId &&
+                              provider.isLoggedIn;
+                          final isXtream = pl.type.toLowerCase() == 'xtream';
+                          final subTitle = isXtream
+                              ? 'سيرفر Xtream: ${pl.username ?? ""}'
+                              : (pl.id.startsWith('subscription_')
+                                  ? 'كود: ${pl.id.replaceFirst("subscription_", "")}'
+                                  : 'قائمة IPTV');
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFF132B2B)
+                                  : const Color(0xFF1C1C26),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isActive
+                                    ? const Color(0xFF2DD4BF)
+                                    : const Color(0xFF2E2E3E),
+                                width: isActive ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                isActive
+                                    ? Icons.check_circle_rounded
+                                    : (isXtream
+                                        ? Icons.dns_rounded
+                                        : Icons.live_tv_rounded),
+                                color: isActive
+                                    ? const Color(0xFF2DD4BF)
+                                    : Colors.white60,
+                              ),
+                              title: Text(
+                                pl.name.isNotEmpty ? pl.name : 'اشتراك',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15),
+                              ),
+                              subtitle: Text(
+                                subTitle,
+                                style: const TextStyle(
+                                    color: Colors.white54, fontSize: 12),
+                              ),
+                              trailing: isActive
+                                  ? const Text(
+                                      'النشط حالياً ✅',
+                                      style: TextStyle(
+                                          color: Color(0xFF2DD4BF),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12),
+                                    )
+                                  : ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(sheetCtx);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text(
+                                              'جاري التبديل إلى ${pl.name}...'),
+                                          duration: const Duration(seconds: 2),
+                                        ));
+                                        final success = await provider
+                                            .switchSubscription(pl.id);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(success
+                                                ? 'تم تفعيل ${pl.name} بنجاح'
+                                                : (provider.lastError ??
+                                                    'تعذر التبديل')),
+                                            backgroundColor: success
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ));
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFFA855F7),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                      child: const Text('تبديل',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void updateIndex(int i) {
     if (i > 0) {
       String t = ["", "live", "movie", "series", "favorites"][i];
@@ -968,6 +1382,12 @@ class _MainDashboardState extends State<MainDashboard> {
                   Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 19),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: "تبديل الاشتراك",
+              icon: const Icon(Icons.swap_horiz_rounded,
+                  color: Color(0xFF2DD4BF), size: 30),
+              onPressed: () => _showSubscriptionPicker(context, provider),
             ),
             IconButton(
               tooltip: "بحث",
@@ -1132,6 +1552,27 @@ class _MainDashboardState extends State<MainDashboard> {
                   index: 3),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.swap_horiz_rounded,
+                  color: Color(0xFF2DD4BF), size: 31),
+              title: const Text("تبديل الاشتراك",
+                  style: TextStyle(
+                      color: Color(0xFF2DD4BF),
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700)),
+              subtitle: Text(
+                provider.subscriptionType.isNotEmpty
+                    ? provider.subscriptionType
+                    : 'الاشتراكات المحفوظة',
+                style: const TextStyle(color: Color(0xFF8E8E9F), fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showSubscriptionPicker(context, provider);
+              },
+            ),
             ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 26, vertical: 8),

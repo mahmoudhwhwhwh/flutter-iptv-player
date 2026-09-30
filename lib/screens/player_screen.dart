@@ -10,6 +10,7 @@ import 'multi_screen_player.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:video_player/video_player.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -145,6 +146,25 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
+  VideoPlayerController? _loadingVideoController;
+
+  void _initLoadingVideo() {
+    try {
+      final ctrl = VideoPlayerController.asset('assets/loading_stream.mp4');
+      ctrl.initialize().then((_) {
+        if (!mounted) {
+          ctrl.dispose();
+          return;
+        }
+        ctrl.setLooping(true);
+        ctrl.setVolume(0.0);
+        ctrl.play();
+        setState(() {
+          _loadingVideoController = ctrl;
+        });
+      }).catchError((_) {});
+    } catch (_) {}
+  }
   WebViewController? _webController;
   bool _isWebFallback = false;
   GlobalKey _betterPlayerKey = GlobalKey();
@@ -451,6 +471,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
     _loadSubSettings();
     _stream = widget.stream;
+    _initLoadingVideo();
 
     // عرض ثابت أفقي للمشغّل؛ لا تُستخدم حساسات الحركة لتفادي التدوير العشوائي.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -1124,6 +1145,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    final loadingCtrl = _loadingVideoController;
+    _loadingVideoController = null;
+    loadingCtrl?.dispose();
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);
@@ -2459,8 +2483,27 @@ class _PlayerScreenState extends State<PlayerScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
-        Container(color: Colors.black.withOpacity(0.10)),
+        if (_loadingVideoController != null &&
+            _loadingVideoController!.value.isInitialized)
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _loadingVideoController!.value.size.width,
+                height: _loadingVideoController!.value.size.height,
+                child: VideoPlayer(_loadingVideoController!),
+              ),
+            ),
+          )
+        else
+          Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+        Container(color: Colors.black.withOpacity(0.12)),
+        const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFA855F7),
+            strokeWidth: 3,
+          ),
+        ),
       ],
     );
   }

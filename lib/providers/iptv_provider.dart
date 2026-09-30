@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -127,57 +128,63 @@ class IPTVProvider with ChangeNotifier {
   RemoteConfig get remoteConfig => _remoteConfig;
 
   Future<void> _loadSavedPlaylists(SharedPreferences prefs) async {
-    final securePlaylists = await _securePlaylistStore.read();
-    if (securePlaylists.isNotEmpty) {
-      _savedPlaylists = securePlaylists;
-      return;
-    }
-    final legacyJson = prefs.getString('saved_playlists');
-    if (legacyJson == null || legacyJson.isEmpty) return;
+    List<UserPlaylist> loaded = [];
     try {
-      final decoded = jsonDecode(legacyJson);
-      if (decoded is List) {
-        _savedPlaylists = decoded
-            .whereType<Map>()
-            .map((item) =>
-                UserPlaylist.fromJson(Map<String, dynamic>.from(item)))
-            .toList(growable: true);
-        if (_savedPlaylists.isNotEmpty) {
-          await _securePlaylistStore.write(_savedPlaylists);
-          await prefs.remove('saved_playlists');
-        }
+      final securePlaylists = await _securePlaylistStore.read();
+      if (securePlaylists.isNotEmpty) {
+        loaded = securePlaylists;
       }
     } catch (_) {}
+
+    if (loaded.isEmpty) {
+      final legacyJson = prefs.getString('saved_playlists');
+      if (legacyJson != null && legacyJson.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(legacyJson);
+          if (decoded is List) {
+            loaded = decoded
+                .whereType<Map>()
+                .map((item) =>
+                    UserPlaylist.fromJson(Map<String, dynamic>.from(item)))
+                .toList(growable: true);
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (loaded.isNotEmpty) {
+      _savedPlaylists = loaded;
+      try {
+        await _securePlaylistStore.write(_savedPlaylists);
+      } catch (_) {}
+    }
   }
 
   Future<void> _persistSavedPlaylists() async {
     final prefs = await SharedPreferences.getInstance();
-    // Secure storage remains the primary store. Keep a recovery copy as well:
-    // some Android vendors clear or restore secure-storage keys differently
-    // after an app restart/restore, which used to make subscriptions vanish.
-    await _securePlaylistStore.write(_savedPlaylists);
-    await prefs.setString(
-      'saved_playlists',
-      jsonEncode(_savedPlaylists.map((playlist) => playlist.toJson()).toList()),
-    );
+    final jsonStr =
+        jsonEncode(_savedPlaylists.map((playlist) => playlist.toJson()).toList());
+    try {
+      await _securePlaylistStore.write(_savedPlaylists);
+    } catch (_) {}
+    await prefs.setString('saved_playlists', jsonStr);
   }
 
   Future<String?> _readSensitiveValue(
       SharedPreferences prefs, String key) async {
-    final secureValue = await _securePlaylistStore.readValue(key);
-    if (secureValue != null && secureValue.isNotEmpty) return secureValue;
-    final legacyValue = prefs.getString(key);
-    if (legacyValue != null && legacyValue.isNotEmpty) {
-      await _securePlaylistStore.writeValue(key, legacyValue);
-      await prefs.remove(key);
-    }
-    return legacyValue;
+    try {
+      final secureValue = await _securePlaylistStore.readValue(key);
+      if (secureValue != null && secureValue.isNotEmpty) return secureValue;
+    } catch (_) {}
+    return prefs.getString(key);
   }
 
   Future<void> _writeSensitiveValue(String key, String value) async {
-    await _securePlaylistStore.writeValue(key, value);
+    try {
+      await _securePlaylistStore.writeValue(key, value);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(key);
+    await prefs.setString(key, value);
   }
 
   bool _isDarkMode = true;
@@ -513,11 +520,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 300;
+  static const int APP_VERSION_CODE = 301;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
-  String _currentVersionStr = "2.2.100";
-  int _currentVersionCode = 300;
+  String _currentVersionStr = "2.2.101";
+  int _currentVersionCode = 301;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -696,6 +703,274 @@ class IPTVProvider with ChangeNotifier {
     await _persistSavedSubscriptionCodes();
     notifyListeners();
   }
+
+  Future<String> _getCacheFilePath(String playlistId) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final safeId = playlistId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    return '${dir.path}/playlist_cache_$safeId.json';
+  }
+
+  Future<bool> _loadCachedPlaylist(String playlistId) async {
+    try {
+      final filePath = await _getCacheFilePath(playlistId);
+      final file = File(filePath);
+      if (!await file.exists()) return false;
+      final content = await file.readAsString();
+      if (content.isEmpty) return false;
+      final data = jsonDecode(content);
+      if (data is! Map) return false;
+
+      final rawLiveCats = data['live_categories'];
+      final rawMovieCats = data['movie_categories'];
+      final rawSeriesCats = data['series_categories'];
+      final rawStreams = data['streams'];
+
+      if (rawStreams is! List || rawStreams.isEmpty) return false;
+
+      if (rawLiveCats is List) {
+        _liveCategories = rawLiveCats
+            .whereType<Map>()
+            .map((e) => Map<String, String>.from(
+                e.map((k, v) => MapEntry(k.toString(), v.toString()))))
+            .toList();
+      }
+      if (rawMovieCats is List) {
+        _movieCategories = rawMovieCats
+            .whereType<Map>()
+            .map((e) => Map<String, String>.from(
+                e.map((k, v) => MapEntry(k.toString(), v.toString()))))
+            .toList();
+      }
+      if (rawSeriesCats is List) {
+        _seriesCategories = rawSeriesCats
+            .whereType<Map>()
+            .map((e) => Map<String, String>.from(
+                e.map((k, v) => MapEntry(k.toString(), v.toString()))))
+            .toList();
+      }
+
+      _allStreams = rawStreams
+          .whereType<Map>()
+          .map((e) => PlaylistItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+
+      _applyFilters();
+      debugPrint('Loaded ${_allStreams.length} cached streams for $playlistId');
+      return true;
+    } catch (e) {
+      debugPrint('Failed to load cached playlist: ${redactDiagnostic(e)}');
+      return false;
+    }
+  }
+
+  Future<void> _saveCachedPlaylist(String playlistId) async {
+    try {
+      if (_allStreams.isEmpty) return;
+      final filePath = await _getCacheFilePath(playlistId);
+      final file = File(filePath);
+      final payload = {
+        'cached_at': DateTime.now().millisecondsSinceEpoch,
+        'playlist_id': playlistId,
+        'live_categories': _liveCategories,
+        'movie_categories': _movieCategories,
+        'series_categories': _seriesCategories,
+        'streams': _allStreams.map((s) => s.toJson()).toList(),
+      };
+      await file.writeAsString(jsonEncode(payload), flush: true);
+      debugPrint('Saved ${_allStreams.length} streams to cache file: $filePath');
+    } catch (e) {
+      debugPrint('Failed to save cached playlist: ${redactDiagnostic(e)}');
+    }
+  }
+
+  Future<bool> switchSubscription(String id) async {
+    final cleanId = id.trim();
+    if (cleanId.isEmpty) return false;
+
+    final index = _savedPlaylists.indexWhere((p) => p.id == cleanId);
+    if (index >= 0) {
+      final playlist = _savedPlaylists[index];
+      _activePlaylistId = playlist.id;
+      _subscriptionType = playlist.name;
+      _isLoggedIn = true;
+      if (playlist.type != 'xtream' && playlist.id.startsWith('subscription_')) {
+        _activationCode = playlist.id.replaceFirst('subscription_', '');
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_activePlaylistIdKey, playlist.id);
+      await prefs.setString('active_code_sub_name', playlist.name);
+      await prefs.setBool('is_logged_in', true);
+      if (_activationCode.isNotEmpty) {
+        await _writeSensitiveValue('active_code', _activationCode);
+      }
+
+      await loadPlaylistStreams(playlist.id);
+      notifyListeners();
+      return true;
+    }
+
+    final savedCode = savedSubscriptionCode(cleanId);
+    if (savedCode != null) {
+      return await switchToSavedSubscription(cleanId);
+    }
+
+    return false;
+  }
+
+  Future<void> removeSavedPlaylist(String id) async {
+    _savedPlaylists.removeWhere((p) => p.id == id);
+    await _persistSavedPlaylists();
+
+    try {
+      final filePath = await _getCacheFilePath(id);
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+
+    if (_activePlaylistId == id) {
+      if (_savedPlaylists.isNotEmpty) {
+        await switchSubscription(_savedPlaylists.first.id);
+      } else {
+        await logout();
+      }
+    } else {
+      notifyListeners();
+    }
+  }
+
+  Future<bool> loginWithXtream({
+    required String host,
+    required String username,
+    required String password,
+    String? name,
+  }) async {
+    if (_blackScreenBlocked || _snifferDetected) return false;
+
+    lastError = null;
+    var cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (!cleanHost.startsWith('http://') && !cleanHost.startsWith('https://')) {
+      cleanHost = 'http://$cleanHost';
+    }
+    final cleanUser = username.trim();
+    final cleanPass = password.trim();
+    final subName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : 'Xtream: $cleanUser';
+
+    if (cleanHost.isEmpty || cleanUser.isEmpty || cleanPass.isEmpty) {
+      lastError = 'يرجى إدخال السيرفر واسم المستخدم وكلمة المرور';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final authUri = buildXtreamApiUri(
+        host: cleanHost,
+        username: cleanUser,
+        password: cleanPass,
+      );
+
+      final response = await getXtreamApiWithFallback(
+        authUri,
+        timeout: const Duration(seconds: 25),
+      );
+
+      if (response.statusCode != 200) {
+        lastError = 'تعذر الاتصال بسيرفر Xtream (رمز الرد: ${response.statusCode})';
+        return false;
+      }
+
+      final dynamic decoded = json.decode(response.body);
+      if (decoded is! Map) {
+        lastError = 'استجابة السيرفر غير صالحة';
+        return false;
+      }
+
+      final userInfo = decoded['user_info'];
+      if (userInfo is! Map) {
+        lastError = 'بيانات الحساب غير موجودة في رد السيرفر';
+        return false;
+      }
+
+      final auth = userInfo['auth'];
+      final status = userInfo['status']?.toString().toLowerCase();
+      if (auth == 0 || status == 'disabled' || status == 'banned' || status == 'expired') {
+        lastError = 'بيانات الدخول غير صحيحة أو أن الحساب منتهي/معطل';
+        return false;
+      }
+
+      var durationHours = -1;
+      final expDate = userInfo['exp_date']?.toString();
+      if (expDate != null && expDate.isNotEmpty && expDate != 'null') {
+        final expTimestamp = int.tryParse(expDate);
+        if (expTimestamp != null) {
+          final expDateTime = DateTime.fromMillisecondsSinceEpoch(expTimestamp * 1000);
+          durationHours = expDateTime.difference(DateTime.now()).inHours;
+          if (durationHours < 0) {
+            lastError = 'انتهت صلاحية اشتراك Xtream';
+            return false;
+          }
+        }
+      }
+
+      final hostUri = Uri.tryParse(cleanHost);
+      final hostPart = hostUri != null ? hostUri.host : cleanHost.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+      final playlistId = 'xtream_${cleanUser}_$hostPart';
+      final list = UserPlaylist(
+        id: playlistId,
+        name: subName,
+        type: 'xtream',
+        host: cleanHost,
+        username: cleanUser,
+        password: cleanPass,
+      );
+
+      final existingIndex = _savedPlaylists.indexWhere((p) => p.id == list.id);
+      if (existingIndex >= 0) {
+        final next = List<UserPlaylist>.from(_savedPlaylists);
+        next[existingIndex] = list;
+        _savedPlaylists = next;
+      } else {
+        _savedPlaylists = [..._savedPlaylists, list];
+      }
+
+      _activePlaylistId = list.id;
+      _subscriptionType = subName;
+      _isLoggedIn = true;
+      _activationCode = '';
+      _activationTime = DateTime.now().millisecondsSinceEpoch;
+      _activationDurationHours = durationHours;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_activePlaylistIdKey, list.id);
+      await prefs.setString('active_code_sub_name', subName);
+      await prefs.setInt('active_code_activated_at', _activationTime);
+      await prefs.setInt('active_code_duration_hours', durationHours);
+      await prefs.setBool('is_logged_in', true);
+      await _persistSavedPlaylists();
+
+      notifyListeners();
+
+      await loadPlaylistStreams(list.id);
+      return true;
+    } on TimeoutException {
+      lastError = 'انتهت مهلة الاتصال بسيرفر Xtream. تحقق من الرابط والإنترنت';
+    } catch (e) {
+      lastError = 'تعذر تسجيل الدخول بـ Xtream. تأكد من صحة البيانات والإنترنت';
+      debugPrint('Xtream login error: ${redactDiagnostic(e)}');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
 
   List<Map<String, String>> get liveCategories => _liveCategories;
   List<Map<String, String>> get movieCategories => _movieCategories;
@@ -1757,6 +2032,17 @@ class IPTVProvider with ChangeNotifier {
       return;
     }
     _activePlaylistId = id;
+
+    // Check offline local cache first if not force-refreshing!
+    if (!forceRefresh) {
+      final cacheLoaded = await _loadCachedPlaylist(id);
+      if (cacheLoaded && _allStreams.isNotEmpty && isCurrentLoad()) {
+        _isFetchingData = false;
+        notifyListeners();
+        return;
+      }
+    }
+
     final refreshQuery =
         forceRefresh ? '&refresh=${DateTime.now().millisecondsSinceEpoch}' : '';
 
@@ -1766,6 +2052,7 @@ class IPTVProvider with ChangeNotifier {
         await _appendXtreamVodFromCode('55669977');
       }
       if (!isCurrentLoad()) return;
+      await _saveCachedPlaylist(id);
       _isFetchingData = false;
       notifyListeners();
       return;
@@ -1965,6 +2252,7 @@ class IPTVProvider with ChangeNotifier {
           applyChannelFilter: false,
         ));
         _applyFilters();
+        await _saveCachedPlaylist(id);
         _isFetchingData = false;
         notifyListeners();
         return;
@@ -2187,6 +2475,7 @@ class IPTVProvider with ChangeNotifier {
           applyChannelFilter: false,
         ));
         _applyFilters();
+        await _saveCachedPlaylist(id);
         _isFetchingData = false;
         notifyListeners();
         return;
@@ -2374,15 +2663,12 @@ class IPTVProvider with ChangeNotifier {
     ]) {
       await prefs.remove(key);
     }
-    await _securePlaylistStore.delete();
     await _securePlaylistStore.deleteValue('active_code');
-    await _securePlaylistStore.deleteValue(_savedSubscriptionCodesKey);
     _isLoggedIn = false;
     _activationCode = '';
     _activationTime = 0;
     _activationDurationHours = -1;
     _subscriptionType = '';
-    _savedPlaylists.clear();
     _allStreams.clear();
     _filteredStreams.clear();
     _liveCategories.clear();
@@ -2408,15 +2694,12 @@ class IPTVProvider with ChangeNotifier {
     ]) {
       await prefs.remove(key);
     }
-    await _securePlaylistStore.delete();
     await _securePlaylistStore.deleteValue('active_code');
-    await _securePlaylistStore.deleteValue(_savedSubscriptionCodesKey);
     _isLoggedIn = false;
     _activationCode = '';
     _activationTime = 0;
     _activationDurationHours = -1;
     _subscriptionType = '';
-    _savedPlaylists.clear();
     _allStreams.clear();
     _filteredStreams.clear();
     _liveCategories.clear();

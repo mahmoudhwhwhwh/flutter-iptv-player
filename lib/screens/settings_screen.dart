@@ -803,6 +803,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSavedSubscriptionCodesCard(IPTVProvider provider) {
     final codes = provider.savedSubscriptionCodes;
+    final playlists = provider.savedPlaylists;
+    final hasSubscriptions = codes.isNotEmpty || playlists.isNotEmpty;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -850,7 +853,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'احفظ أكثر من كود وبدّل بينها فوراً بدون فقدان البيانات',
+                      'احفظ بيانات Xtream أو الأكواد وبدّل بينها فوراً بدون انتظار التحميل',
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: _SettingsPalette.textMuted,
@@ -861,7 +864,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () => _showAddSavedCodeDialog(provider),
+                onPressed: () => _showAddSubscriptionDialog(provider),
                 icon: const Icon(Icons.add_rounded,
                     size: 18, color: Colors.black),
                 label: const Text(
@@ -883,7 +886,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          if (codes.isEmpty)
+          if (!hasSubscriptions)
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -899,32 +902,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: _SettingsPalette.textMuted, size: 18),
                   SizedBox(width: 8),
                   Text(
-                    'لا توجد اشتراكات محفوظة بعد. انقر على إضافة لحفظ كود جديد.',
+                    'لا توجد اشتراكات محفوظة بعد. انقر على إضافة لحفظ اشتراك جديد.',
                     style: TextStyle(
                         color: _SettingsPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             )
-          else
-            ...codes.map((saved) {
-              final isActive =
-                  saved.code == provider.activationCode && provider.isLoggedIn;
-              final title = saved.label.isEmpty ? saved.code : saved.label;
-              final statusText = saved.status == 'checking'
-                  ? 'جاري التحقق...'
-                  : saved.status == 'invalid'
-                      ? 'غير صالح'
-                      : isActive
-                          ? 'الاشتراك النشط حالياً ✅'
-                          : saved.status == 'active'
-                              ? 'صالح وجاهز للتشغيل'
-                              : 'محفوظ';
-              final statusColor = saved.status == 'invalid'
-                  ? _SettingsPalette.danger
-                  : isActive
-                      ? _SettingsPalette.cyan
-                      : _SettingsPalette.textMuted;
+          else ...[
+            ...playlists.map((pl) {
+              final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
+              final isXtream = pl.type.toLowerCase() == 'xtream';
+              final subTitle = isXtream
+                  ? 'سيرفر Xtream: ${pl.username ?? ""}'
+                  : (pl.id.startsWith('subscription_')
+                      ? 'كود: ${pl.id.replaceFirst("subscription_", "")}'
+                      : 'قائمة IPTV');
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -955,7 +948,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Icon(
                         isActive
                             ? Icons.check_circle_rounded
-                            : Icons.confirmation_number_outlined,
+                            : (isXtream ? Icons.dns_rounded : Icons.live_tv_rounded),
                         color:
                             isActive ? _SettingsPalette.cyan : Colors.white70,
                         size: 20,
@@ -969,44 +962,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Row(
                             textDirection: TextDirection.rtl,
                             children: [
-                              Text(
-                                title,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  pl.name.isNotEmpty ? pl.name : 'اشتراك بدون اسم',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                              if (saved.label.isNotEmpty &&
-                                  saved.label != saved.code) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black38,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    saved.code,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontFamily: 'monospace',
-                                      fontSize: 11,
-                                    ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isXtream
+                                      ? const Color(0xFF381E72)
+                                      : const Color(0xFF1E3A5F),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isXtream ? 'XTREAM' : 'CODE',
+                                  style: TextStyle(
+                                    color: isXtream
+                                        ? const Color(0xFFD8B4FE)
+                                        : const Color(0xFF93C5FD),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            statusText,
-                            style: TextStyle(
-                              color: statusColor,
+                            subTitle,
+                            style: const TextStyle(
+                              color: _SettingsPalette.textMuted,
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -1017,8 +1013,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ElevatedButton(
                         onPressed: provider.isLoading
                             ? null
-                            : () =>
-                                provider.switchToSavedSubscription(saved.code),
+                            : () => _handleSwitch(provider, pl.id, pl.name),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _SettingsPalette.purpleBright,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('تبديل',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _SettingsPalette.cyan.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'نشط الآن',
+                          style: TextStyle(
+                            color: _SettingsPalette.cyan,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    PopupMenuButton<String>(
+                      color: _SettingsPalette.surfaceElevated,
+                      icon: const Icon(Icons.more_vert_rounded,
+                          color: Colors.white54, size: 20),
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          provider.removeSavedPlaylist(pl.id);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text('حذف الاشتراك',
+                              style: TextStyle(color: Colors.redAccent)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            ...codes
+                .where((c) => !playlists.any((p) => p.id == 'subscription_${c.code}'))
+                .map((saved) {
+              final isActive =
+                  saved.code == provider.activationCode && provider.isLoggedIn;
+              final title = saved.label.isEmpty ? saved.code : saved.label;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? _SettingsPalette.cyan.withOpacity(0.09)
+                      : _SettingsPalette.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isActive
+                        ? _SettingsPalette.cyan
+                        : _SettingsPalette.divider,
+                    width: isActive ? 1.5 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? _SettingsPalette.cyan.withOpacity(0.2)
+                            : Colors.white.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isActive
+                            ? Icons.check_circle_rounded
+                            : Icons.key_rounded,
+                        color:
+                            isActive ? _SettingsPalette.cyan : Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'كود: ${saved.code}',
+                            style: const TextStyle(
+                              color: _SettingsPalette.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (!isActive)
+                      ElevatedButton(
+                        onPressed: provider.isLoading
+                            ? null
+                            : () => _handleSwitch(provider, saved.code, title),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _SettingsPalette.purpleBright,
                           padding: const EdgeInsets.symmetric(
@@ -1076,61 +1195,249 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               );
             }),
+          ],
         ],
       ),
     );
   }
 
-  Future<void> _showAddSavedCodeDialog(IPTVProvider provider) async {
-    final codeController = TextEditingController();
-    final labelController = TextEditingController();
-    final form = await showDialog<List<String>>(
+  Future<void> _handleSwitch(IPTVProvider provider, String id, String name) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('جاري التبديل إلى $name...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    final success = await provider.switchSubscription(id);
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم تفعيل $name بنجاح'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.lastError ?? 'تعذر التبديل إلى هذا الاشتراك'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showAddSubscriptionDialog(IPTVProvider provider) async {
+    int selectedTab = 0;
+    final codeCtrl = TextEditingController();
+    final codeLabelCtrl = TextEditingController();
+    final hostCtrl = TextEditingController();
+    final userCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    final xtreamNameCtrl = TextEditingController();
+
+    await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _SettingsPalette.surfaceElevated,
-        title: const Text('إضافة كود اشتراك',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: codeController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'الكود',
-                    labelStyle: TextStyle(color: Colors.white70))),
-            TextField(
-                controller: labelController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'اسم اختياري',
-                    labelStyle: TextStyle(color: Colors.white70))),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: _SettingsPalette.surfaceElevated,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            textDirection: TextDirection.rtl,
+            children: [
+              Icon(Icons.add_circle_outline_rounded,
+                  color: _SettingsPalette.cyan, size: 24),
+              SizedBox(width: 8),
+              Text('إضافة اشتراك جديد',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: _SettingsPalette.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _SettingsPalette.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() => selectedTab = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedTab == 0
+                                  ? _SettingsPalette.purple
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('كود التفعيل',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() => selectedTab = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedTab == 1
+                                  ? _SettingsPalette.purple
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('Xtream IPTV',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (selectedTab == 0) ...[
+                  TextField(
+                    controller: codeCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'كود الاشتراك',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'مثال: 2027',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: codeLabelCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم اختياري',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'مثال: اشتراكي الأساسي',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                ] else ...[
+                  TextField(
+                    controller: hostCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'رابط السيرفر (Host)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'http://example.com:8080',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: userCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم المستخدم (Username)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passCtrl,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'كلمة المرور (Password)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: xtreamNameCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الاشتراك (اختياري)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.white60)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                if (selectedTab == 0) {
+                  final code = codeCtrl.text.trim();
+                  if (code.isEmpty) return;
+                  final success = await provider.addSavedSubscriptionCode(
+                    code,
+                    label: codeLabelCtrl.text.trim(),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(success
+                          ? 'تم حفظ وتفعيل الكود بنجاح'
+                          : (provider.lastError ?? 'تعذر تفعيل الكود')),
+                    ));
+                  }
+                } else {
+                  final host = hostCtrl.text.trim();
+                  final user = userCtrl.text.trim();
+                  final pass = passCtrl.text.trim();
+                  if (host.isEmpty || user.isEmpty || pass.isEmpty) return;
+                  final success = await provider.loginWithXtream(
+                    host: host,
+                    username: user,
+                    password: pass,
+                    name: xtreamNameCtrl.text.trim(),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(success
+                          ? 'تم حفظ وتفعيل اشتراك Xtream بنجاح'
+                          : (provider.lastError ?? 'تعذر الاتصال بسيرفر Xtream')),
+                    ));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _SettingsPalette.purple,
+              ),
+              child: const Text('حفظ وتفعيل',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(
-                  dialogContext, [codeController.text, labelController.text]),
-              child: const Text('تحقق وحفظ')),
-        ],
       ),
     );
-    codeController.dispose();
-    labelController.dispose();
-    if (form == null || !mounted) return;
-    final success =
-        await provider.addSavedSubscriptionCode(form[0], label: form[1]);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success
-            ? 'تم حفظ الكود وتفعيله'
-            : (provider.lastError ?? 'تعذر التحقق من الكود'))));
-  }
 
+    codeCtrl.dispose();
+    codeLabelCtrl.dispose();
+    hostCtrl.dispose();
+    userCtrl.dispose();
+    passCtrl.dispose();
+    xtreamNameCtrl.dispose();
+  }
   Future<void> _showRenameSavedCodeDialog(
       IPTVProvider provider, String code, String currentLabel) async {
     final controller =

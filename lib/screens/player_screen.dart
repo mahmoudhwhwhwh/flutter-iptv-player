@@ -1630,8 +1630,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     const Padding(
                                       padding: EdgeInsets.all(24),
                                       child: Text(
-                                        'لا توجد ملفات ترجمة مدمجة لهذا البث.
-يمكنك ضبط حجم ونمط الخط من التبويب المجاور.',
+                                        'لا توجد ملفات ترجمة مدمجة لهذا البث. يمكنك ضبط حجم ونمط الخط من التبويب المجاور.',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             color: Colors.white60, fontSize: 13),

@@ -78,14 +78,17 @@ Uri buildXtreamApiUri({
   required String host,
   required String username,
   required String password,
-  required String action,
+  String? action,
 }) {
   final cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
-  return Uri.parse('$cleanHost/player_api.php').replace(queryParameters: {
+  final params = <String, String>{
     'username': username.trim(),
     'password': password.trim(),
-    'action': action,
-  });
+  };
+  if (action != null && action.isNotEmpty) {
+    params['action'] = action;
+  }
+  return Uri.parse('$cleanHost/player_api.php').replace(queryParameters: params);
 }
 
 Future<http.Response> getXtreamApiWithFallback(Uri primary,

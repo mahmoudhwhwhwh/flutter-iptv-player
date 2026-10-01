@@ -1,3 +1,4 @@
+import '../models/user_playlist.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -2391,11 +2392,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final stopwatch = Stopwatch()..start();
     String host = "";
     try {
-      final active = provider.savedPlaylists.firstWhere(
+      final matching = provider.savedPlaylists.where(
         (p) => p.id == provider.activePlaylistId,
-        orElse: () => UserPlaylist(id: '', name: '', type: ''),
       );
-      host = (active.host ?? '').trim();
+      if (matching.isNotEmpty) {
+        host = (matching.first.host ?? '').trim();
+      }
       if (host.isEmpty) {
         host = 'https://iptv-subscription-api.tvkora56.workers.dev';
       }

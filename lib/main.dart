@@ -630,10 +630,15 @@ class _LoginScreenState extends State<LoginScreen>
                                 label: Text(code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                 backgroundColor: const Color(0xFF1E1E28),
                                 side: const BorderSide(color: Color(0xFFA855F7), width: 1.2),
-                                onPressed: () {
-                                  _codeController.text = code;
-                                  _submitCode();
-                                },
+                                onPressed: provider.isLoading
+                                    ? null
+                                    : () async {
+                                        _codeController.text = code;
+                                        final success = await provider.loginWithCode(code);
+                                        if (success && mounted) {
+                                          FocusScope.of(context).unfocus();
+                                        }
+                                      },
                               ),
                             ),
                         ],

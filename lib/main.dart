@@ -618,6 +618,26 @@ class _LoginScreenState extends State<LoginScreen>
                                   color: Color(0xFFA855F7), width: 1.5)),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (final code in ['8090', '2027', '55669977'])
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: ActionChip(
+                                avatar: const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFFBBF24)),
+                                label: Text(code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                backgroundColor: const Color(0xFF1E1E28),
+                                side: const BorderSide(color: Color(0xFFA855F7), width: 1.2),
+                                onPressed: () {
+                                  _codeController.text = code;
+                                  _submitCode();
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
                     ] else ...[
                       TextField(
                         controller: _xtreamHostController,
@@ -3624,12 +3644,14 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 class ScaleOnFocus extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool autofocus;
 
   const ScaleOnFocus({
     super.key,
     required this.child,
     required this.onTap,
+    this.onLongPress,
     this.autofocus = false,
   });
 
@@ -3673,6 +3695,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
       canRequestFocus: tvBoxFocusEnabled,
       autofocus: widget.autofocus && tvBoxFocusEnabled,
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       onFocusChange: _setFocus,
       onHover: (isHovering) {
         if (isHovering && _focusNode.canRequestFocus) _focusNode.requestFocus();
@@ -3703,6 +3726,90 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
       ),
     );
   }
+}
+
+void _showStreamQuickMenu(
+  BuildContext context,
+  IPTVProvider provider,
+  dynamic stream,
+  String streamId,
+  String name,
+  bool isFav,
+  bool isLocked,
+) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF1E1E24),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(
+                  isLocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                  color: const Color(0xFFA855F7),
+                ),
+                title: Text(
+                  isLocked ? "إلغاء قفل القناة" : "قفل القناة برمز الأمان",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  if (provider.isParentalEnabled) {
+                    final ok = await showPinDialog(context, provider);
+                    if (!ok) return;
+                  }
+                  await provider.toggleChannelLock(streamId);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isLocked ? "تم إلغاء قفل القناة" : "تم قفل القناة برمز الأمان",
+                          style: const TextStyle(fontFamily: 'Cairo'),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: Colors.redAccent,
+                ),
+                title: Text(
+                  isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.toggleFavorite(streamId);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 // Beautiful Movie/Stream Card (Compact)

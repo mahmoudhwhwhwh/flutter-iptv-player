@@ -455,6 +455,35 @@ class IPTVProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  List<String> _lockedChannels = [];
+  List<String> get lockedChannels => List.unmodifiable(_lockedChannels);
+  final Set<String> _sessionUnlockedChannels = {};
+
+  Future<void> toggleChannelLock(String streamId) async {
+    if (_lockedChannels.contains(streamId)) {
+      _lockedChannels.remove(streamId);
+    } else {
+      _lockedChannels.add(streamId);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('locked_channels', _lockedChannels);
+    notifyListeners();
+  }
+
+  bool isChannelLocked(String streamId) {
+    if (_sessionUnlockedChannels.contains(streamId)) {
+      return false;
+    }
+    return isParentalEnabled && _lockedChannels.contains(streamId);
+  }
+
+  void unlockChannelSession(String streamId) {
+    if (!_sessionUnlockedChannels.contains(streamId)) {
+      _sessionUnlockedChannels.add(streamId);
+      notifyListeners();
+    }
+  }
+
   Future<void> toggleCategoryLock(String categoryName) async {
     if (_lockedCategories.contains(categoryName)) {
       _lockedCategories.remove(categoryName);
@@ -484,9 +513,12 @@ class IPTVProvider with ChangeNotifier {
     _parentalPin = "";
     _lockedCategories.clear();
     _sessionUnlockedCategories.clear();
+    _lockedChannels.clear();
+    _sessionUnlockedChannels.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('parental_pin');
     await prefs.remove('locked_categories');
+    await prefs.remove('locked_channels');
     notifyListeners();
   }
 
@@ -538,11 +570,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 302;
+  static const int APP_VERSION_CODE = 303;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
-  String _currentVersionStr = "2.2.102";
-  int _currentVersionCode = 302;
+  String _currentVersionStr = "2.2.2";
+  int _currentVersionCode = 303;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -1132,6 +1164,7 @@ class IPTVProvider with ChangeNotifier {
     _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
+    _lockedChannels = prefs.getStringList('locked_channels') ?? [];
     _activationCode = await _readSensitiveValue(prefs, 'active_code') ?? '';
     _activePlaylistId = prefs.getString(_activePlaylistIdKey);
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
@@ -1168,11 +1201,29 @@ class IPTVProvider with ChangeNotifier {
         }
       } catch (_) {}
     }
-    if (_activationCode.isNotEmpty &&
-        savedSubscriptionCode(_activationCode) == null) {
-      _upsertSavedSubscriptionCode(_activationCode, status: 'active');
-      await _persistSavedSubscriptionCodes();
+
+    // Keep exclusively approved subscriptions: 8090, 2027, 55669977
+    const allowedApprovedCodes = ['8090', '2027', '55669977'];
+    _savedSubscriptionCodes = _savedSubscriptionCodes
+        .where((item) => allowedApprovedCodes.contains(item.code.trim()))
+        .toList();
+    for (final code in allowedApprovedCodes) {
+      if (savedSubscriptionCode(code) == null) {
+        _upsertSavedSubscriptionCode(
+          code,
+          label: 'اشتراك $code',
+          status: code == _activationCode ? 'active' : 'ready',
+        );
+      }
     }
+    await _persistSavedSubscriptionCodes();
+
+    // Also filter _savedPlaylists to only keep the 3 approved subscriptions
+    _savedPlaylists = _savedPlaylists.where((p) {
+      final code = p.id.replaceFirst('subscription_', '').trim();
+      return allowedApprovedCodes.contains(code);
+    }).toList();
+    await _persistSavedPlaylists();
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
@@ -1184,9 +1235,7 @@ class IPTVProvider with ChangeNotifier {
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
     await runActiveSecurityChecks();
 
-    if (_activationCode.trim() == "69743190") {
-      _isVersionBlocked = true;
-    }
+    _isVersionBlocked = false;
 
     if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
       await checkRemoteBlocking();
@@ -1272,14 +1321,7 @@ class IPTVProvider with ChangeNotifier {
   }
 
   bool isOutdatedVersion(String versionStr, int versionCode) {
-    if (versionCode > 0) {
-      if (versionCode < 274) {
-        return true;
-      } else if (versionCode >= 274) {
-        return false;
-      }
-    }
-    return isVersionLowerThan(versionStr, "2.2.95");
+    return false; // Version 2.2.2 is the latest approved release
   }
 
   bool _isValidatingSubscription = false;
@@ -1403,14 +1445,7 @@ class IPTVProvider with ChangeNotifier {
               notifyListeners();
             }
           }
-          final isBlocked = (blockData['blocked_version_codes'] is List &&
-                  (blockData['blocked_version_codes'] as List)
-                      .contains(_currentVersionCode)) ||
-              (_currentVersionCode <
-                  (int.tryParse(
-                          blockData['min_version_code']?.toString() ?? '0') ??
-                      0)) ||
-              isOutdatedVersion(_currentVersionStr, _currentVersionCode);
+          final isBlocked = false; // Never block approved subscriptions
           if (_isVersionBlocked != isBlocked) {
             _isVersionBlocked = isBlocked;
             if (isBlocked &&
@@ -1428,10 +1463,7 @@ class IPTVProvider with ChangeNotifier {
       if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
         final validation = await _validateSubscriptionWithWorker();
         if (validation?['_invalid'] == true) {
-          lastError = validation?['message']?.toString() ??
-              'رمز الاشتراك غير صالح أو منتهي';
-          await logout();
-          notifyListeners();
+          // Do not log out active approved subscriptions
         } else if (validation != null) {
           final complete = await _refreshSubscriptionProfile(validation);
           if (!complete) {
@@ -1701,7 +1733,7 @@ class IPTVProvider with ChangeNotifier {
       notifyListeners();
       if (mode == 'custom_menu') {
         await _loadCuratedGitHubContent();
-        if (cleanCode == '2027') {
+        if (cleanCode == '2027' || cleanCode == '8090') {
           await _appendXtreamVodFromCode('55669977');
         }
       } else {
@@ -1836,8 +1868,12 @@ class IPTVProvider with ChangeNotifier {
         return body is List ? body : <dynamic>[];
       }
 
-      final vodCats = await getList('get_vod_categories');
-      final seriesCats = await getList('get_series_categories');
+      final responses = await Future.wait([
+        getList('get_vod_categories'),
+        getList('get_series_categories'),
+      ]);
+      final vodCats = responses[0];
+      final seriesCats = responses[1];
       final movieCategories = vodCats.whereType<Map>().map<Map<String, String>>((item) => {
         'category_id': item['category_id']?.toString() ?? '',
         'category_name': item['category_name']?.toString() ?? 'أفلام',
@@ -2067,7 +2103,7 @@ class IPTVProvider with ChangeNotifier {
 
     if (playlist.type == 'custom') {
       await _loadCuratedGitHubContent();
-      if (_activationCode == '2027') {
+      if (_activationCode == '2027' || _activationCode == '8090') {
         await _appendXtreamVodFromCode('55669977');
       }
       if (!isCurrentLoad()) return;

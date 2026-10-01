@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -549,6 +551,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 await showPinDialog(context, provider);
                             if (correct) {
                               _showCategoryLockDialog(context, provider);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionButtonSettingCard(
+                          title: "إدارة القنوات المقفلة (قفل القنوات)",
+                          description:
+                              "تحديد قنوات بث مباشر معينة لقفلها برمز الأمان ومنع فتحها إلا بإدخال الرمز.",
+                          actionLabel: "تحديد القنوات",
+                          icon: Icons.lock_person_rounded,
+                          onTap: () async {
+                            bool correct =
+                                await showPinDialog(context, provider);
+                            if (correct) {
+                              _showChannelLockDialog(context, provider);
                             }
                           },
                         ),
@@ -2308,6 +2325,313 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontFamily: 'Cairo',
                           fontWeight: FontWeight.bold),
                     ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _clearAppCache(
+      BuildContext context, IPTVProvider provider) async {
+    try {
+      final cacheDir = await getTemporaryDirectory();
+      int filesDeleted = 0;
+      if (cacheDir.existsSync()) {
+        final list = cacheDir.listSync(recursive: true);
+        for (final item in list) {
+          try {
+            if (item is File) {
+              await item.delete();
+              filesDeleted++;
+            }
+          } catch (_) {}
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تنظيف الذاكرة المؤقتة بنجاح ($filesDeleted ملف تم تنظيفه)'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تنظيف ملفات الكاش بنجاح')),
+        );
+      }
+    }
+  }
+
+  Future<void> _runSpeedTest(
+      BuildContext context, IPTVProvider provider) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: Color(0xFF1E1E24),
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: Color(0xFFA855F7)),
+              SizedBox(width: 16),
+              Text("جاري فحص سرعة واستجابة السيرفر...",
+                  style: TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+            ],
+          ),
+        ),
+      ),
+    );
+    final stopwatch = Stopwatch()..start();
+    String host = "";
+    try {
+      final active = provider.savedPlaylists.firstWhere(
+        (p) => p.id == provider.activePlaylistId,
+        orElse: () => UserPlaylist(id: '', name: '', type: ''),
+      );
+      host = (active.host ?? '').trim();
+      if (host.isEmpty) {
+        host = 'https://iptv-subscription-api.tvkora56.workers.dev';
+      }
+      await http.get(Uri.parse(host)).timeout(const Duration(seconds: 4));
+      stopwatch.stop();
+    } catch (_) {
+      stopwatch.stop();
+    }
+    if (context.mounted) {
+      Navigator.pop(context);
+      final ms = stopwatch.elapsedMilliseconds;
+      final quality =
+          ms < 250 ? "ممتاز وسريع جداً ⚡" : (ms < 600 ? "جيد ومستقر" : "متوسط");
+      showDialog(
+        context: context,
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E1E24),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            title: const Text("نتيجة فحص سرعة السيرفر",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Cairo',
+                    fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("زمن الاستجابة (Ping): $ms ms",
+                    style: const TextStyle(
+                        color: Color(0xFF38BDF8),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text("حالة الاتصال: $quality",
+                    style: const TextStyle(color: Colors.white, fontSize: 14)),
+                const SizedBox(height: 8),
+                Text("المضيف: ${host.isNotEmpty ? host : 'سيرفر الاشتراك'}",
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("إغلاق",
+                    style: TextStyle(
+                        color: Color(0xFFA855F7),
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showChannelLockDialog(BuildContext context, IPTVProvider provider) {
+    String searchQuery = "";
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final allChannels = provider.streams
+                .where((s) => s.type == 'live' || s.type == 'stalker')
+                .toList();
+            final filteredChannels = allChannels.where((c) {
+              if (searchQuery.trim().isEmpty) return true;
+              return c.name
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase().trim());
+            }).toList();
+
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                backgroundColor: _SettingsPalette.surfaceElevated,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_person_rounded,
+                            color: _SettingsPalette.purple, size: 24),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "قفل القنوات برمز الأمان",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Cairo',
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _SettingsPalette.purple.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "المقفلة: ${provider.lockedChannels.length}",
+                            style: const TextStyle(
+                                color: _SettingsPalette.purpleBright,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: "بحث عن قناة لقفلها...",
+                        hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.4), fontSize: 12),
+                        prefixIcon: const Icon(Icons.search,
+                            color: Colors.white38, size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.04),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() => searchQuery = val);
+                      },
+                    ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 420,
+                  height: 380,
+                  child: filteredChannels.isEmpty
+                      ? Center(
+                          child: Text(
+                            "لا توجد قنوات مطابقة",
+                            style: TextStyle(
+                                color: _SettingsPalette.textMuted
+                                    .withOpacity(0.65),
+                                fontFamily: 'Cairo',
+                                fontSize: 13),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: filteredChannels.length,
+                          itemBuilder: (context, idx) {
+                            final channel = filteredChannels[idx];
+                            final isLocked = provider.lockedChannels
+                                .contains(channel.streamId);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              decoration: BoxDecoration(
+                                color: isLocked
+                                    ? _SettingsPalette.purple.withOpacity(0.12)
+                                    : Colors.white.withOpacity(0.02),
+                                borderRadius: BorderRadius.circular(8),
+                                border: isLocked
+                                    ? Border.all(
+                                        color: _SettingsPalette.purple
+                                            .withOpacity(0.4))
+                                    : null,
+                              ),
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 2),
+                                leading: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                      color: Colors.white10,
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: channel.streamIcon.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          child: CachedNetworkImage(
+                                            imageUrl: channel.streamIcon,
+                                            fit: BoxFit.cover,
+                                            errorWidget: (_, __, ___) =>
+                                                const Icon(Icons.tv_rounded,
+                                                    size: 16,
+                                                    color: Colors.white30),
+                                          ),
+                                        )
+                                      : const Icon(Icons.tv_rounded,
+                                          size: 16, color: Colors.white30),
+                                ),
+                                title: Text(
+                                  channel.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Cairo',
+                                      fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  channel.categoryName,
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                      color: Colors.white38, fontSize: 10),
+                                ),
+                                trailing: Switch(
+                                  value: isLocked,
+                                  activeColor: _SettingsPalette.purple,
+                                  onChanged: (val) async {
+                                    await provider
+                                        .toggleChannelLock(channel.streamId);
+                                    setDialogState(() {});
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text("إغلاق",
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontFamily: 'Cairo',
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

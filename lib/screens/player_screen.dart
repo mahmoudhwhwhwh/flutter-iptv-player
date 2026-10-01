@@ -1,3 +1,4 @@
+import 'package:flutter_iptv_player/widgets/pin_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -3868,6 +3869,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _buildSidebarListItem(PlaylistItem item, IPTVProvider provider) {
     final isSelected = item.streamId == _stream.streamId;
+    final isLocked = provider.isChannelLocked(item.streamId);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
@@ -3879,15 +3881,26 @@ class _PlayerScreenState extends State<PlayerScreen>
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        title: Text(
-          item.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: isSelected ? Colors.blueAccent : Colors.white70,
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.blueAccent : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isLocked)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(Icons.lock_rounded, size: 12, color: Color(0xFFA855F7)),
+              ),
+          ],
         ),
         subtitle: Text(
           item.categoryName,

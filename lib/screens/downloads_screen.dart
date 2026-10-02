@@ -496,8 +496,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       streamId: 'offline_${item.id}',
       name: item.title,
       streamIcon: item.poster,
-      url: item.filePath,
+      categoryId: 'downloads',
       categoryName: item.category,
+      url: item.filePath,
       type: 'file', // BetterPlayer file playback
     );
 

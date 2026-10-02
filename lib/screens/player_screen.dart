@@ -1062,19 +1062,23 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (lines.isEmpty) return const SizedBox.shrink();
 
     final currentPos = _betterController!.videoPlayerController?.value.position ?? _currentPosition;
-    BetterPlayerSubtitle? activeSubtitle;
+    dynamic activeSubtitle;
     for (final sub in lines) {
       if (sub.start != null && sub.end != null && sub.start! <= currentPos && sub.end! >= currentPos) {
         activeSubtitle = sub;
         break;
       }
     }
-    if (activeSubtitle == null || activeSubtitle.texts == null || activeSubtitle.texts!.isEmpty) {
+    if (activeSubtitle == null || activeSubtitle.texts == null) {
       return const SizedBox.shrink();
     }
 
-    final subtitleText = activeSubtitle.texts!.join('
-');
+    final rawTexts = activeSubtitle.texts;
+    if (rawTexts is! List || rawTexts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final subtitleText = rawTexts.map((e) => e.toString()).join('\n');
     if (subtitleText.trim().isEmpty) return const SizedBox.shrink();
 
     return IgnorePointer(
@@ -1082,7 +1086,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         alignment: Alignment.bottomCenter,
         child: Padding(
           padding: EdgeInsets.only(
-            bottom: _showControls ? 85.0 : 35.0,
+            bottom: _showHUD ? 85.0 : 35.0,
             left: 24.0,
             right: 24.0,
           ),

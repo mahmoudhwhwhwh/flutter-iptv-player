@@ -333,6 +333,30 @@ class IPTVProvider with ChangeNotifier {
     await prefs.setString('app_language', language);
   }
 
+  String get appLanguageCode {
+    final lower = _appLanguage.toLowerCase();
+    if (lower.contains('eng') || lower == 'en') return 'en';
+    if (lower.contains('kurd') || lower.contains('كورد') || lower == 'ku') return 'ku';
+    if (lower.contains('turk') || lower.contains('türk') || lower == 'tr') return 'tr';
+    if (lower.contains('fren') || lower.contains('fran') || lower == 'fr') return 'fr';
+    if (lower.contains('span') || lower.contains('espa') || lower == 'es') return 'es';
+    if (lower.contains('germ') || lower.contains('deut') || lower == 'de') return 'de';
+    return 'ar';
+  }
+
+  DateTime? _cloudflareExpiryDate;
+  DateTime? get cloudflareExpiryDate => _cloudflareExpiryDate;
+
+  String get maskedActivationCode {
+    if (_activationCode.isEmpty) return '••••••••';
+    if (_activationCode.length <= 3) return '***';
+    return '${_activationCode.substring(0, 2)}${'•' * (_activationCode.length - 2)}';
+  }
+
+  String get maskedHost => 'خادم خاص مشفّر 🔒';
+  String get maskedUsername => 'حساب مميز (VIP) 👑';
+  String get maskedPassword => '••••••••';
+
   Future<void> setPremiumTheme(String theme) async {
     _premiumTheme = theme;
     notifyListeners();
@@ -1070,6 +1094,9 @@ class IPTVProvider with ChangeNotifier {
   }
 
   bool get isExpired {
+    if (_cloudflareExpiryDate != null) {
+      return DateTime.now().isAfter(_cloudflareExpiryDate!);
+    }
     if (_activationDurationHours < 0) return false;
     final now = DateTime.now().millisecondsSinceEpoch;
     final expiresAt = _activationTime + (_activationDurationHours * 3600000);
@@ -1077,10 +1104,17 @@ class IPTVProvider with ChangeNotifier {
   }
 
   String get expirationDateFormatted {
+    if (_cloudflareExpiryDate != null) {
+      final exp = _cloudflareExpiryDate!;
+      return "${exp.day.toString().padLeft(2, '0')}/${exp.month.toString().padLeft(2, '0')}/${exp.year}";
+    }
+    if (_activationCode == '2027') {
+      return "31/12/2027";
+    }
     if (_activationDurationHours < 0) return "مدى الحياة";
     final expiresAt = DateTime.fromMillisecondsSinceEpoch(
         _activationTime + (_activationDurationHours * 3600000));
-    return "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
+    return "${expiresAt.day.toString().padLeft(2, '0')}/${expiresAt.month.toString().padLeft(2, '0')}/${expiresAt.year}";
   }
 
   // The repository stays private; production menu delivery goes through Worker/D1.
@@ -1169,6 +1203,13 @@ class IPTVProvider with ChangeNotifier {
     _activePlaylistId = prefs.getString(_activePlaylistIdKey);
     _activationTime = prefs.getInt('active_code_activated_at') ?? 0;
     _activationDurationHours = prefs.getInt('active_code_duration_hours') ?? -1;
+    final cloudflareExpiryStr = prefs.getString('cloudflare_expiry_for_' + _activationCode) ??
+        prefs.getString('active_cloudflare_expiry');
+    if (cloudflareExpiryStr != null && cloudflareExpiryStr.isNotEmpty) {
+      _cloudflareExpiryDate = DateTime.tryParse(cloudflareExpiryStr);
+    } else if (_activationCode == '2027') {
+      _cloudflareExpiryDate = DateTime(2027, 12, 31, 23, 59, 59);
+    }
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
 
     // Preserve the validated origin returned by the subscription service.
@@ -1218,12 +1259,9 @@ class IPTVProvider with ChangeNotifier {
     }
     await _persistSavedSubscriptionCodes();
 
-    // Also filter _savedPlaylists to only keep the 3 approved subscriptions
-    _savedPlaylists = _savedPlaylists.where((p) {
-      final code = p.id.replaceFirst('subscription_', '').trim();
-      return allowedApprovedCodes.contains(code);
-    }).toList();
+    // Preserve playlists and avoid wiping saved accounts
     await _persistSavedPlaylists();
+    _savedSubscriptionCodes = [];
     _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
@@ -1681,16 +1719,26 @@ class IPTVProvider with ChangeNotifier {
         return false;
       }
       var durationHours = -1;
-      final subscription = data['subscription'];
-      if (subscription is Map) {
-        final expiry =
-            DateTime.tryParse(subscription['expires_at']?.toString() ?? '');
-        if (expiry != null) {
-          durationHours = expiry.difference(DateTime.now()).inHours;
-          if (durationHours < 0) {
-            lastError = 'انتهت صلاحية الاشتراك';
-            return false;
-          }
+      DateTime? cloudflareExpiryDate;
+      final rawUser = data['user'];
+      final rawUserExpiry = rawUser is Map ? rawUser['expires_at']?.toString() : null;
+      final rawSub = data['subscription'];
+      final rawSubExpiry = rawSub is Map ? rawSub['expires_at']?.toString() : null;
+      final topExpiry = data['expires_at']?.toString();
+      final candExpiryStr = rawUserExpiry ?? rawSubExpiry ?? topExpiry;
+
+      if (candExpiryStr != null && candExpiryStr.isNotEmpty && candExpiryStr != 'null') {
+        cloudflareExpiryDate = DateTime.tryParse(candExpiryStr);
+      } else if (cleanCode == '2027') {
+        cloudflareExpiryDate = DateTime(2027, 12, 31, 23, 59, 59);
+      }
+
+      if (cloudflareExpiryDate != null) {
+        _cloudflareExpiryDate = cloudflareExpiryDate;
+        durationHours = cloudflareExpiryDate.difference(DateTime.now()).inHours;
+        if (durationHours < 0 && cloudflareExpiryDate.isBefore(DateTime.now())) {
+          lastError = 'انتهت صلاحية الاشتراك';
+          return false;
         }
       }
       final prefs = await SharedPreferences.getInstance();
@@ -1718,6 +1766,10 @@ class IPTVProvider with ChangeNotifier {
       }
       _activePlaylistId = list.id;
       await _writeSensitiveValue('active_code', cleanCode);
+      if (_cloudflareExpiryDate != null) {
+        await prefs.setString('cloudflare_expiry_for_' + cleanCode, _cloudflareExpiryDate!.toIso8601String());
+        await prefs.setString('active_cloudflare_expiry', _cloudflareExpiryDate!.toIso8601String());
+      }
       await prefs.setString(_activePlaylistIdKey, list.id);
       await prefs.setInt('active_code_activated_at', now);
       await prefs.setInt('active_code_duration_hours', durationHours);

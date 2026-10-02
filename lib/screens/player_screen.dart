@@ -403,16 +403,26 @@ class _PlayerScreenState extends State<PlayerScreen>
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
 
-      if (sSize == "صغير")
+      if (sSize == "صغير جداً" || sSize == "12")
         _subSizeVal = 12.0;
-      else if (sSize == "متوسط")
-        _subSizeVal = 16.0;
-      else if (sSize == "كبير")
-        _subSizeVal = 22.0;
-      else if (sSize == "ضخم")
-        _subSizeVal = 28.0;
-      else
-        _subSizeVal = 16.0;
+      else if (sSize == "صغير" || sSize == "14")
+        _subSizeVal = 14.0;
+      else if (sSize == "متوسط" || sSize == "18" || sSize == "16")
+        _subSizeVal = 18.0;
+      else if (sSize == "كبير" || sSize == "24" || sSize == "22")
+        _subSizeVal = 24.0;
+      else if (sSize == "ضخم" || sSize == "32" || sSize == "28")
+        _subSizeVal = 32.0;
+      else if (sSize == "ضخم جداً" || sSize == "40")
+        _subSizeVal = 40.0;
+      else {
+        final parsed = double.tryParse(sSize);
+        if (parsed != null && parsed >= 10 && parsed <= 50) {
+          _subSizeVal = parsed;
+        } else {
+          _subSizeVal = 18.0;
+        }
+      }
 
       if (sCol == "أصفر")
         _subColorVal = Colors.yellow;
@@ -493,17 +503,18 @@ class _PlayerScreenState extends State<PlayerScreen>
     _screenOnTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) WakelockPlus.enable();
     });
-    _loadSubSettings();
     _stream = widget.stream;
     _initLoadingVideo();
-
-    // عرض ثابت أفقي للمشغّل؛ لا تُستخدم حساسات الحركة لتفادي التدوير العشوائي.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _initializeController();
+    _loadSubSettings().then((_) {
+      if (mounted) {
+        _initializeController();
+      }
+    });
     _resetHideHUDTimer();
   }
 
@@ -863,10 +874,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     bool isAsms = format == BetterPlayerVideoFormat.hls ||
         format == BetterPlayerVideoFormat.dash;
 
+    final bool isLocalFile = _stream.type == 'file' ||
+        finalUrl.startsWith('/') ||
+        finalUrl.startsWith('file://');
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      finalUrl,
-      liveStream: _stream.type == 'live' || _stream.type == 'stalker',
+      isLocalFile
+          ? BetterPlayerDataSourceType.file
+          : BetterPlayerDataSourceType.network,
+      isLocalFile ? finalUrl.replaceFirst('file://', '') : finalUrl,
+      liveStream: !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker'),
       videoFormat: format,
       videoExtension: (isProgressiveTsUrl(finalUrl) ||
               ((_stream.type == 'live' || _stream.type == 'stalker') &&
@@ -1040,11 +1056,79 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
   }
 
+  Widget _buildSubtitleOverlay() {
+    if (_betterController == null) return const SizedBox.shrink();
+    final lines = _betterController!.subtitlesLines;
+    if (lines.isEmpty) return const SizedBox.shrink();
+
+    final currentPos = _betterController!.videoPlayerController?.value.position ?? _currentPosition;
+    BetterPlayerSubtitle? activeSubtitle;
+    for (final sub in lines) {
+      if (sub.start != null && sub.end != null && sub.start! <= currentPos && sub.end! >= currentPos) {
+        activeSubtitle = sub;
+        break;
+      }
+    }
+    if (activeSubtitle == null || activeSubtitle.texts == null || activeSubtitle.texts!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final subtitleText = activeSubtitle.texts!.join('
+');
+    if (subtitleText.trim().isEmpty) return const SizedBox.shrink();
+
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: _showControls ? 85.0 : 35.0,
+            left: 24.0,
+            right: 24.0,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: _subBgColorVal,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Stack(
+              children: [
+                Text(
+                  subtitleText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: _subSizeVal,
+                    fontFamily: _subFontVal,
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 2.5
+                      ..color = Colors.black,
+                  ),
+                ),
+                Text(
+                  subtitleText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: _subSizeVal,
+                    fontFamily: _subFontVal,
+                    color: _subColorVal,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _startSeekTracker() {
     _positionTimer?.cancel();
     // البث المباشر لا يحتاج إعادة بناء صفحة المشغّل مرتين في الثانية.
     if (_stream.type == 'live') return;
-    _positionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 250), (timer) {
       final value = _betterController?.videoPlayerController?.value;
       if (mounted &&
           value != null &&
@@ -1468,9 +1552,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               Future<void> saveSubPref(String key, String val) async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString(key, val);
-                setState(() {
-                  _betterPlayerKey = GlobalKey();
-                });
+                setState(() {});
               }
 
               return Directionality(
@@ -2705,6 +2787,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                   ),
                 ),
               ),
+
+              // Real-time Dynamic Subtitle Overlay
+              _buildSubtitleOverlay(),
 
               // Buffering indicator remains visible without blocking controls.
               if (_isBuffering && !_hasError)

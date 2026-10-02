@@ -47,6 +47,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
   String _performanceProfile = "medium";
+  bool _downloadWifiOnly = false;
+  bool _blurEpisodeCovers = false;
+  bool _autoDownloadNextEpisode = false;
+  bool _autoPlayNextEpisode = true;
+  bool _autoResumePlayback = true;
+  bool _showVirtualKeyboard = true;
 
   @override
   void initState() {
@@ -68,6 +74,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
       _performanceProfile =
           prefs.getString('device_performance_profile') ?? "medium";
+      _downloadWifiOnly = prefs.getBool('download_wifi_only') ?? false;
+      _blurEpisodeCovers = prefs.getBool('blur_episode_covers') ?? false;
+      _autoDownloadNextEpisode = prefs.getBool('auto_download_next_episode') ?? false;
+      _autoPlayNextEpisode = prefs.getBool('auto_play_next_episode') ?? true;
+      _autoResumePlayback = prefs.getBool('auto_resume_playback') ?? true;
+      _showVirtualKeyboard = prefs.getBool('show_virtual_keyboard') ?? true;
     });
   }
 
@@ -137,6 +149,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await context.read<IPTVProvider>().setPlayerStringPreference(key, value);
   }
 
+  void _showLanguageSelectionDialog(BuildContext context, IPTVProvider provider) {
+    final languages = [
+      {'code': 'ar', 'name': 'العربية', 'flag': '🇸🇦'},
+      {'code': 'en', 'name': 'English', 'flag': '🇺🇸'},
+      {'code': 'ku', 'name': 'کوردی (Kurdish)', 'flag': '☀️'},
+      {'code': 'tr', 'name': 'Türkçe (Turkish)', 'flag': '🇹🇷'},
+      {'code': 'fr', 'name': 'Français (French)', 'flag': '🇫🇷'},
+      {'code': 'es', 'name': 'Español (Spanish)', 'flag': '🇪🇸'},
+      {'code': 'de', 'name': 'Deutsch (German)', 'flag': '🇩🇪'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.language_rounded, color: Color(0xFFA855F7)),
+            SizedBox(width: 8),
+            Text('اختر لغة التطبيق', style: TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: languages.length,
+            itemBuilder: (context, i) {
+              final lang = languages[i];
+              final isSelected = provider.appLanguage.toLowerCase().contains(lang['code']!) ||
+                  provider.appLanguage == lang['name'];
+              return ListTile(
+                leading: Text(lang['flag']!, style: const TextStyle(fontSize: 22)),
+                title: Text(lang['name']!, style: const TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+                trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2DD4BF)) : null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.setAppLanguage(lang['name']!);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeTheme = context.watch<IPTVProvider>();
@@ -175,13 +235,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _buildProfileCard(provider),
                       const SizedBox(height: 14),
-                      _buildDropdownItem(
-                        title: 'لغة الواجهة',
-                        value: provider.appLanguage,
-                        items: const ['العربية', 'English'],
-                        onChanged: (value) {
-                          if (value != null) provider.setAppLanguage(value);
-                        },
+                      _buildActionButtonSettingCard(
+                        title: 'لغة التطبيق',
+                        description: 'اللغة الحالية: ${provider.appLanguage} (اضغط للتغيير إلى العربية، الإنجليزية، الكردية، التركية، الفرنسية، الإسبانية، الألمانية)',
+                        actionLabel: 'تغيير اللغة',
+                        icon: Icons.language_rounded,
+                        onTap: () => _showLanguageSelectionDialog(context, provider),
                       ),
                       const SizedBox(height: 12),
                       _buildDropdownItem(
@@ -228,7 +287,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) =>
-                    _buildSavedSubscriptionCodesCard(provider),
+                    _buildActionButtonSettingCard(
+                  title: 'تحديث قائمة القنوات والمحتوى',
+                  description: 'إعادة مزامنة القنوات والأفلام والمسلسلات فوراً من السيرفر وتحديث المحتوى.',
+                  actionLabel: 'تحديث الآن',
+                  icon: Icons.sync_rounded,
+                  onTap: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('جارِ تحديث قائمة القنوات...', style: TextStyle(fontFamily: 'Cairo')),
+                      ),
+                    );
+                    await provider.refreshCurrentPlaylist();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم تحديث القنوات والمحتوى بنجاح ✅', style: TextStyle(fontFamily: 'Cairo')),
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
@@ -236,7 +315,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildPerformanceProfilesCard(provider),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
+              const SizedBox(height: 24),
+              _buildSectionHeader("التشغيل والتنزيلات", ""),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'التنزيل عبر Wi-Fi فقط',
+                description: 'تبدأ التنزيلات فقط عند الاتصال بشبكة Wi-Fi',
+                value: _downloadWifiOnly,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _downloadWifiOnly = val);
+                  _saveSetting('download_wifi_only', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تشويش صور الحلقات',
+                description: 'إخفاء أغلفة الحلقات لتجنب حرق الأحداث (الخادم 1)',
+                value: _blurEpisodeCovers,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _blurEpisodeCovers = val);
+                  _saveSetting('blur_episode_covers', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تنزيل الحلقة التالية تلقائياً',
+                description: 'ابدأ تنزيل الحلقة التالية تلقائياً عبر Wi-Fi',
+                value: _autoDownloadNextEpisode,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _autoDownloadNextEpisode = val);
+                  _saveSetting('auto_download_next_episode', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تشغيل الحلقة التالية تلقائياً',
+                description: 'شغل الحلقة التالية تلقائياً عند انتهاء الحالية',
+                value: _autoPlayNextEpisode,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _autoPlayNextEpisode = val);
+                  _saveSetting('auto_play_next_episode', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'استئناف تلقائي',
+                description: 'استكمل التشغيل من آخر موضع مشاهدة',
+                value: _autoResumePlayback,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _autoResumePlayback = val);
+                  _saveSetting('auto_resume_playback', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'لوحة المفاتيح الافتراضية',
+                description: 'إظهار لوحة مفاتيح على الشاشة عند البحث على التلفاز',
+                value: _showVirtualKeyboard,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _showVirtualKeyboard = val);
+                  _saveSetting('show_virtual_keyboard', val);
+                },
+              ),
+                            _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildSettingItem(

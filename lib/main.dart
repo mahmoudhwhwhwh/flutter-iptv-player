@@ -15,6 +15,9 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
+import 'screens/downloads_screen.dart';
+import 'services/download_manager.dart';
+import 'services/app_translations.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
 import 'services/performance_metrics.dart';
@@ -737,108 +740,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ],
 
                     // 3. Saved Subscriptions Chips (Both Xtream and Codes)
-                    if (provider.savedPlaylists.isNotEmpty ||
-                        provider.savedSubscriptionCodes.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'الاشتراكات المحفوظة (اضغط للتبديل الفوري)',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ...provider.savedPlaylists.map((pl) {
-                            final isXtream = pl.type.toLowerCase() == 'xtream';
-                            final title = pl.name.isNotEmpty ? pl.name : 'اشتراك';
-                            final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
-
-                            return ActionChip(
-                              avatar: Icon(
-                                isActive
-                                    ? Icons.check_circle_rounded
-                                    : (isXtream ? Icons.dns_rounded : Icons.live_tv_rounded),
-                                size: 17,
-                                color: isActive
-                                    ? const Color(0xFF5EEAD4)
-                                    : const Color(0xFFD8B4FE),
-                              ),
-                              label: Text(title),
-                              labelStyle: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700),
-                              backgroundColor: isActive
-                                  ? const Color(0xFF163B3B)
-                                  : const Color(0xFF171321),
-                              side: BorderSide(
-                                  color: isActive
-                                      ? const Color(0xFF2DD4BF)
-                                      : const Color(0xFF493568)),
-                              onPressed: provider.isLoading
-                                  ? null
-                                  : () async {
-                                      final success = await provider
-                                          .switchSubscription(pl.id);
-                                      if (success && mounted) {
-                                        FocusScope.of(context).unfocus();
-                                      }
-                                    },
-                            );
-                          }),
-                          ...provider.savedSubscriptionCodes
-                              .where((c) => !provider.savedPlaylists
-                                  .any((p) => p.id == 'subscription_${c.code}'))
-                              .map((saved) {
-                            final title =
-                                saved.label.isEmpty ? saved.code : saved.label;
-                            final isActive =
-                                saved.code == provider.activationCode && provider.isLoggedIn;
-                            return ActionChip(
-                              avatar: Icon(
-                                isActive
-                                    ? Icons.check_circle_rounded
-                                    : Icons.key_rounded,
-                                size: 17,
-                                color: isActive
-                                    ? const Color(0xFF5EEAD4)
-                                    : const Color(0xFFD8B4FE),
-                              ),
-                              label: Text(title),
-                              labelStyle: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700),
-                              backgroundColor: isActive
-                                  ? const Color(0xFF163B3B)
-                                  : const Color(0xFF171321),
-                              side: BorderSide(
-                                  color: isActive
-                                      ? const Color(0xFF2DD4BF)
-                                      : const Color(0xFF493568)),
-                              onPressed: provider.isLoading
-                                  ? null
-                                  : () async {
-                                      _codeController.text = saved.code;
-                                      final success = await provider
-                                          .switchToSavedSubscription(saved.code);
-                                      if (success && mounted) {
-                                        FocusScope.of(context).unfocus();
-                                      }
-                                    },
-                            );
-                          }),
-                        ],
-                      ),
-                    ],
-
                     // 4. Submit Login Button
                     const SizedBox(height: 28),
                     SizedBox(
@@ -1340,14 +1241,16 @@ class _MainDashboardState extends State<MainDashboard> {
     final colorScheme = Theme.of(context).colorScheme;
     final showMoviesSeries = provider.showMoviesSeries;
 
+    final langCode = provider.appLanguageCode;
     final List<Map<String, dynamic>> tabs = [
-      {"icon": Icons.home_rounded, "label": "الرئيسية", "index": 0},
-      {"icon": Icons.live_tv_rounded, "label": "مباشر", "index": 1},
+      {"icon": Icons.home_rounded, "label": AppTranslations.get('home', langCode), "index": 0},
+      {"icon": Icons.live_tv_rounded, "label": AppTranslations.get('live', langCode), "index": 1},
       if (showMoviesSeries)
-        {"icon": Icons.movie_filter_rounded, "label": "أفلام", "index": 2},
+        {"icon": Icons.movie_filter_rounded, "label": AppTranslations.get('movies', langCode), "index": 2},
       if (showMoviesSeries)
-        {"icon": Icons.video_library_rounded, "label": "مسلسلات", "index": 3},
-      {"icon": Icons.favorite_rounded, "label": "مفضلة", "index": 4},
+        {"icon": Icons.video_library_rounded, "label": AppTranslations.get('series', langCode), "index": 3},
+      {"icon": Icons.download_for_offline_rounded, "label": AppTranslations.get('downloads', langCode), "index": 5},
+      {"icon": Icons.favorite_rounded, "label": AppTranslations.get('favorites', langCode), "index": 4},
     ];
 
     int localIndex = tabs.indexWhere((t) => t['index'] == _selectedIndex);
@@ -1575,6 +1478,7 @@ class _MainDashboardState extends State<MainDashboard> {
                   icon: Icons.video_library_rounded,
                   label: "المسلسلات",
                   index: 3),
+            entry(icon: Icons.download_for_offline_rounded, label: AppTranslations.get('downloads', provider.appLanguageCode), index: 5),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
             ListTile(
@@ -1682,6 +1586,8 @@ class _MainDashboardState extends State<MainDashboard> {
             title: "المسلسلات", tab: "series", isSeries: true);
       case 4:
         return const FavoritesScreen();
+      case 5:
+        return const DownloadsScreen();
       default:
         return const HomeTab();
     }
@@ -3809,6 +3715,43 @@ void _showStreamQuickMenu(
                   provider.toggleFavorite(streamId);
                 },
               ),
+              if (stream is PlaylistItem && stream.type != 'live')
+                ListTile(
+                  leading: const Icon(
+                    Icons.download_for_offline_rounded,
+                    color: Color(0xFFA855F7),
+                  ),
+                  title: Text(
+                    DownloadManager.instance.isDownloaded(streamId)
+                        ? "تم تنزيل المحتوى مسبقاً (تشغيل أوفلاين)"
+                        : (DownloadManager.instance.isDownloading(streamId)
+                            ? "قيد التحميل الآن في قائمة التنزيلات..."
+                            : "تنزيل لمشاهدة بدون إنترنت"),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    if (!DownloadManager.instance.isDownloaded(streamId) &&
+                        !DownloadManager.instance.isDownloading(streamId)) {
+                      DownloadManager.instance.startDownload(
+                        id: streamId,
+                        title: name,
+                        url: stream.url,
+                        poster: stream.streamIcon,
+                        category: stream.categoryName,
+                        type: stream.type == 'series' ? 'series' : 'movie',
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'بدأ تنزيل "$name" في قائمة التنزيلات',
+                            style: const TextStyle(fontFamily: 'Cairo'),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
             ],
           ),
         ),

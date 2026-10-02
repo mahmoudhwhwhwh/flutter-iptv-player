@@ -1,3 +1,4 @@
+import 'package:flutter_iptv_player/services/download_manager.dart';
 import 'package:flutter_iptv_player/widgets/pin_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
@@ -3499,6 +3500,77 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   ),
                                 ),
                               ),
+                              // Download Button (Works for Xtream VOD/movies/series)
+                              if (_stream.type != 'live')
+                                ListenableBuilder(
+                                  listenable: DownloadManager.instance,
+                                  builder: (context, _) {
+                                    final streamId = _stream.streamId;
+                                    final isDone = DownloadManager.instance.isDownloaded(streamId);
+                                    final isDling = DownloadManager.instance.isDownloading(streamId);
+
+                                    return IconButton(
+                                      icon: Icon(
+                                        isDone
+                                            ? Icons.check_circle_rounded
+                                            : (isDling
+                                                ? Icons.downloading_rounded
+                                                : Icons.download_rounded),
+                                        color: isDone
+                                            ? const Color(0xFF22C55E)
+                                            : const Color(0xFFA855F7),
+                                        size: 24,
+                                      ),
+                                      tooltip: isDone
+                                          ? "تم تنزيل الفيديو مسبقاً"
+                                          : (isDling
+                                              ? "قيد التحميل الآن..."
+                                              : "تنزيل الفيديو للجهاز"),
+                                      onPressed: () {
+                                        _resetHideHUDTimer();
+                                        if (isDone) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'هذا الفيديو تم تنزيله وموجود في التنزيلات للتشغيل أوفلاين',
+                                                style: TextStyle(fontFamily: 'Cairo'),
+                                              ),
+                                            ),
+                                          );
+                                        } else if (isDling) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'جارِ تحميل هذا الفيديو بالفعل في قائمة التنزيلات',
+                                                style: TextStyle(fontFamily: 'Cairo'),
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          final url = _resolvedStreamUrl.isNotEmpty
+                                              ? _resolvedStreamUrl
+                                              : _stream.url;
+                                          DownloadManager.instance.startDownload(
+                                            id: streamId,
+                                            title: _stream.name,
+                                            url: url,
+                                            poster: _stream.streamIcon,
+                                            category: _stream.categoryName,
+                                            type: _stream.type == 'series' ? 'series' : 'movie',
+                                          );
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'بدأ تنزيل "${_stream.name}" في قائمة التنزيلات',
+                                                style: const TextStyle(fontFamily: 'Cairo'),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
                               // Subtitles Menu button
                               IconButton(
                                 icon: const Icon(Icons.subtitles_rounded,

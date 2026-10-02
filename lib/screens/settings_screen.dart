@@ -197,6 +197,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showMaskedSubscriptionPicker(BuildContext context, IPTVProvider provider) {
+    final playlists = provider.savedPlaylists;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            Icon(Icons.swap_horiz_rounded, color: Color(0xFF2DD4BF)),
+            SizedBox(width: 8),
+            Text('الاشتراكات المتاحة', style: TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 17)),
+          ],
+        ),
+        content: playlists.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text('لا توجد اشتراكات إضافية محفوظة. اضغط على "إضافة اشتراك جديد" لإضافة سيرفر آخر.',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(color: Colors.white70, fontFamily: 'Cairo', fontSize: 13)),
+              )
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: playlists.length,
+                  separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                  itemBuilder: (context, i) {
+                    final pl = playlists[i];
+                    final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
+                    final displayName = 'اشتراك ${i + 1} (VIP)';
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      leading: Icon(
+                        isActive ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
+                        color: isActive ? const Color(0xFF2DD4BF) : const Color(0xFFA855F7),
+                        size: 24,
+                      ),
+                      title: Text(displayName,
+                          style: const TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: Text(
+                        isActive ? 'مفعّل ونشط حالياً 🟢' : 'اشتراك محفوظ مشفّر 🔒',
+                        style: TextStyle(
+                            color: isActive ? const Color(0xFF2DD4BF) : Colors.white54,
+                            fontFamily: 'Cairo',
+                            fontSize: 11),
+                      ),
+                      onTap: isActive
+                          ? null
+                          : () async {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('جارِ التبديل إلى الاشتراك المختار...', style: TextStyle(fontFamily: 'Cairo')),
+                                ),
+                              );
+                              final ok = await provider.switchSubscription(pl.id);
+                              if (context.mounted && ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم تبديل الاشتراك بنجاح ✅', style: TextStyle(fontFamily: 'Cairo')),
+                                  ),
+                                );
+                              }
+                            },
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            child: const Text('إغلاق', style: TextStyle(color: Colors.white60, fontFamily: 'Cairo')),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+            label: const Text('إضافة جديد', style: TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFA855F7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showAddSubscriptionDialog(provider);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeTheme = context.watch<IPTVProvider>();
@@ -312,7 +404,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) =>
-                    _buildPerformanceProfilesCard(provider),
+                    _buildActionButtonSettingCard(
+                  title: 'إضافة اشتراك جديد',
+                  description:
+                      'إضافة اشتراك كود تفعيل أو سيرفر Xtream جديد والتبديل بين عدة اشتراكات بسهولة.',
+                  actionLabel: 'إضافة اشتراك',
+                  icon: Icons.add_circle_outline_rounded,
+                  onTap: () => _showAddSubscriptionDialog(provider),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) =>
+                    _buildActionButtonSettingCard(
+                  title: 'تبديل الاشتراك',
+                  description:
+                      'التبديل الفوري بين الاشتراكات المضافة في التطبيق بدون كشف البيانات.',
+                  actionLabel: 'تبديل',
+                  icon: Icons.swap_horiz_rounded,
+                  onTap: () => _showMaskedSubscriptionPicker(context, provider),
+                ),
               ),
               const SizedBox(height: 24),
               const SizedBox(height: 24),

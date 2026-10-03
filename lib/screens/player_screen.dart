@@ -477,6 +477,24 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (e) {}
   }
 
+  void _applySubtitlesConfiguration() {
+    final config = BetterPlayerSubtitlesConfiguration(
+      fontSize: _subSizeVal,
+      fontColor: _subColorVal,
+      backgroundColor: _subBgColorVal,
+      outlineColor: Colors.black,
+      outlineSize: 2.0,
+      fontFamily: _subFontVal,
+      bottomPadding: 48.0,
+      leftPadding: 16.0,
+      rightPadding: 16.0,
+    );
+    try {
+      _betterController?.setupSubtitlesConfiguration(config);
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -488,10 +506,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (shouldRefresh) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _loadSubSettings();
-        // Better Player يحتفظ بنمط الترجمة في State داخلي؛ المفتاح الجديد
-        // يعيد إنشاء طبقة النص بالقيم المحفوظة بدلاً من الشكل الافتراضي القديم.
-        _betterPlayerKey = GlobalKey();
-        if (mounted) _initializeController(isRetry: true);
+        _applySubtitlesConfiguration();
       });
     }
   }
@@ -560,15 +575,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     try {
       final tracks = _betterController!.betterPlayerSubtitlesSourceList;
       String targetLang = _subLangVal.toLowerCase();
-      if (targetLang == "arabic")
+      if (_subLangVal == "العربية" || targetLang == "arabic" || targetLang == "ar" || _subLangVal == "تلقائي")
         targetLang = "ar";
-      else if (targetLang == "english")
+      else if (_subLangVal == "الإنجليزية" || targetLang == "english" || targetLang == "en")
         targetLang = "en";
-      else if (targetLang == "french")
+      else if (_subLangVal == "الفرنسية" || targetLang == "french" || targetLang == "fr")
         targetLang = "fr";
-      else if (targetLang == "spanish")
+      else if (_subLangVal == "الإسبانية" || targetLang == "spanish" || targetLang == "es")
         targetLang = "es";
-      else if (targetLang == "turkish")
+      else if (_subLangVal == "التركية" || targetLang == "turkish" || targetLang == "tr")
         targetLang = "tr";
       else if (targetLang == "persian") targetLang = "fa";
 
@@ -652,6 +667,68 @@ class _PlayerScreenState extends State<PlayerScreen>
       );
     } catch (e) {
       debugPrint("Could not log play_channel event: $e");
+    }
+
+    final bool isLocalFile = _stream.type == 'file' ||
+        _stream.url.startsWith('/') ||
+        _stream.url.startsWith('file://');
+
+    if (isLocalFile) {
+      final cleanPath = _stream.url.replaceFirst('file://', '');
+      final file = File(cleanPath);
+      if (!file.existsSync()) {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = 'ملف الفيديو غير موجود على هذا الجهاز';
+            _isBuffering = false;
+          });
+        }
+        return;
+      }
+
+      final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
+        BetterPlayerDataSourceType.file,
+        cleanPath,
+        liveStream: false,
+        useAsmsTracks: false,
+        useAsmsSubtitles: false,
+        useAsmsAudioTracks: false,
+      );
+
+      final BetterPlayerController newBetterController = BetterPlayerController(
+        BetterPlayerConfiguration(
+          autoPlay: true,
+          looping: false,
+          fit: _currentBoxFit,
+          subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
+            fontSize: _subSizeVal,
+            fontColor: _subColorVal,
+            backgroundColor: _subBgColorVal,
+            outlineColor: Colors.black,
+            outlineSize: 2.0,
+            fontFamily: _subFontVal,
+            bottomPadding: 48.0,
+            leftPadding: 16.0,
+            rightPadding: 16.0,
+          ),
+          controlsConfiguration: const BetterPlayerControlsConfiguration(
+            showControls: false,
+          ),
+        ),
+      );
+
+      _betterController = newBetterController;
+      await newBetterController.setupDataSource(dataSource);
+      _setupBetterPlayerListeners(newBetterController);
+      _initialized = true;
+      if (mounted) {
+        setState(() {
+          _isBuffering = false;
+          _hasError = false;
+        });
+      }
+      return;
     }
 
     final provider = Provider.of<IPTVProvider>(context, listen: false);
@@ -1557,7 +1634,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               Future<void> saveSubPref(String key, String val) async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString(key, val);
-                setState(() {});
+                _applySubtitlesConfiguration();
               }
 
               return Directionality(

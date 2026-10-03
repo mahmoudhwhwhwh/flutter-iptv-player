@@ -175,21 +175,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _initLoadingVideo() {
-    try {
-      final ctrl = VideoPlayerController.asset('assets/loading_stream.mp4');
-      ctrl.initialize().then((_) {
-        if (!mounted) {
-          ctrl.dispose();
-          return;
-        }
-        ctrl.setLooping(true);
-        ctrl.setVolume(0.0);
-        ctrl.play();
-        setState(() {
-          _loadingVideoController = ctrl;
-        });
-      }).catchError((_) {});
-    } catch (_) {}
+    // Kept lightweight to avoid competing with ExoPlayer hardware decoder
   }
   WebViewController? _webController;
   bool _isWebFallback = false;
@@ -479,20 +465,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _applySubtitlesConfiguration() {
-    final config = BetterPlayerSubtitlesConfiguration(
-      fontSize: _subSizeVal,
-      fontColor: _subColorVal,
-      backgroundColor: _subBgColorVal,
-      outlineColor: Colors.black,
-      outlineSize: 2.0,
-      fontFamily: _subFontVal,
-      bottomPadding: 48.0,
-      leftPadding: 16.0,
-      rightPadding: 16.0,
-    );
-    try {
-      _betterController?.setupSubtitlesConfiguration(config);
-    } catch (_) {}
     if (mounted) setState(() {});
   }
 
@@ -734,13 +706,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     String finalUrl = urlStr;
-    if (!isOfflineMedia && isHlsPlaybackUrl(finalUrl)) {
-      final malformedFallback = await _malformedHlsTsFallback(finalUrl);
-      if (malformedFallback != null && malformedFallback.isNotEmpty) {
-        finalUrl = malformedFallback;
-        urlStr = finalUrl;
-      }
-    }
+    // Skip pre-fetch HTTP delay; pass stream URL directly to ExoPlayer for instant playback
     final sourceDescriptor = classifyPlaybackUrl(finalUrl);
     final isIptvMediaCandidate = _stream.type == 'live' ||
         _stream.type == 'movie' ||
@@ -919,6 +885,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       useAsmsTracks: isAsms,
       useAsmsSubtitles: isAsms,
       useAsmsAudioTracks: isAsms,
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 1500,
+        maxBufferMs: 10000,
+        bufferForPlaybackMs: 400,
+        bufferForPlaybackAfterRebufferMs: 1000,
+      ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
               ? BetterPlayerDrmConfiguration(

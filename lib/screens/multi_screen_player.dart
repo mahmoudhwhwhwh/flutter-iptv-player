@@ -29,6 +29,17 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   late int _screenCount;
   List<PlaylistItem?> _streams = [];
   Timer? _screenOnTimer;
+  int? _fullscreenSlotIndex;
+
+  void _toggleFullscreen(int index) {
+    setState(() {
+      if (_fullscreenSlotIndex == index) {
+        _fullscreenSlotIndex = null;
+      } else {
+        _fullscreenSlotIndex = index;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -135,9 +146,30 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                         shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
                     onPressed: () {
                       setState(() {
+                        if (_fullscreenSlotIndex == index) {
+                          _fullscreenSlotIndex = null;
+                        }
                         _streams[index] = null;
                       });
                     },
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: IconButton(
+                    style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withOpacity(0.65)),
+                    icon: Icon(
+                        _fullscreenSlotIndex == index
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 24),
+                    tooltip: _fullscreenSlotIndex == index
+                        ? 'تصغير للشبكة'
+                        : 'ملء الشاشة',
+                    onPressed: () => _toggleFullscreen(index),
                   ),
                 ),
                 Positioned(
@@ -165,6 +197,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   }
 
   Widget _buildLayout() {
+    if (_fullscreenSlotIndex != null && _fullscreenSlotIndex! < _streams.length) {
+      return _buildSlot(_fullscreenSlotIndex!);
+    }
     switch (widget.layoutType) {
       case MultiScreenType.grid2x2:
         return Column(
@@ -391,12 +426,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
-      _controller?.pause();
-    }
+    // Keep streams running uninterrupted in background and multi-screen mode
   }
 
   @override
@@ -475,6 +505,8 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       fit: BoxFit.contain,
       autoPlay: true,
       looping: false,
+      handleLifecycle: false,
+      autoDispose: false,
       subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
         fontSize: subSizeVal,
         fontColor: subColorVal,
@@ -621,7 +653,24 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
               : null,
     );
 
+    dataSource = dataSource.copyWith(
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 15000,
+        maxBufferMs: 60000,
+        bufferForPlaybackMs: 2500,
+        bufferForPlaybackAfterRebufferMs: 5000,
+      ),
+    );
     _controller = BetterPlayerController(betterPlayerConfiguration);
+    _controller!.addEventsListener((event) {
+      if (event.betterPlayerEventType == BetterPlayerEventType.exception) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && _controller != null) {
+            _controller!.retryDataSource();
+          }
+        });
+      }
+    });
     _controller!.setupDataSource(dataSource);
 
     if (mounted) {

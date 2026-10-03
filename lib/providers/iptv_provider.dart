@@ -1053,6 +1053,9 @@ class IPTVProvider with ChangeNotifier {
     List<String> cats = [];
     if (_activeTab == "live") {
       cats = _liveCategories.map((c) => c['category_name'] ?? '').toList();
+    } else if (_activeTab == "news") {
+      final newsCats = _filteredStreams.map((s) => s.categoryName).toSet().toList();
+      cats = newsCats.isNotEmpty ? newsCats : _liveCategories.map((c) => c['category_name'] ?? '').toList();
     } else if (_activeTab == "movie") {
       cats = _movieCategories.map((c) => c['category_name'] ?? '').toList();
     } else if (_activeTab == "series") {
@@ -2490,8 +2493,20 @@ class IPTVProvider with ChangeNotifier {
           return decoded is List ? decoded : <dynamic>[];
         }
 
-        final vodCategories = await getXtreamList('get_vod_categories');
+        // Fast parallel fetch for VOD categories, VOD streams, Series categories, and Series streams
+        final extraResponses = await Future.wait([
+          getXtreamList('get_vod_categories', timeout: const Duration(seconds: 40)),
+          getXtreamList('get_vod_streams', timeout: const Duration(seconds: 60)),
+          getXtreamList('get_series_categories', timeout: const Duration(seconds: 40)),
+          getXtreamList('get_series', timeout: const Duration(seconds: 60)),
+        ]);
         if (!isCurrentLoad()) return;
+
+        final vodCategories = extraResponses[0];
+        final vodItems = extraResponses[1];
+        final seriesCategories = extraResponses[2];
+        final seriesItems = extraResponses[3];
+
         _movieCategories = FilterService.interceptAndFilterCategories(
           vodCategories
               .whereType<Map>()
@@ -2503,9 +2518,6 @@ class IPTVProvider with ChangeNotifier {
           blockAdult: _blockAdultContent,
         );
 
-        final vodItems = await getXtreamList('get_vod_streams',
-            timeout: const Duration(seconds: 120));
-        if (!isCurrentLoad()) return;
         final tempMovies = <PlaylistItem>[];
         for (final raw in vodItems) {
           if (raw is! Map) continue;
@@ -2534,8 +2546,6 @@ class IPTVProvider with ChangeNotifier {
           ));
         }
 
-        final seriesCategories = await getXtreamList('get_series_categories');
-        if (!isCurrentLoad()) return;
         _seriesCategories = FilterService.interceptAndFilterCategories(
           seriesCategories
               .whereType<Map>()
@@ -2546,9 +2556,6 @@ class IPTVProvider with ChangeNotifier {
               .toList(),
           blockAdult: _blockAdultContent,
         );
-
-        final seriesItems = await getXtreamList('get_series',
-            timeout: const Duration(seconds: 120));
         if (!isCurrentLoad()) return;
         final tempSeries = <PlaylistItem>[];
         for (final raw in seriesItems) {
@@ -2693,6 +2700,8 @@ class IPTVProvider with ChangeNotifier {
       if (_activeTab != "favorites") {
         if (_activeTab == "live") {
           if (stream.type != "live" && stream.type != "stalker") return false;
+        } else if (_activeTab == "news") {
+          if ((stream.type != "live" && stream.type != "stalker") || !isNewsStream(stream)) return false;
         } else if (_activeTab == "movie") {
           if (stream.type != "movie" && stream.type != "stalker_movie")
             return false;

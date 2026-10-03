@@ -16,6 +16,7 @@ import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
 import 'screens/downloads_screen.dart';
+import 'screens/matches_screen.dart';
 import 'services/download_manager.dart';
 import 'services/app_translations.dart';
 import 'models/playlist_item.dart';
@@ -1226,9 +1227,19 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   void updateIndex(int i) {
-    if (i > 0) {
-      String t = ["", "live", "movie", "series", "favorites"][i];
-      Provider.of<IPTVProvider>(context, listen: false).setTab(t);
+    final prov = Provider.of<IPTVProvider>(context, listen: false);
+    if (i == 1) {
+      prov.setTab("live");
+    } else if (i == 2) {
+      prov.setTab("movie");
+    } else if (i == 3) {
+      prov.setTab("series");
+    } else if (i == 4) {
+      prov.setTab("favorites");
+    } else if (i == 6) {
+      prov.setTab("news");
+    } else if (i == 7) {
+      // Matches screen
     }
     setState(() => _selectedIndex = i);
   }
@@ -1245,10 +1256,12 @@ class _MainDashboardState extends State<MainDashboard> {
     final List<Map<String, dynamic>> tabs = [
       {"icon": Icons.home_rounded, "label": AppTranslations.get('home', langCode), "index": 0},
       {"icon": Icons.live_tv_rounded, "label": AppTranslations.get('live', langCode), "index": 1},
+      {"icon": Icons.sports_soccer_rounded, "label": AppTranslations.get('matches', langCode), "index": 7},
       if (showMoviesSeries)
         {"icon": Icons.movie_filter_rounded, "label": AppTranslations.get('movies', langCode), "index": 2},
       if (showMoviesSeries)
         {"icon": Icons.video_library_rounded, "label": AppTranslations.get('series', langCode), "index": 3},
+      {"icon": Icons.newspaper_rounded, "label": AppTranslations.get('news', langCode), "index": 6},
       {"icon": Icons.download_for_offline_rounded, "label": AppTranslations.get('downloads', langCode), "index": 5},
       {"icon": Icons.favorite_rounded, "label": AppTranslations.get('favorites', langCode), "index": 4},
     ];
@@ -1478,6 +1491,8 @@ class _MainDashboardState extends State<MainDashboard> {
                   icon: Icons.video_library_rounded,
                   label: "المسلسلات",
                   index: 3),
+            entry(icon: Icons.sports_soccer_rounded, label: AppTranslations.get('matches', provider.appLanguageCode), index: 7),
+            entry(icon: Icons.newspaper_rounded, label: AppTranslations.get('news', provider.appLanguageCode), index: 6),
             entry(icon: Icons.download_for_offline_rounded, label: AppTranslations.get('downloads', provider.appLanguageCode), index: 5),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
@@ -1588,6 +1603,13 @@ class _MainDashboardState extends State<MainDashboard> {
         return const FavoritesScreen();
       case 5:
         return const DownloadsScreen();
+      case 6:
+        return StreamsListScreen(
+          title: AppTranslations.get('news', provider.appLanguageCode),
+          tab: "news",
+        );
+      case 7:
+        return const MatchesScreen();
       default:
         return const HomeTab();
     }
@@ -1986,6 +2008,9 @@ class _HomeTabState extends State<HomeTab> {
     return _buildInfoRowSection(
       context,
       title: 'جدول المباريات',
+      onViewAll: () => context
+          .findAncestorStateOfType<_MainDashboardState>()
+          ?.updateIndex(7),
       height: isMobile ? 166 : 190,
       children: _matches.take(14).map((item) {
         final home = item['home_team'] is Map
@@ -2014,6 +2039,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget _buildInfoRowSection(BuildContext context,
       {required String title,
       required double height,
+      VoidCallback? onViewAll,
       required List<Widget> children}) {
     if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -2022,13 +2048,26 @@ class _HomeTabState extends State<HomeTab> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800)),
+            child: Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
+                ),
+                if (onViewAll != null)
+                  TextButton(
+                    onPressed: onViewAll,
+                    child: Text('عرض الكل',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600)),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),

@@ -3547,9 +3547,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             ),
                                           );
                                         } else {
-                                          final url = _resolvedStreamUrl.isNotEmpty
-                                              ? _resolvedStreamUrl
-                                              : _stream.url;
+                                          final url = _stream.url;
                                           DownloadManager.instance.startDownload(
                                             id: streamId,
                                             title: _stream.name,

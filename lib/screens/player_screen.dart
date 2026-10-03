@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_iptv_player/services/download_manager.dart';
 import 'package:flutter_iptv_player/widgets/pin_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -669,76 +670,21 @@ class _PlayerScreenState extends State<PlayerScreen>
       debugPrint("Could not log play_channel event: $e");
     }
 
-    final bool isLocalFile = _stream.type == 'file' ||
+    final bool isOfflineMedia = _stream.type == 'file' ||
         _stream.url.startsWith('/') ||
         _stream.url.startsWith('file://');
 
-    if (isLocalFile) {
-      final cleanPath = _stream.url.replaceFirst('file://', '');
-      final file = File(cleanPath);
-      if (!file.existsSync()) {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = 'ملف الفيديو غير موجود على هذا الجهاز';
-            _isBuffering = false;
-          });
-        }
-        return;
-      }
-
-      final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
-        BetterPlayerDataSourceType.file,
-        cleanPath,
-        liveStream: false,
-        useAsmsTracks: false,
-        useAsmsSubtitles: false,
-        useAsmsAudioTracks: false,
-      );
-
-      final BetterPlayerController newBetterController = BetterPlayerController(
-        BetterPlayerConfiguration(
-          autoPlay: true,
-          looping: false,
-          fit: _currentBoxFit,
-          subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
-            fontSize: _subSizeVal,
-            fontColor: _subColorVal,
-            backgroundColor: _subBgColorVal,
-            outlineColor: Colors.black,
-            outlineSize: 2.0,
-            fontFamily: _subFontVal,
-            bottomPadding: 48.0,
-            leftPadding: 16.0,
-            rightPadding: 16.0,
-          ),
-          controlsConfiguration: const BetterPlayerControlsConfiguration(
-            showControls: false,
-          ),
-        ),
-      );
-
-      _betterController = newBetterController;
-      await newBetterController.setupDataSource(dataSource);
-      _setupBetterPlayerListeners(newBetterController);
-      _initialized = true;
-      if (mounted) {
-        setState(() {
-          _isBuffering = false;
-          _hasError = false;
-        });
-      }
-      return;
-    }
-
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    final candidates = _playbackCandidates(_stream.url);
-    final candidateIndex = isRetry && candidates.isNotEmpty
-        ? _retryCount % candidates.length
-        : 0;
-    String urlStr = candidates.isEmpty
-        ? stripFfmpegPrefix(_stream.url)
-        : candidates[candidateIndex];
+    String urlStr = _stream.url;
+    if (!isOfflineMedia) {
+      final candidates = _playbackCandidates(_stream.url);
+      final candidateIndex = isRetry && candidates.isNotEmpty
+          ? _retryCount % candidates.length
+          : 0;
+      urlStr = candidates.isEmpty
+          ? stripFfmpegPrefix(_stream.url)
+          : candidates[candidateIndex];
+    }
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
       orElse: () => UserPlaylist(id: '', name: '', type: ''),
@@ -788,7 +734,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     String finalUrl = urlStr;
-    if (isHlsPlaybackUrl(finalUrl)) {
+    if (!isOfflineMedia && isHlsPlaybackUrl(finalUrl)) {
       final malformedFallback = await _malformedHlsTsFallback(finalUrl);
       if (malformedFallback != null && malformedFallback.isNotEmpty) {
         finalUrl = malformedFallback;
@@ -801,7 +747,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         _stream.type == 'series' ||
         _stream.type == 'channel' ||
         _stream.type.startsWith('stalker_');
-    if (!sourceDescriptor.isDirectMedia && isIptvMediaCandidate) {
+    if (isOfflineMedia) {
+      // Offline local file playback
+    } else if (!sourceDescriptor.isDirectMedia && isIptvMediaCandidate) {
       // Xtream/Stalker VOD endpoints often omit the extension and return the
       // media MIME type only after the request. Keep these URLs in ExoPlayer
       // instead of incorrectly treating them as HTML pages.

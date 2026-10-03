@@ -1604,8 +1604,8 @@ class _MainDashboardState extends State<MainDashboard> {
       case 5:
         return const DownloadsScreen();
       case 6:
-        return StreamsListScreen(
-          title: AppTranslations.get('news', provider.appLanguageCode),
+        return const StreamsListScreen(
+          title: "الأخبار",
           tab: "news",
         );
       case 7:

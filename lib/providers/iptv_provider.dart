@@ -2367,145 +2367,126 @@ class IPTVProvider with ChangeNotifier {
         notifyListeners();
         return;
       } else if (host.isNotEmpty && user.isNotEmpty && pass.isNotEmpty) {
-        final liveResponses = await Future.wait([
-          getXtreamApiWithFallback(buildXtreamApiUri(
-              host: host,
-              username: user,
-              password: pass,
-              action: 'get_live_categories')),
-          getXtreamApiWithFallback(buildXtreamApiUri(
-              host: host,
-              username: user,
-              password: pass,
-              action: 'get_live_streams'),
-              timeout: const Duration(seconds: 90)),
-        ]);
-        final liveCatsRes = liveResponses[0];
-        final liveStreamsRes = liveResponses[1];
-
-        List<Map<String, String>> tempLiveCats = [];
-        if (liveCatsRes.statusCode == 200) {
-          final List decoded = json.decode(liveCatsRes.body);
-          tempLiveCats = decoded
-              .map<Map<String, String>>((item) => {
-                    'category_id': item['category_id']?.toString() ?? '',
-                    'category_name': item['category_name']?.toString() ?? '',
-                  })
-              .toList();
+        Future<List<dynamic>> getXtreamList(String action,
+            {Duration timeout = const Duration(seconds: 30)}) async {
+          try {
+            final response = await getXtreamApiWithFallback(
+              buildXtreamApiUri(
+                host: host,
+                username: user,
+                password: pass,
+                action: action,
+              ),
+              timeout: timeout,
+            );
+            if (response.statusCode != 200) return <dynamic>[];
+            final decoded = json.decode(response.body);
+            return decoded is List ? decoded : <dynamic>[];
+          } catch (_) {
+            return <dynamic>[];
+          }
         }
+
+        // Fire all 6 Xtream endpoints in parallel for maximum speed and responsiveness
+        final allResponses = await Future.wait([
+          getXtreamList('get_live_categories', timeout: const Duration(seconds: 20)),
+          getXtreamList('get_live_streams', timeout: const Duration(seconds: 35)),
+          getXtreamList('get_vod_categories', timeout: const Duration(seconds: 20)),
+          getXtreamList('get_vod_streams', timeout: const Duration(seconds: 35)),
+          getXtreamList('get_series_categories', timeout: const Duration(seconds: 20)),
+          getXtreamList('get_series', timeout: const Duration(seconds: 35)),
+        ]);
+        if (!isCurrentLoad()) return;
+
+        final liveCatsData = allResponses[0];
+        final liveStreamsData = allResponses[1];
+        final vodCategories = allResponses[2];
+        final vodItems = allResponses[3];
+        final seriesCategories = allResponses[4];
+        final seriesItems = allResponses[5];
+
+        List<Map<String, String>> tempLiveCats = liveCatsData
+            .whereType<Map>()
+            .map<Map<String, String>>((item) => {
+                  'category_id': item['category_id']?.toString() ?? '',
+                  'category_name': item['category_name']?.toString() ?? '',
+                })
+            .toList();
 
         // اعتراض وتصفية فئات البث المباشر
         tempLiveCats = FilterService.interceptAndFilterCategories(tempLiveCats,
             blockAdult: _blockAdultContent);
 
         List<PlaylistItem> tempStreams = [];
-        if (liveStreamsRes.statusCode == 200) {
-          final List decoded = json.decode(liveStreamsRes.body);
-          for (final item in decoded) {
-            final catId = item['category_id']?.toString() ?? '';
-            final cat = tempLiveCats
-                .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
-            final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
-            final streamId = item['stream_id']?.toString() ?? '';
-            final advertisedUrl =
-                (item['stream_source'] ?? item['url'] ?? '').toString().trim();
-            final advertisedExtension = normalizeXtreamMediaExtension(
-              item['container_extension'] ??
-                  item['stream_type'] ??
-                  item['extension'] ??
-                  '',
-            );
-            final extension = advertisedExtension.isNotEmpty
-                ? advertisedExtension
-                : (advertisedUrl.toLowerCase().contains('.m3u8')
-                    ? 'm3u8'
-                    : advertisedUrl.toLowerCase().contains('.mpd')
-                        ? 'mpd'
-                        : 'ts');
-            // Xtream APIs frequently return stream_source as an unauthenticated
-            // CDN hint. It is not a playable contract for all providers, so
-            // always use the authenticated standard route for live channels.
-            // Credentials are URI-encoded so reserved characters do not break
-            // the resulting media URL.
-            final formatToUse = _streamFormat == 'auto' ? extension : _streamFormat;
-            final streamUrl = buildXtreamLiveUrl(
-              host: host,
-              username: user,
-              password: pass,
-              streamId: streamId,
-              extension: formatToUse,
-            );
-            final altExt = (formatToUse == 'm3u8') ? 'ts' : 'm3u8';
-            final altStreamUrl = buildXtreamLiveUrl(
-              host: host,
-              username: user,
-              password: pass,
-              streamId: streamId,
-              extension: altExt,
-            );
-            final secureStreamUrl = host.startsWith('http://')
-                ? buildXtreamLiveUrl(
-                    host: host.replaceFirst('http://', 'https://'),
-                    username: user,
-                    password: pass,
-                    streamId: streamId,
-                    extension: formatToUse,
-                  )
-                : null;
-            tempStreams.add(PlaylistItem(
-              num: item['num'] is int ? item['num'] : null,
-              streamId: "live_$streamId",
-              name: item['name']?.toString() ?? '',
-              streamIcon: item['stream_icon']?.toString() ?? '',
-              categoryId: catId,
-              categoryName: catName,
-              url: streamUrl,
-              type: "live",
-              fallbackUrl: altStreamUrl != streamUrl
-                  ? altStreamUrl
-                  : (secureStreamUrl != streamUrl ? secureStreamUrl : null),
-            ));
-          }
+        for (final raw in liveStreamsData) {
+          if (raw is! Map) continue;
+          final item = Map<String, dynamic>.from(raw);
+          final catId = item['category_id']?.toString() ?? '';
+          final cat = tempLiveCats
+              .firstWhere((c) => c['category_id'] == catId, orElse: () => {});
+          final catName = cat.isNotEmpty ? cat['category_name']! : 'بث مباشر';
+          final streamId = item['stream_id']?.toString() ?? '';
+          final advertisedUrl =
+              (item['stream_source'] ?? item['url'] ?? '').toString().trim();
+          final advertisedExtension = normalizeXtreamMediaExtension(
+            item['container_extension'] ??
+                item['stream_type'] ??
+                item['extension'] ??
+                '',
+          );
+          final extension = advertisedExtension.isNotEmpty
+              ? advertisedExtension
+              : (advertisedUrl.toLowerCase().contains('.m3u8')
+                  ? 'm3u8'
+                  : advertisedUrl.toLowerCase().contains('.mpd')
+                      ? 'mpd'
+                      : 'ts');
+
+          final formatToUse = _streamFormat == 'auto' ? extension : _streamFormat;
+          final streamUrl = buildXtreamLiveUrl(
+            host: host,
+            username: user,
+            password: pass,
+            streamId: streamId,
+            extension: formatToUse,
+          );
+          final altExt = (formatToUse == 'm3u8') ? 'ts' : 'm3u8';
+          final altStreamUrl = buildXtreamLiveUrl(
+            host: host,
+            username: user,
+            password: pass,
+            streamId: streamId,
+            extension: altExt,
+          );
+          final secureStreamUrl = host.startsWith('http://')
+              ? buildXtreamLiveUrl(
+                  host: host.replaceFirst('http://', 'https://'),
+                  username: user,
+                  password: pass,
+                  streamId: streamId,
+                  extension: formatToUse,
+                )
+              : null;
+
+          tempStreams.add(PlaylistItem(
+            num: item['num'] is int ? item['num'] : null,
+            streamId: "live_$streamId",
+            name: item['name']?.toString() ?? '',
+            streamIcon: item['stream_icon']?.toString() ?? '',
+            categoryId: catId,
+            categoryName: catName,
+            url: streamUrl,
+            type: "live",
+            fallbackUrl: altStreamUrl != streamUrl
+                ? altStreamUrl
+                : (secureStreamUrl != streamUrl ? secureStreamUrl : null),
+          ));
         }
 
         // اعتراض وتصفية قنوات البث المباشر
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
             blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
-
-        // Fetch VOD and Series before publishing the final playlist. The old
-        // implementation started nested, un-awaited requests and marked the
-        // playlist as ready immediately; users could open Movies/Series while
-        // those lists were still empty, and late responses could mix playlists.
-        Future<List<dynamic>> getXtreamList(String action,
-            {Duration timeout = const Duration(seconds: 90)}) async {
-          final response = await getXtreamApiWithFallback(
-            buildXtreamApiUri(
-              host: host,
-              username: user,
-              password: pass,
-              action: action,
-            ),
-            timeout: timeout,
-          );
-          if (response.statusCode != 200) return <dynamic>[];
-          final decoded = json.decode(response.body);
-          return decoded is List ? decoded : <dynamic>[];
-        }
-
-        // Fast parallel fetch for VOD categories, VOD streams, Series categories, and Series streams
-        final extraResponses = await Future.wait([
-          getXtreamList('get_vod_categories', timeout: const Duration(seconds: 40)),
-          getXtreamList('get_vod_streams', timeout: const Duration(seconds: 60)),
-          getXtreamList('get_series_categories', timeout: const Duration(seconds: 40)),
-          getXtreamList('get_series', timeout: const Duration(seconds: 60)),
-        ]);
-        if (!isCurrentLoad()) return;
-
-        final vodCategories = extraResponses[0];
-        final vodItems = extraResponses[1];
-        final seriesCategories = extraResponses[2];
-        final seriesItems = extraResponses[3];
 
         _movieCategories = FilterService.interceptAndFilterCategories(
           vodCategories

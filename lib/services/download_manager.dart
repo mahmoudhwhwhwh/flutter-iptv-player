@@ -110,10 +110,13 @@ class DownloadManager extends ChangeNotifier {
   final Map<String, CancelToken> _cancelTokens = {};
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(minutes: 60),
+    receiveTimeout: const Duration(minutes: 120),
+    followRedirects: true,
+    maxRedirects: 8,
     headers: {
-      'User-Agent':
-          'Mozilla/5.0 (Linux; Android 13; LiveStreamPro) AppleWebKit/537.36',
+      'User-Agent': 'IPTVSmartersPro',
+      'Accept': '*/*',
+      'Connection': 'keep-alive',
     },
   ));
 
@@ -212,6 +215,15 @@ class DownloadManager extends ChangeNotifier {
 
     if (isDownloaded(id)) return;
 
+    // Normalize Xtream VOD/Series URLs so we always download actual video container (.mp4/.mkv) instead of .m3u8 playlist text
+    if ((url.contains('/movie/') || url.contains('/series/')) &&
+        url.toLowerCase().endsWith('.m3u8')) {
+      url = '${url.substring(0, url.length - 5)}.mp4';
+    }
+    if (url.startsWith('http://x.gamerdz1517.com')) {
+      url = url.replaceFirst('http://', 'https://');
+    }
+
     final dir = await getApplicationDocumentsDirectory();
     final downloadDir = Directory('${dir.path}/downloads');
     if (!downloadDir.existsSync()) {
@@ -286,6 +298,15 @@ class DownloadManager extends ChangeNotifier {
         },
       );
 
+      final downloadedFile = File(targetPath);
+      final actualLen = downloadedFile.existsSync() ? downloadedFile.lengthSync() : 0;
+      if (actualLen <= 512) {
+        throw Exception('Downloaded file is empty or invalid');
+      }
+      item.downloadedBytes = actualLen;
+      if (item.totalBytes <= 0) {
+        item.totalBytes = actualLen;
+      }
       item.status = DownloadStatus.completed;
       item.progress = 1.0;
       item.speed = '';

@@ -278,8 +278,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _stream.type == 'live' || _totalDuration.inSeconds == 0;
 
   Duration _liveRetryDelay() {
-    final seconds = (1 << (_retryCount.clamp(0, 4))).toInt();
-    return Duration(seconds: seconds.clamp(1, 12));
+    return const Duration(milliseconds: 400);
   }
 
   bool get _isDrm => _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty;
@@ -316,21 +315,28 @@ class _PlayerScreenState extends State<PlayerScreen>
   List<String> _playbackCandidates(String primary) {
     final candidates = <String>[];
     void add(String value) {
-      final normalized = stripFfmpegPrefix(value.trim());
+      var normalized = stripFfmpegPrefix(value.trim());
+      if (normalized.startsWith('http://x.gamerdz1517.com')) {
+        normalized = normalized.replaceFirst('http://', 'https://');
+      }
       if (normalized.isNotEmpty && !candidates.contains(normalized)) {
         candidates.add(normalized);
       }
     }
+    final uri = Uri.tryParse(primary.trim());
+    final isXtreamLive = primary.contains('/live/');
+    if (uri != null && isXtreamLive && uri.path.toLowerCase().endsWith('.m3u8')) {
+      add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
+    }
     add(primary);
-    final uri = Uri.tryParse(primary);
     if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      add(uri.replace(scheme: uri.scheme == 'http' ? 'https' : 'http').toString());
       final path = uri.path.toLowerCase();
       if (path.endsWith('.ts')) {
         add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8').toString());
       } else if (path.endsWith('.m3u8')) {
         add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
       }
+      add(uri.replace(scheme: uri.scheme == 'http' ? 'https' : 'http').toString());
     }
     if (_stream.fallbackUrl?.trim().isNotEmpty == true) add(_stream.fallbackUrl!);
     return candidates;
@@ -499,11 +505,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _loadSubSettings().then((_) {
-      if (mounted) {
-        _initializeController();
-      }
-    });
+    _initializeController();
     _resetHideHUDTimer();
   }
 
@@ -642,12 +644,23 @@ class _PlayerScreenState extends State<PlayerScreen>
       debugPrint("Could not log play_channel event: $e");
     }
 
-    final bool isOfflineMedia = _stream.type == 'file' ||
+    bool isOfflineMedia = _stream.type == 'file' ||
         _stream.url.startsWith('/') ||
         _stream.url.startsWith('file://');
-
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     String urlStr = _stream.url;
+    final cleanDownloadId = _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
+    final existingDownload = DownloadManager.instance.getItem(cleanDownloadId) ??
+        DownloadManager.instance.getItem(_stream.streamId);
+    if (existingDownload != null &&
+        existingDownload.status == DownloadStatus.completed &&
+        existingDownload.filePath.isNotEmpty) {
+      final dlFile = File(existingDownload.filePath);
+      if (dlFile.existsSync() && dlFile.lengthSync() > 0) {
+        urlStr = existingDownload.filePath;
+        isOfflineMedia = true;
+      }
+    }
     if (!isOfflineMedia) {
       final candidates = _playbackCandidates(_stream.url);
       final candidateIndex = isRetry && candidates.isNotEmpty
@@ -848,48 +861,67 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     _disposeActiveController();
 
-    BetterPlayerVideoFormat? format;
-    if (isHlsPlaybackUrl(finalUrl)) {
-      format = BetterPlayerVideoFormat.hls;
-    } else if (isDashPlaybackUrl(finalUrl)) {
-      format = BetterPlayerVideoFormat.dash;
-    } else if (isProgressiveTsUrl(finalUrl)) {
-      // Leave formatHint unset for progressive TS. ExoPlayer can infer MPEG-TS
-      // from the .ts URL/content type; forcing `other` bypasses that inference.
-      format = null;
-    } else if (_stream.type == 'live' &&
-        isLikelyLiveTransportStreamUrl(finalUrl)) {
-      // Some IPTV servers expose raw MPEG-TS at an extensionless URL.
-      format = null;
-    }
-
-    bool isAsms = format == BetterPlayerVideoFormat.hls ||
-        format == BetterPlayerVideoFormat.dash;
-
     final bool isLocalFile = _stream.type == 'file' ||
         finalUrl.startsWith('/') ||
         finalUrl.startsWith('file://');
+    final String cleanLocalPath = finalUrl.replaceFirst(RegExp(r'^file://'), '');
+    if (isLocalFile) {
+      final localFile = File(cleanLocalPath);
+      if (!localFile.existsSync() || localFile.lengthSync() <= 0) {
+        if (mounted) {
+          setState(() {
+            _initialized = false;
+            _isBuffering = false;
+            _hasError = true;
+            _errorMessage = 'ملف الفيديو غير مكتمل أو غير موجود على الجهاز، يرجى إعادة تنزيله.';
+          });
+        }
+        return;
+      }
+    }
+    BetterPlayerVideoFormat? format;
+    if (isLocalFile || finalUrl.contains('/live/')) {
+      format = null;
+    } else if (isHlsPlaybackUrl(finalUrl)) {
+      format = BetterPlayerVideoFormat.hls;
+    } else if (isDashPlaybackUrl(finalUrl)) {
+      format = BetterPlayerVideoFormat.dash;
+    } else {
+      format = null;
+    }
+    bool isAsms = !isLocalFile &&
+        (format == BetterPlayerVideoFormat.hls ||
+            format == BetterPlayerVideoFormat.dash);
+    String? localExt;
+    if (isLocalFile && cleanLocalPath.contains('.')) {
+      final extCandidate = cleanLocalPath.split('.').last.toLowerCase().trim();
+      if (extCandidate.isNotEmpty && extCandidate.length <= 5) {
+        localExt = extCandidate;
+      }
+    }
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       isLocalFile
           ? BetterPlayerDataSourceType.file
           : BetterPlayerDataSourceType.network,
-      isLocalFile ? finalUrl.replaceFirst('file://', '') : finalUrl,
+      isLocalFile ? cleanLocalPath : finalUrl,
       liveStream: !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker'),
       videoFormat: format,
-      videoExtension: (isProgressiveTsUrl(finalUrl) ||
-              ((_stream.type == 'live' || _stream.type == 'stalker') &&
-                  isLikelyLiveTransportStreamUrl(finalUrl)))
-          ? 'ts'
-          : null,
-      headers: headers,
+      videoExtension: isLocalFile
+          ? localExt
+          : ((isProgressiveTsUrl(finalUrl) ||
+                  ((_stream.type == 'live' || _stream.type == 'stalker') &&
+                      isLikelyLiveTransportStreamUrl(finalUrl)))
+              ? 'ts'
+              : null),
+      headers: isLocalFile ? null : headers,
       useAsmsTracks: isAsms,
       useAsmsSubtitles: isAsms,
       useAsmsAudioTracks: isAsms,
       bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 1500,
-        maxBufferMs: 10000,
-        bufferForPlaybackMs: 400,
-        bufferForPlaybackAfterRebufferMs: 1000,
+        minBufferMs: 1200,
+        maxBufferMs: 8000,
+        bufferForPlaybackMs: 300,
+        bufferForPlaybackAfterRebufferMs: 800,
       ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
@@ -981,7 +1013,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               }
             }
             _betterController!.play();
-            unawaited(_prepareXtreamSubtitles(newBetterController, headers));
+            if (!isLocalFile) unawaited(_prepareXtreamSubtitles(newBetterController, headers));
             _startSeekTracker();
           });
         }

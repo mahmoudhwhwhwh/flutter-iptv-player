@@ -66,7 +66,10 @@ String buildXtreamLiveUrl({
   required String extension,
   String? preferredFormat,
 }) {
-  final cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
+  var cleanHost = host.trim().replaceFirst(RegExp(r'/+$'), '');
+  if (cleanHost.startsWith('http://x.gamerdz1517.com')) {
+    cleanHost = cleanHost.replaceFirst('http://', 'https://');
+  }
   final encodedUser = Uri.encodeComponent(username.trim());
   final encodedPassword = Uri.encodeComponent(password.trim());
   String ext = extension.trim();
@@ -1197,7 +1200,7 @@ class IPTVProvider with ChangeNotifier {
     // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
     _showMoviesSeries = true;
     await prefs.setBool('filter_show_movies_series', true);
-    _streamFormat = prefs.getString('stream_format') ?? 'm3u8';
+    _streamFormat = prefs.getString('stream_format_v2') ?? 'ts';
     _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
@@ -1278,9 +1281,7 @@ class IPTVProvider with ChangeNotifier {
 
     _isVersionBlocked = false;
 
-    if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
-      await checkRemoteBlocking();
-    }
+    HttpOverrides.global = MyHttpOverrides("");
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
       final preferredId = _activePlaylistId ??
           (_activationCode.isNotEmpty
@@ -1291,15 +1292,17 @@ class IPTVProvider with ChangeNotifier {
           : _savedPlaylists.where((item) => item.id == preferredId).toList();
       final restored = matching.isEmpty ? null : matching.first;
       _activePlaylistId = restored?.id ?? _savedPlaylists.first.id;
-      await loadPlaylistStreams(_activePlaylistId!);
+      await _loadCachedPlaylist(_activePlaylistId!);
     }
-
-    // تفعيل إعدادات بروكسي الحماية الصارمة
-    HttpOverrides.global = MyHttpOverrides("");
-
     _isLoading = false;
     PerformanceMetrics.mark('provider.init.ready');
     notifyListeners();
+    if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
+      unawaited(checkRemoteBlocking());
+    }
+    if (_isLoggedIn && _activePlaylistId != null && _isSecured) {
+      unawaited(loadPlaylistStreams(_activePlaylistId!));
+    }
   }
 
   Future<void> runActiveSecurityChecks() async {
@@ -2388,22 +2391,13 @@ class IPTVProvider with ChangeNotifier {
         }
 
         // Fire all 6 Xtream endpoints in parallel for maximum speed and responsiveness
-        final allResponses = await Future.wait([
-          getXtreamList('get_live_categories', timeout: const Duration(seconds: 20)),
-          getXtreamList('get_live_streams', timeout: const Duration(seconds: 35)),
-          getXtreamList('get_vod_categories', timeout: const Duration(seconds: 20)),
-          getXtreamList('get_vod_streams', timeout: const Duration(seconds: 35)),
-          getXtreamList('get_series_categories', timeout: const Duration(seconds: 20)),
-          getXtreamList('get_series', timeout: const Duration(seconds: 35)),
+        final liveResponses = await Future.wait([
+          getXtreamList('get_live_categories', timeout: const Duration(seconds: 15)),
+          getXtreamList('get_live_streams', timeout: const Duration(seconds: 20)),
         ]);
         if (!isCurrentLoad()) return;
-
-        final liveCatsData = allResponses[0];
-        final liveStreamsData = allResponses[1];
-        final vodCategories = allResponses[2];
-        final vodItems = allResponses[3];
-        final seriesCategories = allResponses[4];
-        final seriesItems = allResponses[5];
+        final liveCatsData = liveResponses[0];
+        final liveStreamsData = liveResponses[1];
 
         List<Map<String, String>> tempLiveCats = liveCatsData
             .whereType<Map>()
@@ -2487,7 +2481,23 @@ class IPTVProvider with ChangeNotifier {
         _allStreams = FilterService.interceptAndFilterStreams(tempStreams,
             blockAdult: _blockAdultContent, channelFilter: _channelFilter);
         _liveCategories = tempLiveCats;
-
+        _applyFilters();
+        _isFetchingData = false;
+        notifyListeners();
+        final vodResponses = await Future.wait([
+          getXtreamList('get_vod_categories', timeout: const Duration(seconds: 15)),
+          getXtreamList('get_vod_streams', timeout: const Duration(seconds: 25)),
+        ]);
+        if (!isCurrentLoad()) return;
+        final vodCategories = vodResponses[0];
+        final vodItems = vodResponses[1];
+        final seriesResponses = await Future.wait([
+          getXtreamList('get_series_categories', timeout: const Duration(seconds: 12)),
+          getXtreamList('get_series', timeout: const Duration(seconds: 15)),
+        ]);
+        if (!isCurrentLoad()) return;
+        final seriesCategories = seriesResponses[0];
+        final seriesItems = seriesResponses[1];
         _movieCategories = FilterService.interceptAndFilterCategories(
           vodCategories
               .whereType<Map>()

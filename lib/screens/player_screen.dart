@@ -333,7 +333,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         candidates.add(normalized);
       }
     }
-    String preferredFormat = 'm3u8';
+    String preferredFormat = 'ts';
     try {
       if (mounted) {
         preferredFormat =
@@ -341,33 +341,41 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     } catch (_) {}
 
-    final uri = Uri.tryParse(primary.trim());
-    final isXtreamVodOrSeries =
-        primary.contains('/movie/') || primary.contains('/series/');
+    final repairedPrimary =
+        repairKnownDeadStreamUrl(primary.trim(), streamName: _stream.name);
+    var uri = Uri.tryParse(repairedPrimary);
     if (uri != null &&
+        uri.host.toLowerCase() == 'x.gamerdz1517.com' &&
+        uri.scheme == 'http') {
+      uri = uri.replace(scheme: 'https');
+    }
+    final isXtreamVodOrSeries = repairedPrimary.contains('/movie/') ||
+        repairedPrimary.contains('/series/');
+    final isXtreamLive = uri != null &&
         !isXtreamVodOrSeries &&
-        uri.path.toLowerCase().contains('/live/')) {
+        uri.path.toLowerCase().contains('/live/');
+    if (isXtreamLive) {
       final path = uri.path;
       final lowerPath = path.toLowerCase();
       if (lowerPath.endsWith('.ts') || lowerPath.endsWith('.m3u8')) {
         final basePath = lowerPath.endsWith('.m3u8')
             ? path.substring(0, path.length - 5)
             : path.substring(0, path.length - 3);
-        if (preferredFormat == 'ts') {
-          add(uri.replace(path: '$basePath.ts').toString());
+        if (preferredFormat == 'm3u8') {
           add(uri.replace(path: '$basePath.m3u8').toString());
+          add(uri.replace(path: '$basePath.ts').toString());
         } else {
-          add(uri.replace(path: '$basePath.m3u8').toString());
           add(uri.replace(path: '$basePath.ts').toString());
+          add(uri.replace(path: '$basePath.m3u8').toString());
         }
       }
     }
-    add(primary);
+    add(uri != null ? uri.toString() : repairedPrimary);
     if (_stream.fallbackUrl?.trim().isNotEmpty == true) {
-      add(_stream.fallbackUrl!);
+      add(repairKnownDeadStreamUrl(_stream.fallbackUrl!,
+          streamName: _stream.name));
     }
     if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      final path = uri.path.toLowerCase();
       if (isXtreamVodOrSeries) {
         final dotIdx = uri.path.lastIndexOf('.');
         final slashIdx = uri.path.lastIndexOf('/');
@@ -376,18 +384,11 @@ class _PlayerScreenState extends State<PlayerScreen>
         for (final ext in ['mp4', 'mkv', 'ts']) {
           add(uri.replace(path: '$prefix.$ext').toString());
         }
-      } else if (path.endsWith('.ts')) {
+      } else if (isXtreamLive) {
         add(uri
-            .replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8')
-            .toString());
-      } else if (path.endsWith('.m3u8')) {
-        add(uri
-            .replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts')
+            .replace(scheme: uri.scheme == 'http' ? 'https' : 'http')
             .toString());
       }
-      add(uri
-          .replace(scheme: uri.scheme == 'http' ? 'https' : 'http')
-          .toString());
     }
     return candidates;
   }
@@ -1357,11 +1358,19 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activePlaybackHeaders = Map<String, String>.from(headers);
     }
 
+    final bool isLiveChan =
+        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
+    final bool isXtreamLiveUrl = finalUrl.toLowerCase().contains('/live/');
     BetterPlayerVideoFormat? format;
     if (isLocalFile) {
       format = null;
+    } else if (isProgressiveTsUrl(finalUrl) ||
+        (isLiveChan && isLikelyLiveTransportStreamUrl(finalUrl))) {
+      format = null;
     } else if (isHlsPlaybackUrl(finalUrl)) {
-      format = BetterPlayerVideoFormat.hls;
+      format = (isXtreamLiveUrl && _retryCount > 0)
+          ? null
+          : BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
     } else {
@@ -1370,8 +1379,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     bool isAsms = !isLocalFile &&
         (format == BetterPlayerVideoFormat.hls ||
             format == BetterPlayerVideoFormat.dash);
-    final bool isLiveChan =
-        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       isLocalFile
           ? BetterPlayerDataSourceType.file
@@ -1386,14 +1393,14 @@ class _PlayerScreenState extends State<PlayerScreen>
               ? 'ts'
               : null),
       headers: isLocalFile ? null : headers,
-      useAsmsTracks: isAsms && !isLiveChan,
+      useAsmsTracks: isAsms,
       useAsmsSubtitles: false,
-      useAsmsAudioTracks: !isLocalFile && !isLiveChan,
-      bufferingConfiguration: BetterPlayerBufferingConfiguration(
-        minBufferMs: isLiveChan ? 350 : 1200,
-        maxBufferMs: isLiveChan ? 5000 : 10000,
-        bufferForPlaybackMs: isLiveChan ? 100 : 300,
-        bufferForPlaybackAfterRebufferMs: isLiveChan ? 250 : 800,
+      useAsmsAudioTracks: isAsms,
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 2000,
+        maxBufferMs: 15000,
+        bufferForPlaybackMs: 500,
+        bufferForPlaybackAfterRebufferMs: 1000,
       ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
@@ -1427,10 +1434,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
     }
 
-    // Watchdog for Live TV: if a channel hangs > 2.8s on initial format (.m3u8/.ts), switch candidate immediately
+    // Watchdog for Live TV: only switch candidate if stream genuinely hangs > 9.5s
     _liveStartupWatchdogTimer?.cancel();
     if (isLiveChan && _retryCount < 3) {
-      _liveStartupWatchdogTimer = Timer(const Duration(milliseconds: 2800), () {
+      _liveStartupWatchdogTimer = Timer(const Duration(milliseconds: 9500), () {
         if (mounted &&
             _channelSwitchGuard.isCurrent(loadGeneration) &&
             !_initialized &&

@@ -458,7 +458,10 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       ),
     );
 
-    String finalUrl = stripFfmpegPrefix(widget.stream.url);
+    String finalUrl = repairKnownDeadStreamUrl(
+      widget.stream.url,
+      streamName: widget.stream.name,
+    );
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
@@ -541,6 +544,10 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
           headers["Cookie"] = "mac=$mac";
         }
       } catch (e) {}
+    } else if (finalUrl.toLowerCase().contains('/live/') &&
+        (widget.stream.customUserAgent == null ||
+            widget.stream.customUserAgent!.isEmpty)) {
+      headers['User-Agent'] = 'IPTVSmartersPro';
     }
 
     final bool isMpdStream = finalUrl.toLowerCase().contains('.mpd');
@@ -569,6 +576,9 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       format = null;
     }
 
+    final bool isAsms = format == BetterPlayerVideoFormat.hls ||
+        format == BetterPlayerVideoFormat.dash;
+
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
@@ -576,14 +586,14 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       videoFormat: format,
       videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
-      useAsmsTracks: false,
+      useAsmsTracks: isAsms,
       useAsmsSubtitles: false,
-      useAsmsAudioTracks: false,
+      useAsmsAudioTracks: isAsms,
       bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 400,
-        maxBufferMs: 5000,
-        bufferForPlaybackMs: 120,
-        bufferForPlaybackAfterRebufferMs: 250,
+        minBufferMs: 1500,
+        maxBufferMs: 10000,
+        bufferForPlaybackMs: 500,
+        bufferForPlaybackAfterRebufferMs: 1000,
       ),
       drmConfiguration:
           widget.stream.clearKeys != null && widget.stream.clearKeys!.isNotEmpty

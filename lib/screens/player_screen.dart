@@ -915,7 +915,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     name: name,
                                     url: path,
                                     streamIcon: _stream.streamIcon,
-                                    epgChannelId: '',
                                     categoryId: 'captures',
                                     categoryName: 'تسجيلات الشاشة',
                                     streamId: 'cap_${path.hashCode}',

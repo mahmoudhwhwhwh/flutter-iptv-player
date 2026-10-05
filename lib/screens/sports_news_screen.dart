@@ -340,7 +340,7 @@ void showSportsNewsDetailSheet(
                         MaterialPageRoute(
                           builder: (_) => CatalogWebViewScreen(
                             title: title,
-                            url: articleUrl,
+                            url: Uri.parse(articleUrl),
                           ),
                         ),
                       );

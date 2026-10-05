@@ -15,9 +15,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
-import 'screens/downloads_screen.dart';
+import 'screens/sports_news_screen.dart';
 import 'screens/matches_screen.dart';
-import 'services/download_manager.dart';
 import 'services/app_translations.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
@@ -1213,7 +1212,7 @@ class _MainDashboardState extends State<MainDashboard> {
     } else if (i == 4) {
       prov.setTab("favorites");
     } else if (i == 6) {
-      prov.setTab("news");
+      // Sports News screen
     } else if (i == 7) {
       // Matches screen
     }
@@ -1233,12 +1232,11 @@ class _MainDashboardState extends State<MainDashboard> {
       {"icon": Icons.home_rounded, "label": AppTranslations.get('home', langCode), "index": 0},
       {"icon": Icons.live_tv_rounded, "label": AppTranslations.get('live', langCode), "index": 1},
       {"icon": Icons.sports_soccer_rounded, "label": AppTranslations.get('matches', langCode), "index": 7},
+      {"icon": Icons.newspaper_rounded, "label": "الأخبار الرياضية", "index": 6},
       if (showMoviesSeries)
         {"icon": Icons.movie_filter_rounded, "label": AppTranslations.get('movies', langCode), "index": 2},
       if (showMoviesSeries)
         {"icon": Icons.video_library_rounded, "label": AppTranslations.get('series', langCode), "index": 3},
-      {"icon": Icons.newspaper_rounded, "label": AppTranslations.get('news', langCode), "index": 6},
-      {"icon": Icons.download_for_offline_rounded, "label": AppTranslations.get('downloads', langCode), "index": 5},
       {"icon": Icons.favorite_rounded, "label": AppTranslations.get('favorites', langCode), "index": 4},
     ];
 
@@ -1468,8 +1466,7 @@ class _MainDashboardState extends State<MainDashboard> {
                   label: "المسلسلات",
                   index: 3),
             entry(icon: Icons.sports_soccer_rounded, label: AppTranslations.get('matches', provider.appLanguageCode), index: 7),
-            entry(icon: Icons.newspaper_rounded, label: AppTranslations.get('news', provider.appLanguageCode), index: 6),
-            entry(icon: Icons.download_for_offline_rounded, label: AppTranslations.get('downloads', provider.appLanguageCode), index: 5),
+            entry(icon: Icons.newspaper_rounded, label: "الأخبار الرياضية", index: 6),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
             ListTile(
@@ -1577,13 +1574,8 @@ class _MainDashboardState extends State<MainDashboard> {
             title: "المسلسلات", tab: "series", isSeries: true);
       case 4:
         return const FavoritesScreen();
-      case 5:
-        return const DownloadsScreen();
       case 6:
-        return const StreamsListScreen(
-          title: "الأخبار",
-          tab: "news",
-        );
+        return const SportsNewsScreen();
       case 7:
         return const MatchesScreen();
       default:
@@ -1612,6 +1604,8 @@ class ModernSidebar extends StatelessWidget {
     final List<Map<String, dynamic>> items = [
       {"icon": Icons.home_rounded, "index": 0},
       {"icon": Icons.live_tv_rounded, "index": 1},
+      {"icon": Icons.sports_soccer_rounded, "index": 7},
+      {"icon": Icons.newspaper_rounded, "index": 6},
       if (showMoviesSeries) {"icon": Icons.movie_filter_rounded, "index": 2},
       if (showMoviesSeries) {"icon": Icons.video_library_rounded, "index": 3},
       {"icon": Icons.favorite_rounded, "index": 4},
@@ -1840,53 +1834,67 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   String _globalSearchQuery = "";
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _news = const [];
+  List<Map<String, dynamic>> _news = buildCuratedShowcaseNewsItems();
   List<Map<String, dynamic>> _matches = const [];
 
   @override
   void initState() {
     super.initState();
-    unawaited(_loadNewsAndMatches());
+    unawaited(_loadSportsNews());
+    unawaited(_loadMatches());
   }
 
-  Future<void> _loadNewsAndMatches() async {
+  Future<void> _loadSportsNews() async {
+    final showcaseUrls = await fetchSportsShowcaseUrls();
+    final showcaseNews = buildCuratedShowcaseNewsItems(showcaseUrls);
+    final apiNews = <Map<String, dynamic>>[];
+    try {
+      final response = await http
+          .get(Uri.parse(
+              'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false'))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) apiNews.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _news = <Map<String, dynamic>>[
+          ...showcaseNews,
+          ...apiNews,
+        ];
+      });
+    }
+  }
+
+  Future<void> _loadMatches() async {
     try {
       final today = DateTime.now();
       final date =
           '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final responses = await Future.wait([
-        http.get(Uri.parse(
-            'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false')),
-        http.get(Uri.parse(
-            'https://api-ar.ysscores.com/api/matches/matches_date_get/$date/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180')),
-      ]).timeout(const Duration(seconds: 20));
-      final nextNews = <Map<String, dynamic>>[];
-      if (responses[0].statusCode == 200) {
-        final decoded = json.decode(responses[0].body);
-        if (decoded is List) {
-          for (final item in decoded) {
-            if (item is Map) nextNews.add(Map<String, dynamic>.from(item));
-          }
-        }
-      }
-      final nextMatches = <Map<String, dynamic>>[];
-      if (responses[1].statusCode == 200) {
-        final decoded = json.decode(responses[1].body);
+      final response = await http
+          .get(Uri.parse(
+              'https://api-ar.ysscores.com/api/matches/matches_date_get/$date/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
         final data = decoded is Map ? decoded['data'] : null;
+        final nextMatches = <Map<String, dynamic>>[];
         if (data is List) {
           for (final item in data) {
             if (item is Map) nextMatches.add(Map<String, dynamic>.from(item));
           }
         }
+        if (mounted && nextMatches.isNotEmpty) {
+          setState(() => _matches = nextMatches);
+        }
       }
-      if (!mounted) return;
-      setState(() {
-        _news = nextNews;
-        _matches = nextMatches;
-      });
-    } catch (_) {
-      // Hide the sections on network failure; never show fabricated data.
-    }
+    } catch (_) {}
   }
 
   @override
@@ -1921,6 +1929,8 @@ class _HomeTabState extends State<HomeTab> {
                   isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
               child: _buildQuickAccessRow(context),
             ),
+            _buildNewsSection(context, isMobile),
+            if (_matches.isNotEmpty) _buildMatchesSection(context, isMobile),
             _buildReferenceSection(
               context: context,
               provider: provider,
@@ -1953,8 +1963,6 @@ class _HomeTabState extends State<HomeTab> {
                 cardWidth: isMobile ? 118 : 152,
                 cardHeight: isMobile ? 174 : 226,
               ),
-            if (_news.isNotEmpty) _buildNewsSection(context, isMobile),
-            if (_matches.isNotEmpty) _buildMatchesSection(context, isMobile),
           ],
         ),
       ),
@@ -1962,10 +1970,54 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildNewsSection(BuildContext context, bool isMobile) {
+    if (_news.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 28, left: 16, right: 16),
+        child: Column(
+          children: [
+            Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                const Expanded(
+                  child: Text('الأخبار الرياضية',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
+                ),
+                TextButton(
+                  onPressed: () => context
+                      .findAncestorStateOfType<_MainDashboardState>()
+                      ?.updateIndex(6),
+                  child: Text('عرض الكل',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: isMobile ? 140 : 160,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFA855F7),
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return _buildInfoRowSection(
       context,
-      title: 'آخر الأخبار',
-      height: isMobile ? 176 : 202,
+      title: 'الأخبار الرياضية',
+      onViewAll: () => context
+          .findAncestorStateOfType<_MainDashboardState>()
+          ?.updateIndex(6),
+      height: isMobile ? 196 : 220,
       children: _news.take(14).map((item) {
         final picture = item['Picture'] is Map
             ? Map<String, dynamic>.from(item['Picture'])
@@ -1973,8 +2025,13 @@ class _HomeTabState extends State<HomeTab> {
         return _NewsCard(
           title: (item['Title'] ?? 'خبر رياضي').toString(),
           date: (item['Date'] ?? '').toString(),
-          imageUrl:
-              (picture['SmallPath'] ?? picture['MeduimPath'] ?? '').toString(),
+          badge: (item['TourName'] ?? item['CategoryName'] ?? '').toString(),
+          imageUrl: (picture['MeduimPath'] ??
+                  picture['BigPath'] ??
+                  picture['SmallPath'] ??
+                  '')
+              .toString(),
+          onTap: () => showSportsNewsDetailSheet(context, item),
         );
       }).toList(),
     );
@@ -2074,18 +2131,24 @@ class _HomeTabState extends State<HomeTab> {
         icon: Icons.live_tv_rounded,
         index: 1
       ),
+      (
+        english: 'NEWS',
+        arabic: 'الأخبار الرياضية',
+        icon: Icons.newspaper_rounded,
+        index: 6
+      ),
+      (
+        english: 'MATCHES',
+        arabic: 'المباريات',
+        icon: Icons.sports_soccer_rounded,
+        index: 7
+      ),
       (english: 'MOVIES', arabic: 'أفلام', icon: Icons.movie_rounded, index: 2),
       (
         english: 'SERIES',
         arabic: 'مسلسلات',
         icon: Icons.video_library_rounded,
         index: 3
-      ),
-      (
-        english: 'FAVOURITES',
-        arabic: 'المفضلة',
-        icon: Icons.favorite_rounded,
-        index: 4
       ),
     ];
 
@@ -2205,45 +2268,96 @@ class _HomeTabState extends State<HomeTab> {
 class _NewsCard extends StatelessWidget {
   final String title;
   final String date;
+  final String badge;
   final String imageUrl;
+  final VoidCallback? onTap;
 
-  const _NewsCard(
-      {required this.title, required this.date, required this.imageUrl});
+  const _NewsCard({
+    required this.title,
+    required this.date,
+    this.badge = '',
+    required this.imageUrl,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return SizedBox(
-      width: 250,
+      width: 265,
       child: Card(
         color: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: accent.withOpacity(0.22)),
+        ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: imageUrl.isEmpty
-                  ? const ColoredBox(color: Color(0xFF211C42))
-                  : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Text(title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
-            ),
-            if (date.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                child: Text(date.replaceFirst('T', ' '),
-                    maxLines: 1,
-                    textAlign: TextAlign.right,
-                    style:
-                        const TextStyle(color: Colors.white54, fontSize: 10)),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    imageUrl.isEmpty
+                        ? const ColoredBox(color: Color(0xFF211C42))
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) =>
+                                const ColoredBox(color: Color(0xFF211C42)),
+                          ),
+                    if (badge.isNotEmpty)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badge,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFFFC857),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                child: Text(title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700)),
+              ),
+              if (date.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                  child: Text(date.replaceFirst('T', ' '),
+                      maxLines: 1,
+                      textAlign: TextAlign.right,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 10)),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -2353,53 +2467,25 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Timer? _timer;
 
   // الروابط الجديدة
-  List<String> _banners = [];
-  bool _isLoadingBanners = true;
+  List<String> _banners = List<String>.from(kDefaultSportsShowcaseUrls);
+  bool _isLoadingBanners = false;
 
   Future<void> _fetchBanners() async {
+    _startTimer();
     try {
-      final url = Uri.parse(
-          "https://iptv-subscription-api.tvkora56.workers.dev/v1/config?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url);
-      if (res.statusCode == 200) {
-        final decoded = json.decode(res.body);
-        final raw = decoded is Map ? decoded['slider'] : decoded;
-        final List<dynamic> data = raw is List ? raw : const <dynamic>[];
-        var banners = data
-            .map((e) {
-              if (e is Map) {
-                return (e['image_url'] ?? e['image'] ?? e['url'] ?? '')
-                    .toString()
-                    .trim();
-              }
-              return e.toString().trim();
-            })
-            .where((url) => url.isNotEmpty)
-            .toList();
-        if (banners.isEmpty) {
-          final legacy = await http.get(Uri.parse(
-              'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json'));
-          if (legacy.statusCode == 200) {
-            final legacyData = json.decode(legacy.body);
-            if (legacyData is List) {
-              banners = legacyData
-                  .map((e) => e.toString().trim())
-                  .where((url) => url.isNotEmpty)
-                  .toList();
-            }
-          }
-        }
-        if (!mounted) return;
+      final showcaseUrls = await fetchSportsShowcaseUrls();
+      if (!mounted) return;
+      if (showcaseUrls.isNotEmpty) {
         setState(() {
-          _banners = banners;
+          _banners = showcaseUrls;
           _isLoadingBanners = false;
         });
         _startTimer();
-      } else {
+      }
+    } catch (_) {
+      if (mounted) {
         setState(() => _isLoadingBanners = false);
       }
-    } catch (e) {
-      setState(() => _isLoadingBanners = false);
     }
   }
 
@@ -2978,48 +3064,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         }
       }
     } catch (_) {}
-
-    final downloadedEpisodes = DownloadManager.instance.completedItems
-        .where((d) =>
-            d.type == 'series' &&
-            (d.title.startsWith(widget.series.name) ||
-                d.id == widget.series.streamId))
-        .toList();
-    if (downloadedEpisodes.isEmpty) return null;
-
-    final eps = downloadedEpisodes
-        .asMap()
-        .entries
-        .map((entry) => <String, dynamic>{
-              'id': entry.value.id,
-              'episode_num': entry.key + 1,
-              'title': entry.value.title
-                  .replaceFirst('${widget.series.name} - ', ''),
-              'url': entry.value.filePath,
-              'direct_source': entry.value.filePath,
-              'info': <String, dynamic>{
-                'movie_image': entry.value.poster.isNotEmpty
-                    ? entry.value.poster
-                    : widget.series.streamIcon,
-              },
-            })
-        .toList();
-
-    return <String, dynamic>{
-      'info': <String, dynamic>{
-        'name': widget.series.name,
-        'cover': widget.series.streamIcon,
-      },
-      'seasons': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'season_number': '1',
-          'name': 'التنزيلات المحفوظة',
-        }
-      ],
-      'episodes': <String, dynamic>{
-        '1': eps,
-      },
-    };
+    return null;
   }
 
   Future<void> _fetchSeriesInfo() async {
@@ -3191,20 +3236,12 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     var epUrl = _resolveEpisodeStreamUrl(ep, host: host, user: user, pass: pass);
     final epDisplayTitle =
         "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}";
-    final offlineMatch = DownloadManager.instance.findCompletedForStream(
-      streamId: epId.toString(),
-      url: epUrl,
-      title: epDisplayTitle,
-    );
-    if (offlineMatch != null && offlineMatch.filePath.isNotEmpty) {
-      epUrl = offlineMatch.filePath;
-    }
     if (epUrl.isEmpty) return;
     final stream = PlaylistItem(
       streamId: epId.toString(),
       name: epDisplayTitle,
       url: epUrl,
-      type: offlineMatch != null ? "file" : "series",
+      type: "series",
       streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
       categoryId: "",
       categoryName: "مسلسلات",
@@ -3291,50 +3328,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           "$resolvedHost/series/${Uri.encodeComponent(resolvedUser)}/${Uri.encodeComponent(resolvedPass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
     }
     return epUrl;
-  }
-
-  void _downloadEpisode(dynamic ep, int index) {
-    final epId =
-        (ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'] ?? '')
-            .toString();
-    if (epId.isEmpty) return;
-    final epTitle = ep['title'] ?? ep['name'] ?? "الحلقة ${index + 1}";
-    final epDisplayTitle = "${widget.series.name} - $epTitle";
-    final epCover =
-        (ep['info']?['movie_image'] ?? widget.series.streamIcon ?? '').toString();
-    if (DownloadManager.instance.isDownloaded(epId)) {
-      _playEpisode(ep, seasonNumber: _selectedSeason);
-      return;
-    }
-    if (DownloadManager.instance.isDownloading(epId)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'هذه الحلقة قيد التحميل حالياً في قائمة التنزيلات',
-            style: TextStyle(fontFamily: 'Cairo'),
-          ),
-        ),
-      );
-      return;
-    }
-    final epUrl = _resolveEpisodeStreamUrl(ep);
-    if (epUrl.isEmpty) return;
-    DownloadManager.instance.startDownload(
-      id: epId,
-      title: epDisplayTitle,
-      url: epUrl,
-      poster: epCover,
-      category: 'مسلسلات',
-      type: 'series',
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'بدأ تنزيل "$epDisplayTitle" بالسرعة القصوى',
-          style: const TextStyle(fontFamily: 'Cairo'),
-        ),
-      ),
-    );
   }
 
   @override
@@ -3712,72 +3705,10 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                ListenableBuilder(
-                                  listenable: DownloadManager.instance,
-                                  builder: (context, _) {
-                                    final epIdStr = (ep['id'] ??
-                                            ep['episode_id'] ??
-                                            ep['stream_id'] ??
-                                            ep['media_id'] ??
-                                            '')
-                                        .toString();
-                                    final isDone = epIdStr.isNotEmpty &&
-                                        DownloadManager.instance
-                                            .isDownloaded(epIdStr);
-                                    final isDling = epIdStr.isNotEmpty &&
-                                        DownloadManager.instance
-                                            .isDownloading(epIdStr);
-                                    final dlItem = epIdStr.isNotEmpty
-                                        ? DownloadManager.instance
-                                            .getItem(epIdStr)
-                                        : null;
-                                    return IconButton(
-                                      tooltip: isDone
-                                          ? 'تم التنزيل (اضغط للتشغيل أوفلاين)'
-                                          : (isDling
-                                              ? 'جاري التحميل...'
-                                              : 'تنزيل الحلقة للجهاز'),
-                                      onPressed: () => _downloadEpisode(ep, i),
-                                      icon: isDling
-                                          ? SizedBox(
-                                              width: 24,
-                                              height: 24,
-                                              child: Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  CircularProgressIndicator(
-                                                    value: (dlItem != null &&
-                                                            dlItem.progress > 0)
-                                                        ? dlItem.progress
-                                                        : null,
-                                                    strokeWidth: 2.2,
-                                                    color:
-                                                        const Color(0xFFA855F7),
-                                                  ),
-                                                  Text(
-                                                    '${((dlItem?.progress ?? 0) * 100).toInt()}%',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 7,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            )
-                                          : Icon(
-                                              isDone
-                                                  ? Icons.offline_pin_rounded
-                                                  : Icons
-                                                      .download_for_offline_rounded,
-                                              color: isDone
-                                                  ? const Color(0xFF22C55E)
-                                                  : const Color(0xFFA855F7),
-                                              size: isMobile ? 22 : 26,
-                                            ),
-                                    );
-                                  },
+                                const Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: Color(0xFFA855F7),
+                                  size: 26,
                                 ),
                               ],
                             ),
@@ -3964,43 +3895,6 @@ void _showStreamQuickMenu(
                   provider.toggleFavorite(streamId);
                 },
               ),
-              if (stream is PlaylistItem && stream.type != 'live')
-                ListTile(
-                  leading: const Icon(
-                    Icons.download_for_offline_rounded,
-                    color: Color(0xFFA855F7),
-                  ),
-                  title: Text(
-                    DownloadManager.instance.isDownloaded(streamId)
-                        ? "تم تنزيل المحتوى مسبقاً (تشغيل أوفلاين)"
-                        : (DownloadManager.instance.isDownloading(streamId)
-                            ? "قيد التحميل الآن في قائمة التنزيلات..."
-                            : "تنزيل لمشاهدة بدون إنترنت"),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    if (!DownloadManager.instance.isDownloaded(streamId) &&
-                        !DownloadManager.instance.isDownloading(streamId)) {
-                      DownloadManager.instance.startDownload(
-                        id: streamId,
-                        title: name,
-                        url: stream.url,
-                        poster: stream.streamIcon,
-                        category: stream.categoryName,
-                        type: stream.type == 'series' ? 'series' : 'movie',
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'بدأ تنزيل "$name" في قائمة التنزيلات',
-                            style: const TextStyle(fontFamily: 'Cairo'),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
             ],
           ),
         ),
@@ -4039,10 +3933,19 @@ Widget buildStreamCardLocal(
             MaterialPageRoute(
                 builder: (_) => SeriesDetailsScreen(series: stream)));
       } else {
-        provider.selectStream(stream);
-        provider.addToRecentlyPlayed(stream);
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+        provider.selectStream(stream, notify: false);
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 110),
+            reverseTransitionDuration: const Duration(milliseconds: 90),
+            pageBuilder: (_, __, ___) => PlayerScreen(stream: stream),
+            transitionsBuilder: (_, animation, __, child) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+          ),
+        );
       }
     },
     child: ClipRRect(
@@ -4117,72 +4020,6 @@ Widget buildStreamCardLocal(
               ),
             ),
           ),
-          // Direct Download Button on Movie cards
-          if (!isSeries &&
-              stream is PlaylistItem &&
-              stream.type != 'live' &&
-              stream.type != 'stalker')
-            Positioned(
-              top: 4,
-              right: 4,
-              child: ListenableBuilder(
-                listenable: DownloadManager.instance,
-                builder: (context, _) {
-                  final isDone = DownloadManager.instance.isDownloaded(streamId);
-                  final isDling =
-                      DownloadManager.instance.isDownloading(streamId);
-                  return InkWell(
-                    onTap: () {
-                      if (isDone) {
-                        provider.selectStream(stream);
-                        provider.addToRecentlyPlayed(stream);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PlayerScreen(stream: stream),
-                          ),
-                        );
-                      } else if (!isDling) {
-                        DownloadManager.instance.startDownload(
-                          id: streamId,
-                          title: name,
-                          url: stream.url,
-                          poster: stream.streamIcon,
-                          category: stream.categoryName,
-                          type: 'movie',
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'بدأ تنزيل "$name" في قائمة التنزيلات',
-                              style: const TextStyle(fontFamily: 'Cairo'),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(isMobile ? 3 : 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.65),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isDone
-                            ? Icons.offline_pin_rounded
-                            : (isDling
-                                ? Icons.downloading_rounded
-                                : Icons.download_for_offline_rounded),
-                        color: isDone
-                            ? const Color(0xFF22C55E)
-                            : const Color(0xFFA855F7),
-                        size: isMobile ? 15 : 17,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
         ],
       ),
     ),

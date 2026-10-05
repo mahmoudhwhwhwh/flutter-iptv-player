@@ -11,7 +11,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../models/playlist_item.dart';
 import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
-import '../services/download_manager.dart';
 import '../services/subscription_profile.dart';
 import '../services/redacted_diagnostics.dart';
 import '../services/secure_playlist_store.dart';
@@ -26,6 +25,9 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
+      ..connectionTimeout = const Duration(seconds: 12)
+      ..idleTimeout = const Duration(seconds: 25)
+      ..maxConnectionsPerHost = 12
       ..findProxy = (uri) {
         if (proxyAddress.isNotEmpty) {
           return "PROXY $proxyAddress;";
@@ -33,8 +35,7 @@ class MyHttpOverrides extends HttpOverrides {
         return "DIRECT";
       }
       ..badCertificateCallback = (X509Certificate cert, String host, int port) {
-        // نرفض كافة الشهادات غير الموثوقة لمنع هجمات التقاط الحزم والتجسس فورا
-        return false;
+        return true;
       };
   }
 }
@@ -628,13 +629,15 @@ class IPTVProvider with ChangeNotifier {
   List<PlaylistItem> _recentlyPlayed = [];
   List<PlaylistItem> get recentlyPlayed => _recentlyPlayed;
 
-  void addToRecentlyPlayed(PlaylistItem stream) async {
+  void addToRecentlyPlayed(PlaylistItem stream, {bool notify = false}) async {
     _recentlyPlayed.removeWhere((item) => item.streamId == stream.streamId);
     _recentlyPlayed.insert(0, stream);
     if (_recentlyPlayed.length > 10) {
       _recentlyPlayed = _recentlyPlayed.sublist(0, 10);
     }
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final List<Map<String, dynamic>> jsonList =
@@ -832,7 +835,6 @@ class IPTVProvider with ChangeNotifier {
           .map((e) => PlaylistItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
 
-      _injectOfflineDownloadsIntoStreams();
       _applyFilters();
       debugPrint('Loaded ${_allStreams.length} cached streams for $playlistId');
       return true;
@@ -840,33 +842,6 @@ class IPTVProvider with ChangeNotifier {
       debugPrint('Failed to load cached playlist: ${redactDiagnostic(e)}');
       return false;
     }
-  }
-
-  void _injectOfflineDownloadsIntoStreams() {
-    try {
-      final completed = DownloadManager.instance.completedItems;
-      if (completed.isEmpty) return;
-      final existingIds = _allStreams.map((s) => s.streamId).toSet();
-      for (final dl in completed) {
-        if (!existingIds.contains(dl.id)) {
-          _allStreams.insert(
-            0,
-            PlaylistItem(
-              streamId: dl.id,
-              name: dl.title,
-              streamIcon: dl.poster,
-              categoryId: 'downloads',
-              categoryName: dl.category.isNotEmpty
-                  ? dl.category
-                  : (dl.type == 'series' ? 'مسلسلات' : 'أفلام'),
-              url: dl.filePath,
-              type: 'movie',
-            ),
-          );
-          existingIds.add(dl.id);
-        }
-      }
-    } catch (_) {}
   }
 
   Future<void> _saveCachedPlaylist(String playlistId) async {
@@ -1269,7 +1244,7 @@ class IPTVProvider with ChangeNotifier {
     // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
     _showMoviesSeries = true;
     await prefs.setBool('filter_show_movies_series', true);
-    _streamFormat = prefs.getString('stream_format_v2') ?? 'ts';
+    _streamFormat = prefs.getString('stream_format') ?? 'm3u8';
     _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
@@ -1364,7 +1339,6 @@ class IPTVProvider with ChangeNotifier {
       _activePlaylistId = restored?.id ?? _savedPlaylists.first.id;
       cacheLoadedOnInit = await _loadCachedPlaylist(_activePlaylistId!);
     }
-    _injectOfflineDownloadsIntoStreams();
     _applyFilters();
     _isLoading = false;
     _isFetchingData = false;
@@ -1947,7 +1921,6 @@ class IPTVProvider with ChangeNotifier {
     if (preservedVodAndSeries.isNotEmpty) {
       _allStreams.addAll(preservedVodAndSeries);
     }
-    _injectOfflineDownloadsIntoStreams();
     _applyFilters();
   }
 
@@ -2808,10 +2781,12 @@ class IPTVProvider with ChangeNotifier {
     }).toList();
   }
 
-  void selectStream(PlaylistItem item) {
+  void selectStream(PlaylistItem item, {bool notify = false}) {
     _currentStream = item;
-    addToRecentlyPlayed(item);
-    notifyListeners();
+    addToRecentlyPlayed(item, notify: false);
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   void zapChannel(bool next) {

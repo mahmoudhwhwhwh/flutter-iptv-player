@@ -37,19 +37,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _subSize = "متوسط";
-  String _subFont = 'Cairo';
-  String _subColor = "أبيض";
-  String _subBgColor = "شفاف";
-  String _subLang = "تلقائي";
   String _appOrientation = "تلقائي";
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
   String _performanceProfile = "medium";
-  bool _downloadWifiOnly = false;
   bool _blurEpisodeCovers = false;
-  bool _autoDownloadNextEpisode = false;
   bool _autoPlayNextEpisode = true;
   bool _autoResumePlayback = true;
   bool _showVirtualKeyboard = true;
@@ -63,20 +56,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _subSize = prefs.getString('sub_size') ?? "متوسط";
-      _subFont = prefs.getString('sub_font') ?? 'Cairo';
-      _subColor = prefs.getString('sub_color') ?? "أبيض";
-      _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
-      _subLang = prefs.getString('sub_lang') ?? "تلقائي";
       _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
       _performanceProfile =
           prefs.getString('device_performance_profile') ?? "medium";
-      _downloadWifiOnly = prefs.getBool('download_wifi_only') ?? false;
       _blurEpisodeCovers = prefs.getBool('blur_episode_covers') ?? false;
-      _autoDownloadNextEpisode = prefs.getBool('auto_download_next_episode') ?? false;
       _autoPlayNextEpisode = prefs.getBool('auto_play_next_episode') ?? true;
       _autoResumePlayback = prefs.getBool('auto_resume_playback') ?? true;
       _showVirtualKeyboard = prefs.getBool('show_virtual_keyboard') ?? true;
@@ -427,18 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
               const SizedBox(height: 24),
-              _buildSectionHeader("التشغيل والتنزيلات", ""),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'التنزيل عبر Wi-Fi فقط',
-                description: 'تبدأ التنزيلات فقط عند الاتصال بشبكة Wi-Fi',
-                value: _downloadWifiOnly,
-                activeColor: _SettingsPalette.danger,
-                onChanged: (val) {
-                  setState(() => _downloadWifiOnly = val);
-                  _saveSetting('download_wifi_only', val);
-                },
-              ),
+              _buildSectionHeader("إعدادات التشغيل", ""),
               const SizedBox(height: 12),
               _buildSettingItem(
                 title: 'تشويش صور الحلقات',
@@ -448,17 +423,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (val) {
                   setState(() => _blurEpisodeCovers = val);
                   _saveSetting('blur_episode_covers', val);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSettingItem(
-                title: 'تنزيل الحلقة التالية تلقائياً',
-                description: 'ابدأ تنزيل الحلقة التالية تلقائياً عبر Wi-Fi',
-                value: _autoDownloadNextEpisode,
-                activeColor: _SettingsPalette.danger,
-                onChanged: (val) {
-                  setState(() => _autoDownloadNextEpisode = val);
-                  _saveSetting('auto_download_next_episode', val);
                 },
               ),
               const SizedBox(height: 12),
@@ -494,7 +458,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _saveSetting('show_virtual_keyboard', val);
                 },
               ),
-                            _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
+              _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) => _buildSettingItem(
@@ -505,95 +469,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   activeColor: _SettingsPalette.cyan,
                   onChanged: provider.setLiteMode,
                 ),
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "حجم خط الترجمة",
-                value: _subSize,
-                items: const ["صغير", "متوسط", "كبير", "ضخم"],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subSize = val);
-                    _saveStringSetting('sub_size', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "خط الترجمة",
-                value: _subFont,
-                items: const ['Cairo', 'Arial', 'Tahoma', 'Roboto'],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subFont = val);
-                    _saveStringSetting('sub_font', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لون الترجمة",
-                value: _subColor,
-                items: const [
-                  "أبيض",
-                  "أصفر",
-                  "أزرق سماوي",
-                  "أخضر",
-                  "أحمر",
-                  "أزرق",
-                  "وردي",
-                  "برتقالي",
-                  "بنفسجي",
-                  "أسود",
-                  "رمادي"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subColor = val);
-                    _saveStringSetting('sub_color', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لون خلفية الترجمة",
-                value: _subBgColor,
-                items: const [
-                  "شفاف",
-                  "أسود",
-                  "رمادي داكن",
-                  "أحمر داكن",
-                  "أزرق داكن",
-                  "أخضر داكن",
-                  "أرجواني داكن",
-                  "أبيض"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subBgColor = val);
-                    _saveStringSetting('sub_bg_color', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لغة الترجمة المفضلة",
-                value: _subLang,
-                items: const [
-                  "تلقائي",
-                  "Arabic",
-                  "English",
-                  "French",
-                  "Spanish",
-                  "Turkish",
-                  "Persian"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subLang = val);
-                    _saveStringSetting('sub_lang', val);
-                  }
-                },
               ),
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),

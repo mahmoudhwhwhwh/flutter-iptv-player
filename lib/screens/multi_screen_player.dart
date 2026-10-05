@@ -445,77 +445,15 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
     _controller?.dispose();
     _controller = null;
 
-    double subSizeVal = 16.0;
-    Color subColorVal = Colors.white;
-    Color subBgColorVal = Colors.transparent;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String sSize = prefs.getString('sub_size') ?? "متوسط";
-      String sCol = prefs.getString('sub_color') ?? "أبيض";
-      String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
-
-      if (sSize == "صغير")
-        subSizeVal = 12.0;
-      else if (sSize == "متوسط")
-        subSizeVal = 16.0;
-      else if (sSize == "كبير")
-        subSizeVal = 22.0;
-      else if (sSize == "ضخم")
-        subSizeVal = 28.0;
-      else
-        subSizeVal = 16.0;
-
-      if (sCol == "أصفر")
-        subColorVal = Colors.yellow;
-      else if (sCol == "أزرق سماوي")
-        subColorVal = Colors.cyanAccent;
-      else if (sCol == "أخضر")
-        subColorVal = Colors.greenAccent;
-      else if (sCol == "أحمر")
-        subColorVal = Colors.redAccent;
-      else if (sCol == "أزرق")
-        subColorVal = Colors.blueAccent;
-      else if (sCol == "وردي")
-        subColorVal = Colors.pinkAccent;
-      else
-        subColorVal = Colors.white;
-
-      if (sBg == "أسود")
-        subBgColorVal = Colors.black87;
-      else if (sBg == "رمادي داكن")
-        subBgColorVal = Colors.black54;
-      else if (sBg == "أحمر داكن")
-        subBgColorVal = Colors.red[900]!.withOpacity(0.8);
-      else if (sBg == "أزرق داكن")
-        subBgColorVal = Colors.blue[900]!.withOpacity(0.8);
-      else if (sBg == "أخضر داكن")
-        subBgColorVal = Colors.green[900]!.withOpacity(0.8);
-      else if (sBg == "أرجواني داكن")
-        subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
-      else
-        subBgColorVal = Colors.transparent;
-    } catch (e) {
-        debugPrint("Error loading subtitle settings in multi-player: ${redactDiagnostic(e)}");
-    }
-
     BetterPlayerConfiguration betterPlayerConfiguration =
-        BetterPlayerConfiguration(
+        const BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,
       looping: false,
       handleLifecycle: false,
       autoDispose: false,
-      subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
-        fontSize: subSizeVal,
-        fontColor: subColorVal,
-        backgroundColor: subBgColorVal,
-        outlineColor: Colors.black,
-        outlineSize: 2.0,
-        fontFamily: "Arial",
-      ),
-      controlsConfiguration: const BetterPlayerControlsConfiguration(
+      controlsConfiguration: BetterPlayerControlsConfiguration(
         showControls: false,
       ),
     );
@@ -631,9 +569,6 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       format = null;
     }
 
-    bool isAsms = format == BetterPlayerVideoFormat.hls ||
-        format == BetterPlayerVideoFormat.dash;
-
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
       finalUrl,
@@ -641,9 +576,15 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       videoFormat: format,
       videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
-      useAsmsTracks: isAsms,
-      useAsmsSubtitles: isAsms,
-      useAsmsAudioTracks: isAsms,
+      useAsmsTracks: false,
+      useAsmsSubtitles: false,
+      useAsmsAudioTracks: false,
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 400,
+        maxBufferMs: 5000,
+        bufferForPlaybackMs: 120,
+        bufferForPlaybackAfterRebufferMs: 250,
+      ),
       drmConfiguration:
           widget.stream.clearKeys != null && widget.stream.clearKeys!.isNotEmpty
               ? BetterPlayerDrmConfiguration(
@@ -651,15 +592,6 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
                   clearKey: _prepareClearKeyString(widget.stream.clearKeys!),
                 )
               : null,
-    );
-
-    dataSource = dataSource.copyWith(
-      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 15000,
-        maxBufferMs: 60000,
-        bufferForPlaybackMs: 2500,
-        bufferForPlaybackAfterRebufferMs: 5000,
-      ),
     );
     _controller = BetterPlayerController(betterPlayerConfiguration);
     _controller!.addEventsListener((event) {

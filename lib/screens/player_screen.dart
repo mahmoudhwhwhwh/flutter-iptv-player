@@ -1,5 +1,7 @@
 import 'dart:io';
-import 'package:flutter_iptv_player/services/download_manager.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_iptv_player/widgets/pin_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
@@ -22,160 +24,9 @@ import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
 import 'dart:typed_data';
-import 'package:flutter_iptv_player/screens/downloads_screen.dart';
 import 'package:flutter_iptv_player/services/stalker_playback.dart';
 import 'package:flutter_iptv_player/services/channel_switch_guard.dart';
 import 'package:flutter_iptv_player/services/redacted_diagnostics.dart';
-
-class _SubtitleCue {
-  final Duration start;
-  final Duration end;
-  final String text;
-  const _SubtitleCue({
-    required this.start,
-    required this.end,
-    required this.text,
-  });
-}
-
-class _ExternalSubtitleTrack {
-  final String id;
-  final String label;
-  final String langCode;
-  final String url;
-  final Map<String, String>? headers;
-  String? cachedContent;
-
-  _ExternalSubtitleTrack({
-    required this.id,
-    required this.label,
-    required this.langCode,
-    required this.url,
-    this.headers,
-    this.cachedContent,
-  });
-}
-
-const Map<int, int> _cp1256UpperMap = {
-  0x80: 0x20AC, 0x81: 0x067E, 0x82: 0x201A, 0x83: 0x0192,
-  0x84: 0x201E, 0x85: 0x2026, 0x86: 0x2020, 0x87: 0x2021,
-  0x88: 0x02C6, 0x89: 0x2030, 0x8A: 0x0679, 0x8B: 0x2039,
-  0x8C: 0x0152, 0x8D: 0x0686, 0x8E: 0x0698, 0x8F: 0x0688,
-  0x90: 0x06AF, 0x91: 0x2018, 0x92: 0x2019, 0x93: 0x201C,
-  0x94: 0x201D, 0x95: 0x2022, 0x96: 0x2013, 0x97: 0x2014,
-  0x98: 0x06A9, 0x99: 0x2122, 0x9A: 0x0691, 0x9B: 0x203A,
-  0x9C: 0x0153, 0x9D: 0x200C, 0x9E: 0x200D, 0x9F: 0x06BA,
-  0xA0: 0x00A0, 0xA1: 0x060C, 0xA2: 0x00A2, 0xA3: 0x00A3,
-  0xA4: 0x00A4, 0xA5: 0x00A5, 0xA6: 0x00A6, 0xA7: 0x00A7,
-  0xA8: 0x00A8, 0xA9: 0x00A9, 0xAA: 0x06BE, 0xAB: 0x00AB,
-  0xAC: 0x00AC, 0xAD: 0x00AD, 0xAE: 0x00AE, 0xAF: 0x00AF,
-  0xB0: 0x00B0, 0xB1: 0x00B1, 0xB2: 0x00B2, 0xB3: 0x00B3,
-  0xB4: 0x00B4, 0xB5: 0x00B5, 0xB6: 0x00B6, 0xB7: 0x00B7,
-  0xB8: 0x00B8, 0xB9: 0x00B9, 0xBA: 0x061B, 0xBB: 0x00BB,
-  0xBC: 0x00BC, 0xBD: 0x00BD, 0xBE: 0x00BE, 0xBF: 0x061F,
-  0xC0: 0x06C1, 0xC1: 0x0621, 0xC2: 0x0622, 0xC3: 0x0623,
-  0xC4: 0x0624, 0xC5: 0x0625, 0xC6: 0x0626, 0xC7: 0x0627,
-  0xC8: 0x0628, 0xC9: 0x0629, 0xCA: 0x062A, 0xCB: 0x062B,
-  0xCC: 0x062C, 0xCD: 0x062D, 0xCE: 0x062E, 0xCF: 0x062F,
-  0xD0: 0x0630, 0xD1: 0x0631, 0xD2: 0x0632, 0xD3: 0x0633,
-  0xD4: 0x0634, 0xD5: 0x0635, 0xD6: 0x0636, 0xD7: 0x00D7,
-  0xD8: 0x0637, 0xD9: 0x0638, 0xDA: 0x0639, 0xDB: 0x063A,
-  0xDC: 0x0640, 0xDD: 0x0641, 0xDE: 0x0642, 0xDF: 0x0643,
-  0xE0: 0x00E0, 0xE1: 0x0644, 0xE2: 0x00E2, 0xE3: 0x0645,
-  0xE4: 0x0646, 0xE5: 0x0647, 0xE6: 0x0648, 0xE7: 0x00E7,
-  0xE8: 0x00E8, 0xE9: 0x00E9, 0xEA: 0x00EA, 0xEB: 0x00EB,
-  0xEC: 0x0649, 0xED: 0x064A, 0xEE: 0x00EE, 0xEF: 0x00EF,
-  0xF0: 0x064B, 0xF1: 0x064C, 0xF2: 0x064D, 0xF3: 0x064E,
-  0xF4: 0x00F4, 0xF5: 0x064F, 0xF6: 0x0650, 0xF7: 0x00F7,
-  0xF8: 0x0651, 0xF9: 0x00F9, 0xFA: 0x0652, 0xFB: 0x00FB,
-  0xFC: 0x00FC, 0xFD: 0x200E, 0xFE: 0x200F, 0xFF: 0x06D2,
-};
-
-String _decodeSubtitleBytes(List<int> bytes) {
-  if (bytes.isEmpty) return '';
-  try {
-    final decoded = utf8.decode(bytes);
-    if (!decoded.contains('\uFFFD')) {
-      return decoded.replaceFirst('\uFEFF', '');
-    }
-  } catch (_) {}
-  final codeUnits = List<int>.generate(bytes.length, (i) {
-    final b = bytes[i] & 0xFF;
-    if (b < 0x80) return b;
-    return _cp1256UpperMap[b] ?? b;
-  });
-  return String.fromCharCodes(codeUnits).replaceFirst('\uFEFF', '');
-}
-
-Duration? _parseSrtTimecode(String raw) {
-  final clean = raw.trim().replaceAll(',', '.');
-  final parts = clean.split(':');
-  if (parts.length < 2 || parts.length > 3) return null;
-  int hours = 0;
-  int minutes = 0;
-  double seconds = 0.0;
-  if (parts.length == 3) {
-    hours = int.tryParse(parts[0].trim()) ?? 0;
-    minutes = int.tryParse(parts[1].trim()) ?? 0;
-    seconds = double.tryParse(parts[2].trim()) ?? 0.0;
-  } else {
-    minutes = int.tryParse(parts[0].trim()) ?? 0;
-    seconds = double.tryParse(parts[1].trim()) ?? 0.0;
-  }
-  final totalMs =
-      ((hours * 3600 + minutes * 60 + seconds) * 1000).round();
-  return Duration(milliseconds: totalMs);
-}
-
-List<_SubtitleCue> _parseSubtitleCues(String rawText) {
-  final cues = <_SubtitleCue>[];
-  if (rawText.trim().isEmpty) return cues;
-  final lines = rawText
-      .replaceFirst('\uFEFF', '')
-      .replaceAll('\r\n', '\n')
-      .replaceAll('\r', '\n')
-      .split('\n');
-
-  final timeRegex = RegExp(
-    r'((?:\d{1,2}:)?\d{1,2}:\d{2}[,.]\d{1,3})\s*-->\s*((?:\d{1,2}:)?\d{1,2}:\d{2}[,.]\d{1,3})',
-  );
-
-  int i = 0;
-  while (i < lines.length) {
-    final line = lines[i].trim();
-    final match = timeRegex.firstMatch(line);
-    if (match != null) {
-      final start = _parseSrtTimecode(match.group(1) ?? '');
-      final end = _parseSrtTimecode(match.group(2) ?? '');
-      i++;
-      final textLines = <String>[];
-      while (i < lines.length && lines[i].trim().isNotEmpty) {
-        if (timeRegex.hasMatch(lines[i])) break;
-        final cleanedLine = lines[i]
-            .replaceAll(RegExp(r'<[^>]*>'), '')
-            .replaceAll(RegExp(r'\{\\[^}]*\}'), '')
-            .trim();
-        if (cleanedLine.isNotEmpty) {
-          textLines.add(cleanedLine);
-        }
-        i++;
-      }
-      if (start != null &&
-          end != null &&
-          end >= start &&
-          textLines.isNotEmpty) {
-        cues.add(_SubtitleCue(
-          start: start,
-          end: end,
-          text: textLines.join('\n'),
-        ));
-      }
-    } else {
-      i++;
-    }
-  }
-  return cues;
-}
 
 enum RotationMode {
   smartAuto,
@@ -335,11 +186,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _usingLocalFallback = false;
   String _activePlaybackUrl = '';
   Map<String, String> _activePlaybackHeaders = const {};
-  List<_SubtitleCue> _parsedSubtitleCues = [];
-  List<_ExternalSubtitleTrack> _externalSubtitleTracks = [];
-  String _selectedExternalSubId = '';
-  bool _isSearchingOnlineSubs = false;
-  int _subtitleDelayMs = 0;
   GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
@@ -349,9 +195,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _showHUD = true;
   Timer? _hideHUDTimer;
   bool _isPipActive = false;
-  String _aiSubtitleText = "";
-  String _selectedAiLang = "";
-  Timer? _aiSubtitleTimer;
 
   BoxFit _currentBoxFit = BoxFit.contain;
   String _aspectRatioLabel = "تلقائي";
@@ -393,11 +236,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   Timer? _positionTimer;
   final ChannelSwitchGuard _channelSwitchGuard = ChannelSwitchGuard();
 
-  double _subSizeVal = 16.0;
-  Color _subColorVal = Colors.white;
-  Color _subBgColorVal = Colors.transparent;
-  String _subFontVal = 'Cairo';
-  String _subLangVal = "تلقائي";
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
 
@@ -434,12 +272,26 @@ class _PlayerScreenState extends State<PlayerScreen>
   int _retryCount = 0;
   final int _maxRetries = 3;
   Timer? _reconnectTimer;
+  Timer? _liveStartupWatchdogTimer;
+
+  // Photo & Video Capture State
+  final GlobalKey _videoCaptureBoundaryKey = GlobalKey();
+  bool _isTakingScreenshot = false;
+  bool _isRecordingClip = false;
+  bool _recordingStopRequested = false;
+  int _recordingSeconds = 0;
+  int _recordedBytes = 0;
+  Timer? _recordingTimer;
+  HttpClient? _activeRecordingClient;
+  IOSink? _activeRecordingSink;
+  String? _activeRecordingFilePath;
+  final List<String> _capturedMediaFiles = [];
 
   bool get _isLiveStream =>
       _stream.type == 'live' || _stream.type == 'stalker';
 
   Duration _liveRetryDelay() {
-    return const Duration(milliseconds: 400);
+    return const Duration(milliseconds: 250);
   }
 
   bool get _isDrm => _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty;
@@ -447,7 +299,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<String?> _malformedHlsTsFallback(String url) async {
     try {
       final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
       if (response.statusCode < 200 || response.statusCode >= 300) return null;
       final body = response.body;
       if (RegExp(r'^#EXTM3U', multiLine: true).allMatches(body).length < 2) {
@@ -476,41 +328,67 @@ class _PlayerScreenState extends State<PlayerScreen>
   List<String> _playbackCandidates(String primary) {
     final candidates = <String>[];
     void add(String value) {
-      var normalized = stripFfmpegPrefix(value.trim());
-      if (normalized.startsWith('http://x.gamerdz1517.com')) {
-        normalized = normalized.replaceFirst('http://', 'https://');
-      }
+      final normalized = stripFfmpegPrefix(value.trim());
       if (normalized.isNotEmpty && !candidates.contains(normalized)) {
         candidates.add(normalized);
       }
     }
+    String preferredFormat = 'm3u8';
+    try {
+      if (mounted) {
+        preferredFormat =
+            Provider.of<IPTVProvider>(context, listen: false).streamFormat;
+      }
+    } catch (_) {}
+
     final uri = Uri.tryParse(primary.trim());
-    final isXtreamLive = primary.contains('/live/');
     final isXtreamVodOrSeries =
         primary.contains('/movie/') || primary.contains('/series/');
-    if (uri != null && isXtreamLive && uri.path.toLowerCase().endsWith('.m3u8')) {
-      add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
+    if (uri != null &&
+        !isXtreamVodOrSeries &&
+        uri.path.toLowerCase().contains('/live/')) {
+      final path = uri.path;
+      final lowerPath = path.toLowerCase();
+      if (lowerPath.endsWith('.ts') || lowerPath.endsWith('.m3u8')) {
+        final basePath = lowerPath.endsWith('.m3u8')
+            ? path.substring(0, path.length - 5)
+            : path.substring(0, path.length - 3);
+        if (preferredFormat == 'ts') {
+          add(uri.replace(path: '$basePath.ts').toString());
+          add(uri.replace(path: '$basePath.m3u8').toString());
+        } else {
+          add(uri.replace(path: '$basePath.m3u8').toString());
+          add(uri.replace(path: '$basePath.ts').toString());
+        }
+      }
     }
     add(primary);
+    if (_stream.fallbackUrl?.trim().isNotEmpty == true) {
+      add(_stream.fallbackUrl!);
+    }
     if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
       final path = uri.path.toLowerCase();
       if (isXtreamVodOrSeries) {
         final dotIdx = uri.path.lastIndexOf('.');
         final slashIdx = uri.path.lastIndexOf('/');
-        final prefix = dotIdx > slashIdx
-            ? uri.path.substring(0, dotIdx)
-            : uri.path;
+        final prefix =
+            dotIdx > slashIdx ? uri.path.substring(0, dotIdx) : uri.path;
         for (final ext in ['mp4', 'mkv', 'ts']) {
           add(uri.replace(path: '$prefix.$ext').toString());
         }
       } else if (path.endsWith('.ts')) {
-        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8').toString());
+        add(uri
+            .replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8')
+            .toString());
       } else if (path.endsWith('.m3u8')) {
-        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
+        add(uri
+            .replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts')
+            .toString());
       }
-      add(uri.replace(scheme: uri.scheme == 'http' ? 'https' : 'http').toString());
+      add(uri
+          .replace(scheme: uri.scheme == 'http' ? 'https' : 'http')
+          .toString());
     }
-    if (_stream.fallbackUrl?.trim().isNotEmpty == true) add(_stream.fallbackUrl!);
     return candidates;
   }
 
@@ -561,95 +439,550 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<void> _loadSubSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      String sSize = prefs.getString('sub_size') ?? "متوسط";
-      String sCol = prefs.getString('sub_color') ?? "أبيض";
-      String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
-      _subFontVal = prefs.getString('sub_font') ?? 'Cairo';
-      _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
-
-      if (sSize == "صغير جداً" || sSize == "12")
-        _subSizeVal = 12.0;
-      else if (sSize == "صغير" || sSize == "14")
-        _subSizeVal = 14.0;
-      else if (sSize == "متوسط" || sSize == "18" || sSize == "16")
-        _subSizeVal = 18.0;
-      else if (sSize == "كبير" || sSize == "24" || sSize == "22")
-        _subSizeVal = 24.0;
-      else if (sSize == "ضخم" || sSize == "32" || sSize == "28")
-        _subSizeVal = 32.0;
-      else if (sSize == "ضخم جداً" || sSize == "40")
-        _subSizeVal = 40.0;
-      else {
-        final parsed = double.tryParse(sSize);
-        if (parsed != null && parsed >= 10 && parsed <= 50) {
-          _subSizeVal = parsed;
-        } else {
-          _subSizeVal = 18.0;
-        }
-      }
-
-      if (sCol == "أصفر")
-        _subColorVal = Colors.yellow;
-      else if (sCol == "أزرق سماوي")
-        _subColorVal = Colors.cyanAccent;
-      else if (sCol == "أخضر")
-        _subColorVal = Colors.greenAccent;
-      else if (sCol == "أحمر")
-        _subColorVal = Colors.redAccent;
-      else if (sCol == "أزرق")
-        _subColorVal = Colors.blueAccent;
-      else if (sCol == "وردي")
-        _subColorVal = Colors.pinkAccent;
-      else if (sCol == "برتقالي")
-        _subColorVal = Colors.orange;
-      else if (sCol == "بنفسجي")
-        _subColorVal = Colors.purpleAccent;
-      else if (sCol == "أسود")
-        _subColorVal = Colors.black;
-      else if (sCol == "رمادي")
-        _subColorVal = Colors.grey;
-      else
-        _subColorVal = Colors.white;
-
-      if (sBg == "أسود")
-        _subBgColorVal = Colors.black87;
-      else if (sBg == "رمادي داكن")
-        _subBgColorVal = Colors.black54;
-      else if (sBg == "أحمر داكن")
-        _subBgColorVal = Colors.red[900]!.withOpacity(0.8);
-      else if (sBg == "أزرق داكن")
-        _subBgColorVal = Colors.blue[900]!.withOpacity(0.8);
-      else if (sBg == "أخضر داكن")
-        _subBgColorVal = Colors.green[900]!.withOpacity(0.8);
-      else if (sBg == "أرجواني داكن")
-        _subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
-      else if (sBg == "أبيض")
-        _subBgColorVal = Colors.white70;
-      else
-        _subBgColorVal = Colors.transparent;
-
-      // المشغّل يُعرض أفقياً دائماً لتثبيت الأزرار ومنع التدوير غير المتوقع.
       _isPortrait = false;
       _rotationMode = RotationMode.landscapeOnly;
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-
       if (mounted) setState(() {});
-    } catch (e) {}
+    } catch (_) {}
   }
 
-  void _applySubtitlesConfiguration() {
-    if (mounted) setState(() {});
+  Future<Directory> _resolveCapturesDirectory() async {
+    try {
+      if (Platform.isAndroid) {
+        final dlDir = Directory('/storage/emulated/0/Download/LiveStreamPro');
+        if (!dlDir.existsSync()) {
+          await dlDir.create(recursive: true);
+        }
+        if (dlDir.existsSync()) return dlDir;
+      }
+    } catch (_) {}
+    final docs = await getApplicationDocumentsDirectory();
+    final capDir = Directory('${docs.path}/captures');
+    if (!capDir.existsSync()) {
+      await capDir.create(recursive: true);
+    }
+    return capDir;
+  }
+
+  String _formatRecSeconds(int sec) {
+    final m = (sec ~/ 60).toString().padLeft(2, '0');
+    final s = (sec % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  String _formatBytesCount(int bytes) {
+    if (bytes <= 0) return '0 KB';
+    final mb = bytes / (1024 * 1024);
+    if (mb >= 1.0) return '${mb.toStringAsFixed(1)} MB';
+    return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  }
+
+  Future<void> _captureScreenshot() async {
+    if (_isTakingScreenshot) return;
+    setState(() {
+      _isTakingScreenshot = true;
+    });
+    try {
+      final boundaryContext = _videoCaptureBoundaryKey.currentContext;
+      if (boundaryContext == null) {
+        _showOnScreenToast('انتظر لحظة حتى يجهز المشغل للتصوير', Icons.camera_alt_rounded);
+        return;
+      }
+      final boundary =
+          boundaryContext.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      _showOnScreenToast('جارٍ التقاط الصورة...', Icons.camera_alt_rounded);
+      final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      final ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      final dir = await _resolveCapturesDirectory();
+      final cleanTitle = _stream.name
+          .replaceAll(RegExp(r'[^\w\u0600-\u06FF\- ]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '_');
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName =
+          'SHOT_${cleanTitle.isEmpty ? "stream" : cleanTitle}_$stamp.png';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(pngBytes, flush: true);
+
+      if (!mounted) return;
+      setState(() {
+        _capturedMediaFiles.insert(0, file.path);
+      });
+      _showOnScreenToast('تم حفظ لقطة الشاشة بنجاح 📸', Icons.check_circle_rounded);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF14112B),
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.memory(
+                  pngBytes,
+                  width: 48,
+                  height: 30,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تم حفظ الصورة: $fileName',
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'المعرض',
+            textColor: const Color(0xFF38BDF8),
+            onPressed: _showCapturesGalleryModal,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Screenshot capture error: $e');
+      if (mounted) {
+        _showOnScreenToast('تعذر التقاط الصورة حالياً', Icons.error_outline_rounded);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTakingScreenshot = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleVideoRecording() async {
+    if (_isRecordingClip) {
+      await _stopVideoRecording();
+      return;
+    }
+
+    final sourceUrl =
+        _activePlaybackUrl.isNotEmpty ? _activePlaybackUrl : _stream.url.trim();
+    if (sourceUrl.isEmpty) {
+      _showOnScreenToast('لا يوجد بث نشط لتسجيله حالياً', Icons.videocam_off_rounded);
+      return;
+    }
+
+    final dir = await _resolveCapturesDirectory();
+    final cleanTitle = _stream.name
+        .replaceAll(RegExp(r'[^\w\u0600-\u06FF\- ]'), '')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_');
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final isLocalSource = sourceUrl.startsWith('/') || sourceUrl.startsWith('file://');
+    final ext = isLocalSource
+        ? (sourceUrl.endsWith('.mkv') ? 'mkv' : 'mp4')
+        : (sourceUrl.toLowerCase().contains('.mp4') ? 'mp4' : 'ts');
+    final outPath =
+        '${dir.path}/REC_${cleanTitle.isEmpty ? "video" : cleanTitle}_$stamp.$ext';
+
+    setState(() {
+      _isRecordingClip = true;
+      _recordingStopRequested = false;
+      _recordingSeconds = 0;
+      _recordedBytes = 0;
+      _activeRecordingFilePath = outPath;
+    });
+
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _isRecordingClip) {
+        setState(() {
+          _recordingSeconds += 1;
+        });
+      }
+    });
+
+    _showOnScreenToast('بدأ تسجيل الفيديو 🔴 اضغط مرة أخرى للإيقاف والحفظ', Icons.fiber_manual_record_rounded);
+    unawaited(_runStreamClipRecorder(sourceUrl, outPath));
+  }
+
+  Future<void> _runStreamClipRecorder(String sourceUrl, String outPath) async {
+    final outFile = File(outPath);
+    IOSink? sink;
+    HttpClient? client;
+    try {
+      sink = outFile.openWrite(mode: FileMode.writeOnlyAppend);
+      _activeRecordingSink = sink;
+
+      // Case 1: Recording from a local file clip
+      if (sourceUrl.startsWith('/') || sourceUrl.startsWith('file://')) {
+        final srcFile = File(sourceUrl.replaceFirst(RegExp(r'^file://'), ''));
+        if (srcFile.existsSync()) {
+          final totalLen = srcFile.lengthSync();
+          final durSec = _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : 1;
+          final startOffset = ((_currentPosition.inSeconds / durSec) * totalLen)
+              .round()
+              .clamp(0, totalLen > 0 ? totalLen - 1 : 0);
+          final raf = await srcFile.open(mode: FileMode.read);
+          await raf.setPosition(startOffset);
+          while (_isRecordingClip && !_recordingStopRequested) {
+            final chunk = await raf.read(65536);
+            if (chunk.isEmpty) break;
+            sink.add(chunk);
+            _recordedBytes += chunk.length;
+            await Future<void>.delayed(const Duration(milliseconds: 120));
+          }
+          await raf.close();
+        }
+        return;
+      }
+
+      client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
+      client.badCertificateCallback = (cert, host, port) => true;
+      _activeRecordingClient = client;
+
+      final headers = <String, String>{
+        'User-Agent': _activePlaybackHeaders['User-Agent'] ?? 'VLC/3.0.20 LibVLC/3.0.20',
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+        ..._activePlaybackHeaders,
+      };
+
+      // Build candidate URLs (try both .ts and .m3u8 for live streams)
+      final candidates = <String>[sourceUrl];
+      if (sourceUrl.endsWith('.m3u8')) {
+        candidates.add('${sourceUrl.substring(0, sourceUrl.length - 5)}.ts');
+      } else if (sourceUrl.endsWith('.ts')) {
+        candidates.add('${sourceUrl.substring(0, sourceUrl.length - 3)}.m3u8');
+      }
+
+      for (final candidate in candidates) {
+        if (!_isRecordingClip || _recordingStopRequested) break;
+        final uri = Uri.tryParse(candidate);
+        if (uri == null) continue;
+
+        final req = await client.getUrl(uri).timeout(const Duration(seconds: 10));
+        headers.forEach((k, v) {
+          if (v.isNotEmpty) req.headers.set(k, v);
+        });
+        final resp = await req.close().timeout(const Duration(seconds: 10));
+        if (resp.statusCode < 200 || resp.statusCode >= 300) {
+          await resp.drain<void>().catchError((_) {});
+          continue;
+        }
+
+        final cType = (resp.headers.contentType?.mimeType ?? '').toLowerCase();
+        final isM3u8 = candidate.toLowerCase().contains('.m3u8') ||
+            cType.contains('mpegurl');
+
+        if (!isM3u8) {
+          await for (final chunk in resp) {
+            if (!_isRecordingClip || _recordingStopRequested) break;
+            sink.add(chunk);
+            _recordedBytes += chunk.length;
+          }
+          if (_recordedBytes > 0) break;
+        } else {
+          // Read initial playlist text
+          final firstBytes = await resp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+          String playlistText = utf8.decode(firstBytes, allowMalformed: true);
+          Uri playlistUri = uri;
+
+          // If master playlist, resolve variant
+          if (playlistText.contains('#EXT-X-STREAM-INF')) {
+            final lines = playlistText.split(RegExp(r'\r?\n'));
+            for (final line in lines) {
+              final t = line.trim();
+              if (t.isNotEmpty && !t.startsWith('#')) {
+                playlistUri = uri.resolve(t);
+                break;
+              }
+            }
+          }
+
+          final seenSegments = <String>{};
+          while (_isRecordingClip && !_recordingStopRequested) {
+            final plReq = await client.getUrl(playlistUri).timeout(const Duration(seconds: 8));
+            headers.forEach((k, v) {
+              if (v.isNotEmpty) plReq.headers.set(k, v);
+            });
+            final plResp = await plReq.close().timeout(const Duration(seconds: 8));
+            if (plResp.statusCode == 200) {
+              final plBytes = await plResp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+              final text = utf8.decode(plBytes, allowMalformed: true);
+              final segUrls = <Uri>[];
+              for (final rawLine in text.split(RegExp(r'\r?\n'))) {
+                final l = rawLine.trim();
+                if (l.isEmpty || l.startsWith('#')) continue;
+                final resolved = playlistUri.resolve(l);
+                if (seenSegments.add(resolved.toString())) {
+                  segUrls.add(resolved);
+                }
+              }
+              for (final segUri in segUrls) {
+                if (!_isRecordingClip || _recordingStopRequested) break;
+                try {
+                  final segReq = await client.getUrl(segUri).timeout(const Duration(seconds: 8));
+                  headers.forEach((k, v) {
+                    if (v.isNotEmpty) segReq.headers.set(k, v);
+                  });
+                  final segResp = await segReq.close().timeout(const Duration(seconds: 8));
+                  if (segResp.statusCode >= 200 && segResp.statusCode < 300) {
+                    await for (final chunk in segResp) {
+                      if (!_isRecordingClip || _recordingStopRequested) break;
+                      sink.add(chunk);
+                      _recordedBytes += chunk.length;
+                    }
+                  } else {
+                    await segResp.drain<void>().catchError((_) {});
+                  }
+                } catch (_) {}
+              }
+            } else {
+              await plResp.drain<void>().catchError((_) {});
+            }
+            if (!_isRecordingClip || _recordingStopRequested) break;
+            await Future<void>.delayed(const Duration(seconds: 2));
+          }
+          if (_recordedBytes > 0) break;
+        }
+      }
+    } catch (e) {
+      debugPrint('Video clip recording error: $e');
+    } finally {
+      try {
+        await sink?.flush();
+        await sink?.close();
+      } catch (_) {}
+      try {
+        client?.close(force: true);
+      } catch (_) {}
+      _activeRecordingSink = null;
+      _activeRecordingClient = null;
+    }
+  }
+
+  Future<void> _stopVideoRecording() async {
+    _recordingStopRequested = true;
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
+    final recordedPath = _activeRecordingFilePath;
+    final durationSecs = _recordingSeconds;
+    try {
+      await _activeRecordingSink?.flush();
+      await _activeRecordingSink?.close();
+    } catch (_) {}
+    try {
+      _activeRecordingClient?.close(force: true);
+    } catch (_) {}
+    _activeRecordingSink = null;
+    _activeRecordingClient = null;
+
+    if (!mounted) return;
+    setState(() {
+      _isRecordingClip = false;
+    });
+
+    if (recordedPath != null) {
+      final f = File(recordedPath);
+      if (f.existsSync() && f.lengthSync() > 0) {
+        setState(() {
+          _capturedMediaFiles.insert(0, recordedPath);
+        });
+        _showOnScreenToast(
+          'تم حفظ الفيديو المسجل (${_formatBytesCount(f.lengthSync())}) 🎬',
+          Icons.check_circle_rounded,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF14112B),
+              duration: const Duration(seconds: 4),
+              content: Text(
+                'تم حفظ الفيديو المسجل (${durationSecs} ثانية • ${_formatBytesCount(f.lengthSync())})',
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              action: SnackBarAction(
+                label: 'المعرض',
+                textColor: const Color(0xFF38BDF8),
+                onPressed: _showCapturesGalleryModal,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    _showOnScreenToast(
+      'تم إيقاف التسجيل (تأكد من دعم السيرفر لاتصال إضافي أثناء المشاهدة)',
+      Icons.info_outline_rounded,
+    );
+  }
+
+  void _showCapturesGalleryModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF12101B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.photo_library_rounded,
+                          color: Color(0xFFA855F7)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'الصور والفيديوهات الملتقطة',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (_capturedMediaFiles.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'لم تقم بالتقاط صور أو تسجيل فيديو في هذه الجلسة بعد',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 180,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _capturedMediaFiles.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final path = _capturedMediaFiles[index];
+                          final file = File(path);
+                          final isImage = path.toLowerCase().endsWith('.png') ||
+                              path.toLowerCase().endsWith('.jpg');
+                          final name = path.split('/').last;
+                          return GestureDetector(
+                            onTap: () {
+                              if (!isImage && file.existsSync()) {
+                                Navigator.pop(ctx);
+                                _zapStream(
+                                  Provider.of<IPTVProvider>(context,
+                                      listen: false),
+                                  PlaylistItem(
+                                    name: name,
+                                    url: path,
+                                    streamIcon: _stream.streamIcon,
+                                    epgChannelId: '',
+                                    categoryId: 'captures',
+                                    categoryName: 'تسجيلات الشاشة',
+                                    streamId: 'cap_${path.hashCode}',
+                                    type: 'file',
+                                  ),
+                                );
+                              }
+                            },
+                            child: Container(
+                              width: 200,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C192B),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: isImage && file.existsSync()
+                                        ? Image.file(file, fit: BoxFit.cover)
+                                        : Container(
+                                            color: Colors.black54,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.play_circle_fill_rounded,
+                                                color: Color(0xFFA855F7),
+                                                size: 42,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontFamily: 'Cairo',
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final version = context.watch<IPTVProvider>().playerSettingsVersion;
+    final version =
+        Provider.of<IPTVProvider>(context, listen: false).playerSettingsVersion;
     final shouldRefresh = _lastPlayerSettingsVersion >= 0 &&
         _lastPlayerSettingsVersion != version &&
         _initialized;
@@ -657,7 +990,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (shouldRefresh) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _loadSubSettings();
-        _applySubtitlesConfiguration();
       });
     }
   }
@@ -671,7 +1003,6 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (mounted) WakelockPlus.enable();
     });
     _stream = widget.stream;
-    _initLoadingVideo();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
@@ -681,639 +1012,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     _resetHideHUDTimer();
   }
 
-  static String _cleanMediaTitleForSubtitleSearch(String rawTitle) {
-    var t = rawTitle.trim();
-    if (t.isEmpty) return '';
-    // Strip common IPTV prefixes like "AR:", "EN -", "[4K]", "(2024)", "مترجم", etc.
-    t = t.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '');
-    t = t.replaceAll(
-        RegExp(
-            r'^(?:AR|EN|TR|FR|ES|DE|VIP|NETFLIX|SHAHID|OSN|TOD|WATCHIT|FHD|HD|4K|UHD|SD)\s*[:|\-–]\s*',
-            caseSensitive: false),
-        '');
-    t = t.replaceAll(
-        RegExp(
-            r'\b(?:4K|UHD|FHD|1080p|720p|480p|WEB-DL|WEBRip|BluRay|BRRip|HDRip|x264|x265|HEVC|AAC)\b',
-            caseSensitive: false),
-        ' ');
-    t = t.replaceAll(
-        RegExp(r'(?:مترجم|مدبلج|كامل|جودة عالية|حصرياً|فيلم|مسلسل)'), ' ');
-    // Strip "- الحلقة 1" or "S01E01" when extracting base title
-    t = t.replaceAll(
-        RegExp(r'\s*[-–|]\s*(?:الحلقة|حلقة|Episode|Ep\.?)\s*\d+.*$',
-            caseSensitive: false),
-        '');
-    t = t.replaceAll(
-        RegExp(r'\bS\d{1,2}\s*E\d{1,3}\b.*$', caseSensitive: false), '');
-    t = t.replaceAll(RegExp(r'\(\s*\d{4}\s*\)'), ' ');
-    t = t.replaceAll(RegExp(r'\[\s*\d{4}\s*\]'), ' ');
-    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return t.isEmpty ? rawTitle.trim() : t;
-  }
-
-  static ({int? season, int? episode}) _extractSeasonAndEpisode(String raw) {
-    final sxe =
-        RegExp(r'S(\d{1,2})\s*E(\d{1,3})', caseSensitive: false).firstMatch(raw);
-    if (sxe != null) {
-      return (
-        season: int.tryParse(sxe.group(1) ?? '') ?? 1,
-        episode: int.tryParse(sxe.group(2) ?? ''),
-      );
-    }
-    final arSeason =
-        RegExp(r'(?:الموسم|موسم)\s*(\d{1,2})').firstMatch(raw);
-    final arEp =
-        RegExp(r'(?:الحلقة|حلقة|ep\.?|episode)\s*(\d{1,3})', caseSensitive: false)
-            .firstMatch(raw);
-    if (arEp != null) {
-      return (
-        season: int.tryParse(arSeason?.group(1) ?? '') ?? 1,
-        episode: int.tryParse(arEp.group(1) ?? ''),
-      );
-    }
-    return (season: null, episode: null);
-  }
-
-  Future<bool> _loadExternalSubtitleTrack(
-    _ExternalSubtitleTrack track, {
-    bool saveAsPreferred = true,
-  }) async {
-    try {
-      String srtContent = track.cachedContent ?? '';
-      if (srtContent.trim().isEmpty && track.url.isNotEmpty) {
-        final client = HttpClient();
-        client.connectionTimeout = const Duration(seconds: 10);
-        client.badCertificateCallback = (cert, host, port) => true;
-        try {
-          Uri uri = Uri.parse(track.url);
-          for (int hop = 0; hop < 6; hop++) {
-            final req = await client.getUrl(uri).timeout(const Duration(seconds: 10));
-            req.followRedirects = false;
-            req.headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
-            req.headers.set('Accept', '*/*');
-            track.headers?.forEach((k, v) {
-              if (v.isNotEmpty) req.headers.set(k, v);
-            });
-            final resp = await req.close().timeout(const Duration(seconds: 10));
-            if (resp.statusCode == 301 ||
-                resp.statusCode == 302 ||
-                resp.statusCode == 303 ||
-                resp.statusCode == 307 ||
-                resp.statusCode == 308) {
-              final loc = resp.headers.value(HttpHeaders.locationHeader);
-              await resp.drain<void>().catchError((_) {});
-              if (loc == null || loc.isEmpty) break;
-              uri = uri.resolve(loc.trim());
-              continue;
-            }
-            if (resp.statusCode == 200) {
-              final builder = BytesBuilder(copy: false);
-              await for (final chunk in resp) {
-                builder.add(chunk);
-              }
-              final bytes = builder.takeBytes();
-              srtContent = _decodeSubtitleBytes(bytes);
-            }
-            break;
-          }
-        } finally {
-          client.close(force: true);
-        }
-      }
-
-      if (srtContent.trim().isEmpty) return false;
-      final cues = _parseSubtitleCues(srtContent);
-      if (cues.isEmpty) return false;
-
-      track.cachedContent = srtContent;
-      if (mounted) {
-        setState(() {
-          _parsedSubtitleCues = cues;
-          _selectedExternalSubId = track.id;
-          _selectedAiLang = '';
-          _aiSubtitleText = '';
-          _aiSubtitleTimer?.cancel();
-        });
-      }
-      _startSeekTracker();
-
-      // Cache subtitle locally so offline playback also has subtitles
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final cleanId = _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
-        await prefs.setString('sub_srt_cache_$cleanId', srtContent);
-        await prefs.setString('sub_srt_label_$cleanId', track.label);
-        if (saveAsPreferred) {
-          await prefs.setString(
-            'sub_lang',
-            track.langCode == 'ar'
-                ? 'العربية'
-                : (track.langCode == 'en'
-                    ? 'الإنجليزية'
-                    : (track.langCode == 'fr' ? 'الفرنسية' : track.label)),
-          );
-        }
-      } catch (_) {}
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _searchAndLoadOnlineSubtitles(
-    String searchQuery, {
-    String? knownImdbId,
-    int? season,
-    int? episode,
-    bool autoSelectPreferred = true,
-  }) async {
-    final cleanQuery = searchQuery.trim();
-    if (cleanQuery.isEmpty && (knownImdbId == null || knownImdbId.isEmpty)) {
-      return;
-    }
-    if (mounted) {
-      setState(() => _isSearchingOnlineSubs = true);
-    }
-
-    try {
-      String imdbId = (knownImdbId ?? '').trim();
-      final isSeries = _stream.type == 'series' ||
-          _stream.type == 'stalker_series' ||
-          _stream.url.contains('/series/') ||
-          (episode != null && episode > 0);
-      final epInfo = _extractSeasonAndEpisode(_stream.name);
-      final targetSeason = season ?? epInfo.season ?? 1;
-      final targetEpisode = episode ?? epInfo.episode ?? 1;
-
-      // 1. Resolve IMDb ID (ttXXXXXXX) if not already provided
-      if (!imdbId.startsWith('tt') && cleanQuery.isNotEmpty) {
-        // Try IMDb Official Public Suggestion CDN first (ultra fast, no API key)
-        try {
-          final firstChar = cleanQuery
-              .replaceAll(RegExp(r'[^a-zA-Z0-9\u0600-\u06FF]'), '')
-              .toLowerCase();
-          final bucket = firstChar.isNotEmpty ? firstChar[0] : 'x';
-          final sugUri = Uri.parse(
-              'https://v3.sg.media-imdb.com/suggestion/${Uri.encodeComponent(bucket)}/${Uri.encodeComponent(cleanQuery)}.json');
-          final sugResp = await http
-              .get(sugUri, headers: const {'Accept': 'application/json'})
-              .timeout(const Duration(seconds: 6));
-          if (sugResp.statusCode == 200) {
-            final data = jsonDecode(sugResp.body);
-            if (data is Map && data['d'] is List) {
-              for (final entry in data['d'] as List) {
-                if (entry is Map) {
-                  final candidateId = entry['id']?.toString() ?? '';
-                  if (candidateId.startsWith('tt')) {
-                    imdbId = candidateId;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        } catch (_) {}
-
-        // Fallback to Stremio Cinemeta Catalog Search
-        if (!imdbId.startsWith('tt')) {
-          try {
-            final catalogType = isSeries ? 'series' : 'movie';
-            final cineUri = Uri.parse(
-                'https://v3-cinemeta.strem.io/catalog/$catalogType/top/search=${Uri.encodeComponent(cleanQuery)}.json');
-            final cineResp = await http
-                .get(cineUri, headers: const {'Accept': 'application/json'})
-                .timeout(const Duration(seconds: 6));
-            if (cineResp.statusCode == 200) {
-              final data = jsonDecode(cineResp.body);
-              if (data is Map &&
-                  data['metas'] is List &&
-                  (data['metas'] as List).isNotEmpty) {
-                final firstMeta = (data['metas'] as List).first;
-                if (firstMeta is Map) {
-                  final idStr = firstMeta['imdb_id']?.toString() ??
-                      firstMeta['id']?.toString() ??
-                      '';
-                  if (idStr.startsWith('tt')) {
-                    imdbId = idStr;
-                  }
-                }
-              }
-            }
-          } catch (_) {}
-        }
-      }
-
-      if (!imdbId.startsWith('tt')) return;
-
-      final discovered = <_ExternalSubtitleTrack>[];
-      final seenUrls = _externalSubtitleTracks.map((e) => e.url).toSet();
-
-      void addTrack({
-        required String url,
-        required String rawLang,
-        String? labelOverride,
-      }) {
-        final cleanUrl = url.trim();
-        if (cleanUrl.isEmpty || seenUrls.contains(cleanUrl)) return;
-        final lower = rawLang.toLowerCase();
-        String langCode = 'other';
-        String langLabel = labelOverride ?? rawLang;
-        if (lower == 'ar' ||
-            lower == 'ara' ||
-            lower.contains('arab') ||
-            lower.contains('عرب')) {
-          langCode = 'ar';
-          langLabel = 'العربية (ملف ترجمة كامل)';
-        } else if (lower == 'en' ||
-            lower == 'eng' ||
-            lower.contains('english')) {
-          langCode = 'en';
-          langLabel = 'English (Full Subtitles)';
-        } else if (lower == 'fr' ||
-            lower == 'fre' ||
-            lower == 'fra' ||
-            lower.contains('french')) {
-          langCode = 'fr';
-          langLabel = 'Français (Sous-titres)';
-        } else if (lower == 'tr' ||
-            lower == 'tur' ||
-            lower.contains('turk')) {
-          langCode = 'tr';
-          langLabel = 'Türkçe (Altyazı)';
-        } else if (lower == 'es' ||
-            lower == 'spa' ||
-            lower.contains('span')) {
-          langCode = 'es';
-          langLabel = 'Español (Subtítulos)';
-        } else {
-          return; // Keep menu clean with supported languages
-        }
-
-        // Limit to at most 3 tracks per language to keep UI fast and clean
-        final countForLang =
-            discovered.where((t) => t.langCode == langCode).length;
-        if (countForLang >= 3) return;
-
-        seenUrls.add(cleanUrl);
-        final suffix = countForLang > 0 ? ' #${countForLang + 1}' : '';
-        discovered.add(_ExternalSubtitleTrack(
-          id: 'ext_${langCode}_${discovered.length}_${cleanUrl.hashCode}',
-          label: '$langLabel$suffix',
-          langCode: langCode,
-          url: cleanUrl,
-        ));
-      }
-
-      // 2. Query Wyzie Subs API (returns direct UTF-8 .srt URLs)
-      try {
-        final wyzieParams = <String, String>{'id': imdbId};
-        if (isSeries) {
-          wyzieParams['season'] = targetSeason.toString();
-          wyzieParams['episode'] = targetEpisode.toString();
-        }
-        final wyzieUri = Uri.parse('https://sub.wyzie.ru/search')
-            .replace(queryParameters: wyzieParams);
-        final wyzieResp = await http
-            .get(wyzieUri, headers: const {'Accept': 'application/json'})
-            .timeout(const Duration(seconds: 8));
-        if (wyzieResp.statusCode == 200) {
-          final list = jsonDecode(wyzieResp.body);
-          if (list is List) {
-            for (final item in list) {
-              if (item is Map) {
-                final subUrl = (item['url'] ?? '').toString();
-                final lang =
-                    (item['language'] ?? item['display'] ?? '').toString();
-                addTrack(url: subUrl, rawLang: lang);
-              }
-            }
-          }
-        }
-      } catch (_) {}
-
-      // 3. Query OpenSubtitles v3 Stremio Public API
-      try {
-        final osPath = isSeries
-            ? 'series/$imdbId:$targetSeason:$targetEpisode.json'
-            : 'movie/$imdbId.json';
-        final osUri =
-            Uri.parse('https://opensubtitles-v3.strem.io/subtitles/$osPath');
-        final osResp = await http
-            .get(osUri, headers: const {'Accept': 'application/json'})
-            .timeout(const Duration(seconds: 8));
-        if (osResp.statusCode == 200) {
-          final data = jsonDecode(osResp.body);
-          if (data is Map && data['subtitles'] is List) {
-            for (final item in data['subtitles'] as List) {
-              if (item is Map) {
-                final subUrl = (item['url'] ?? '').toString();
-                final lang = (item['lang'] ?? '').toString();
-                addTrack(url: subUrl, rawLang: lang);
-              }
-            }
-          }
-        }
-      } catch (_) {}
-
-      if (discovered.isNotEmpty && mounted) {
-        discovered.sort((a, b) {
-          if (a.langCode == 'ar' && b.langCode != 'ar') return -1;
-          if (a.langCode != 'ar' && b.langCode == 'ar') return 1;
-          return a.label.compareTo(b.label);
-        });
-        setState(() {
-          _externalSubtitleTracks = [
-            ..._externalSubtitleTracks,
-            ...discovered,
-          ];
-        });
-        if (autoSelectPreferred &&
-            _parsedSubtitleCues.isEmpty &&
-            _subLangVal != 'إيقاف') {
-          await _applyPreferredSubtitleLanguage(retries: 0);
-        }
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) {
-        setState(() => _isSearchingOnlineSubs = false);
-      }
-    }
-  }
-
-  Future<void> _fetchXtreamVodRemoteSubtitles(
-    BetterPlayerController? controller,
-    Map<String, String> headers,
-  ) async {
-    String? remoteTitle;
-    String? remoteImdbId;
-    try {
-      // 1. Check local offline cached subtitle for this stream first
-      final prefs = await SharedPreferences.getInstance();
-      final cleanId = _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
-      final cachedSrt = prefs.getString('sub_srt_cache_$cleanId');
-      final cachedLabel =
-          prefs.getString('sub_srt_label_$cleanId') ?? 'العربية (محفوظة أوفلاين)';
-      if (cachedSrt != null && cachedSrt.trim().isNotEmpty) {
-        final cachedTrack = _ExternalSubtitleTrack(
-          id: 'cached_$cleanId',
-          label: cachedLabel,
-          langCode: 'ar',
-          url: '',
-          cachedContent: cachedSrt,
-        );
-        if (!_externalSubtitleTracks.any((t) => t.id == cachedTrack.id)) {
-          _externalSubtitleTracks.insert(0, cachedTrack);
-        }
-        if (_subLangVal != 'إيقاف' && _parsedSubtitleCues.isEmpty) {
-          await _loadExternalSubtitleTrack(cachedTrack, saveAsPreferred: false);
-        }
-      }
-
-      final rawUrl = _stream.url.trim();
-      final isMovie = rawUrl.contains('/movie/');
-      final isSeries = rawUrl.contains('/series/');
-      if (isMovie || isSeries) {
-        final uri = Uri.tryParse(rawUrl);
-        if (uri != null) {
-          final segs = uri.pathSegments;
-          final idx = isMovie ? segs.indexOf('movie') : segs.indexOf('series');
-          if (idx >= 0 && segs.length >= idx + 4) {
-            final baseSegs = segs.take(idx).toList();
-            var host = Uri(
-              scheme: uri.scheme,
-              host: uri.host,
-              port: uri.hasPort ? uri.port : null,
-              path: baseSegs.isEmpty ? '' : '/${baseSegs.join('/')}',
-            ).toString().replaceFirst(RegExp(r'/$'), '');
-            if (host.startsWith('http://x.gamerdz1517.com')) {
-              host = host.replaceFirst('http://', 'https://');
-            }
-            final user = Uri.decodeComponent(segs[idx + 1]);
-            final pass = Uri.decodeComponent(segs[idx + 2]);
-            final fileSeg = segs[idx + 3];
-            final mediaId = fileSeg.contains('.')
-                ? fileSeg.substring(0, fileSeg.lastIndexOf('.'))
-                : fileSeg;
-            if (mediaId.isNotEmpty && isMovie) {
-              final apiUri = Uri.parse('$host/player_api.php').replace(
-                queryParameters: {
-                  'username': user,
-                  'password': pass,
-                  'action': 'get_vod_info',
-                  'vod_id': mediaId,
-                },
-              );
-              final resp = await http
-                  .get(apiUri, headers: headers)
-                  .timeout(const Duration(seconds: 8));
-              if (resp.statusCode == 200) {
-                final decoded = jsonDecode(resp.body);
-                if (decoded is Map) {
-                  final info = decoded['info'];
-                  final movieData = decoded['movie_data'];
-                  if (info is Map) {
-                    remoteTitle = (info['o_name'] ??
-                            info['name'] ??
-                            (movieData is Map ? movieData['name'] : null) ??
-                            '')
-                        .toString()
-                        .trim();
-                    final tmdbOrImdb =
-                        (info['imdb_id'] ?? info['kinopoisk_url'] ?? '')
-                            .toString()
-                            .trim();
-                    final ttMatch =
-                        RegExp(r'(tt\d{6,10})').firstMatch(tmdbOrImdb);
-                    if (ttMatch != null) {
-                      remoteImdbId = ttMatch.group(1);
-                    }
-                  }
-                  final rawSubs = <dynamic>[
-                    if (decoded['subtitles'] is List)
-                      ...(decoded['subtitles'] as List),
-                    if (info is Map && info['subtitles'] is List)
-                      ...(info['subtitles'] as List),
-                    if (movieData is Map && movieData['subtitles'] is List)
-                      ...(movieData['subtitles'] as List),
-                  ];
-                  for (final item in rawSubs) {
-                    String? subUrl;
-                    String subName = 'العربية (سيرفر)';
-                    if (item is String && item.trim().isNotEmpty) {
-                      subUrl = item.trim();
-                    } else if (item is Map) {
-                      subUrl =
-                          (item['url'] ?? item['file'] ?? item['src'] ?? '')
-                              .toString()
-                              .trim();
-                      final lang = (item['language'] ??
-                              item['lang'] ??
-                              item['label'] ??
-                              item['title'] ??
-                              '')
-                          .toString()
-                          .trim();
-                      if (lang.isNotEmpty) subName = lang;
-                    }
-                    if (subUrl != null && subUrl.isNotEmpty) {
-                      final trackId = 'xtream_${subUrl.hashCode}';
-                      if (!_externalSubtitleTracks.any((t) => t.id == trackId)) {
-                        final lower = subName.toLowerCase();
-                        final code = (lower.contains('ar') ||
-                                lower.contains('عرب'))
-                            ? 'ar'
-                            : (lower.contains('en') ? 'en' : 'ar');
-                        _externalSubtitleTracks.add(_ExternalSubtitleTrack(
-                          id: trackId,
-                          label: subName,
-                          langCode: code,
-                          url: subUrl,
-                          headers: Map<String, String>.from(headers),
-                        ));
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (_) {}
-
-    // 2. If Movie or Series, also search online subtitle providers automatically
-    if (!_isLiveStream) {
-      final baseSearchTitle = _cleanMediaTitleForSubtitleSearch(
-        (remoteTitle != null && remoteTitle.isNotEmpty)
-            ? remoteTitle
-            : _stream.name,
-      );
-      await _searchAndLoadOnlineSubtitles(
-        baseSearchTitle,
-        knownImdbId: remoteImdbId,
-        autoSelectPreferred: true,
-      );
-    }
-  }
-
-  Future<void> _prepareXtreamSubtitles(
-    BetterPlayerController? controller,
-    Map<String, String> headers,
-  ) async {
-    await _fetchXtreamVodRemoteSubtitles(controller, headers);
-    if (!mounted) return;
-    if (controller != null) {
-      for (var attempt = 0; attempt < 6 && mounted; attempt++) {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
-        final sources = controller.betterPlayerSubtitlesSourceList;
-        final trackIndexes = <int>[];
-        for (var i = 0; i < sources.length; i++) {
-          if (sources[i].type != BetterPlayerSubtitlesSourceType.none) {
-            trackIndexes.add(i);
-          }
-        }
-        if (trackIndexes.isEmpty) continue;
-
-        for (final index in trackIndexes) {
-          final source = sources[index];
-          sources[index] = BetterPlayerSubtitlesSource(
-            type: source.type,
-            name: source.name,
-            urls: source.urls,
-            content: source.content,
-            selectedByDefault: source.selectedByDefault,
-            headers: Map<String, String>.from(headers),
-            asmsIsSegmented: source.asmsIsSegmented,
-            asmsSegmentsTime: source.asmsSegmentsTime,
-            asmsSegments: source.asmsSegments,
-          );
-        }
-        break;
-      }
-    }
-    await _applyPreferredSubtitleLanguage(retries: 1);
-  }
-
-  Future<void> _applyPreferredSubtitleLanguage({int retries = 3}) async {
-    if (_subLangVal == "إيقاف") return;
-    try {
-      String targetLang = _subLangVal.toLowerCase();
-      if (_subLangVal == "العربية" ||
-          targetLang == "arabic" ||
-          targetLang == "ar" ||
-          _subLangVal == "تلقائي")
-        targetLang = "ar";
-      else if (_subLangVal == "الإنجليزية" ||
-          targetLang == "english" ||
-          targetLang == "en")
-        targetLang = "en";
-      else if (_subLangVal == "الفرنسية" ||
-          targetLang == "french" ||
-          targetLang == "fr")
-        targetLang = "fr";
-      else if (_subLangVal == "الإسبانية" ||
-          targetLang == "spanish" ||
-          targetLang == "es")
-        targetLang = "es";
-      else if (_subLangVal == "التركية" ||
-          targetLang == "turkish" ||
-          targetLang == "tr")
-        targetLang = "tr";
-      else if (targetLang == "persian") targetLang = "fa";
-
-      // 1. Prefer real external/cached SRT tracks first
-      for (final extTrack in _externalSubtitleTracks) {
-        if (extTrack.langCode == targetLang ||
-            (targetLang == 'ar' && extTrack.label.contains('عرب'))) {
-          final ok = await _loadExternalSubtitleTrack(
-            extTrack,
-            saveAsPreferred: false,
-          );
-          if (ok) return;
-        }
-      }
-      if (_externalSubtitleTracks.isNotEmpty && _parsedSubtitleCues.isEmpty) {
-        final ok = await _loadExternalSubtitleTrack(
-          _externalSubtitleTracks.first,
-          saveAsPreferred: false,
-        );
-        if (ok) return;
-      }
-
-      // 2. Check BetterPlayer embedded/HLS subtitle tracks
-      if (_betterController != null) {
-        final tracks = _betterController!.betterPlayerSubtitlesSourceList;
-        BetterPlayerSubtitlesSource? matchedSource;
-        for (final track in tracks) {
-          if (track.type == BetterPlayerSubtitlesSourceType.none) continue;
-          final name = (track.name ?? "").toLowerCase();
-          if (name.contains(targetLang) ||
-              (targetLang == "ar" && name.contains("عرب"))) {
-            matchedSource = track;
-            break;
-          }
-        }
-        if (matchedSource != null) {
-          _selectedAiLang = "";
-          _aiSubtitleText = "";
-          await _betterController!.setupSubtitleSource(matchedSource);
-          if (mounted) setState(() {});
-          return;
-        }
-      }
-
-      if (retries > 0 && mounted) {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
-        await _applyPreferredSubtitleLanguage(retries: retries - 1);
-      }
-    } catch (e) {
-      debugPrint(
-          "Failed to apply preferred subtitle language: ${redactDiagnostic(e)}");
-    }
-  }
-
   void _disposeActiveController() {
+    _liveStartupWatchdogTimer?.cancel();
+    _liveStartupWatchdogTimer = null;
     final controller = _betterController;
     _betterController = null;
     final localCtrl = _localFallbackController;
@@ -1372,7 +1073,6 @@ class _PlayerScreenState extends State<PlayerScreen>
           _errorMessage = null;
           _totalDuration = dur;
         });
-        unawaited(_prepareXtreamSubtitles(null, _activePlaybackHeaders));
         _startSeekTracker();
       }
       return true;
@@ -1385,7 +1085,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _initializeController({bool isRetry = false, int? generation}) async {
     final loadGeneration = generation ?? _channelSwitchGuard.begin();
     int? savedPosition;
-    if (_stream.type != 'live') {
+    if (_stream.type != 'live' && _stream.type != 'stalker') {
       try {
         final prefs = await SharedPreferences.getInstance();
         savedPosition = prefs.getInt('vod_pos_${_stream.streamId}');
@@ -1393,7 +1093,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         debugPrint("Error loading saved position: ${redactDiagnostic(e)}");
       }
     }
-    await _loadSubSettings();
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     if (!isRetry) {
       _initialized = false;
@@ -1432,20 +1131,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         _stream.url.startsWith('file://');
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     String urlStr = _stream.url;
-    final cleanDownloadId =
-        _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
-    final existingDownload = DownloadManager.instance.findCompletedForStream(
-      streamId: cleanDownloadId,
-      url: _stream.url,
-      title: _stream.name,
-    );
-    if (existingDownload != null && existingDownload.filePath.isNotEmpty) {
-      final dlFile = File(existingDownload.filePath);
-      if (dlFile.existsSync() && dlFile.lengthSync() > 0) {
-        urlStr = existingDownload.filePath;
-        isOfflineMedia = true;
-      }
-    }
     if (!isOfflineMedia) {
       final candidates = _playbackCandidates(_stream.url);
       final candidateIndex = isRetry && candidates.isNotEmpty
@@ -1647,11 +1332,6 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     _disposeActiveController();
-    if (!isRetry) {
-      _parsedSubtitleCues = [];
-      _externalSubtitleTracks = [];
-      _selectedExternalSubId = '';
-    }
 
     final bool isLocalFile = _stream.type == 'file' ||
         finalUrl.startsWith('/') ||
@@ -1665,43 +1345,20 @@ class _PlayerScreenState extends State<PlayerScreen>
             _initialized = false;
             _isBuffering = false;
             _hasError = true;
-            _errorMessage = 'ملف الفيديو غير مكتمل أو غير موجود على الجهاز، يرجى إعادة تنزيله.';
+            _errorMessage = 'ملف الفيديو غير مكتمل أو غير موجود على الجهاز.';
           });
         }
         return;
       }
-      final detectedExt =
-          DownloadManager.detectContainerExtensionFromBytes(localFile);
-      if (detectedExt != null &&
-          !cleanLocalPath.toLowerCase().endsWith('.$detectedExt')) {
-        final dotIdx = cleanLocalPath.lastIndexOf('.');
-        final renamedPath = dotIdx > 0
-            ? '${cleanLocalPath.substring(0, dotIdx)}.$detectedExt'
-            : '$cleanLocalPath.$detectedExt';
-        try {
-          localFile = localFile.renameSync(renamedPath);
-          cleanLocalPath = localFile.path;
-        } catch (_) {}
-      }
       _activePlaybackUrl = cleanLocalPath;
       _activePlaybackHeaders = const {};
     } else {
-      // Resolve HTTPS <-> HTTP cross-protocol 302 redirects for VOD/Series before ExoPlayer
-      if (finalUrl.contains('/movie/') ||
-          finalUrl.contains('/series/') ||
-          finalUrl.contains('x.gamerdz1517.com')) {
-        finalUrl = await DownloadManager.resolveCrossProtocolRedirectForPlayback(
-          finalUrl,
-          headers,
-        );
-        if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
-      }
       _activePlaybackUrl = finalUrl;
       _activePlaybackHeaders = Map<String, String>.from(headers);
     }
 
     BetterPlayerVideoFormat? format;
-    if (isLocalFile || finalUrl.contains('/live/')) {
+    if (isLocalFile) {
       format = null;
     } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
@@ -1713,30 +1370,30 @@ class _PlayerScreenState extends State<PlayerScreen>
     bool isAsms = !isLocalFile &&
         (format == BetterPlayerVideoFormat.hls ||
             format == BetterPlayerVideoFormat.dash);
+    final bool isLiveChan =
+        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       isLocalFile
           ? BetterPlayerDataSourceType.file
           : BetterPlayerDataSourceType.network,
       isLocalFile ? cleanLocalPath : finalUrl,
-      liveStream:
-          !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker'),
+      liveStream: isLiveChan,
       videoFormat: format,
       videoExtension: isLocalFile
           ? null
           : ((isProgressiveTsUrl(finalUrl) ||
-                  ((_stream.type == 'live' || _stream.type == 'stalker') &&
-                      isLikelyLiveTransportStreamUrl(finalUrl)))
+                  (isLiveChan && isLikelyLiveTransportStreamUrl(finalUrl)))
               ? 'ts'
               : null),
       headers: isLocalFile ? null : headers,
-      useAsmsTracks: isAsms,
-      useAsmsSubtitles: !isLocalFile,
-      useAsmsAudioTracks: !isLocalFile,
-      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 1200,
-        maxBufferMs: 8000,
-        bufferForPlaybackMs: 300,
-        bufferForPlaybackAfterRebufferMs: 800,
+      useAsmsTracks: isAsms && !isLiveChan,
+      useAsmsSubtitles: false,
+      useAsmsAudioTracks: !isLocalFile && !isLiveChan,
+      bufferingConfiguration: BetterPlayerBufferingConfiguration(
+        minBufferMs: isLiveChan ? 350 : 1200,
+        maxBufferMs: isLiveChan ? 5000 : 10000,
+        bufferForPlaybackMs: isLiveChan ? 100 : 300,
+        bufferForPlaybackAfterRebufferMs: isLiveChan ? 250 : 800,
       ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
@@ -1752,13 +1409,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         autoPlay: true,
         looping: false,
         fit: _currentBoxFit,
-        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
-          fontSize: 0.0,
-          fontColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          outlineColor: Colors.transparent,
-          outlineSize: 0.0,
-        ),
         controlsConfiguration: const BetterPlayerControlsConfiguration(
           showControls: false,
           showControlsOnInitialize: false,
@@ -1771,8 +1421,29 @@ class _PlayerScreenState extends State<PlayerScreen>
       betterPlayerDataSource: dataSource,
     );
 
+    if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+      setState(() {
+        _betterController = newBetterController;
+      });
+    }
+
+    // Watchdog for Live TV: if a channel hangs > 2.8s on initial format (.m3u8/.ts), switch candidate immediately
+    _liveStartupWatchdogTimer?.cancel();
+    if (isLiveChan && _retryCount < 3) {
+      _liveStartupWatchdogTimer = Timer(const Duration(milliseconds: 2800), () {
+        if (mounted &&
+            _channelSwitchGuard.isCurrent(loadGeneration) &&
+            !_initialized &&
+            !_hasError) {
+          _retryCount += 1;
+          _initializeController(isRetry: true, generation: loadGeneration);
+        }
+      });
+    }
+
     newBetterController.addEventsListener((BetterPlayerEvent event) {
       if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
+        _liveStartupWatchdogTimer?.cancel();
         if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) {
           try {
             newBetterController.setVolume(0.0);
@@ -1793,6 +1464,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             }
             _betterController = newBetterController;
             _initialized = true;
+            _isBuffering = false;
             _retryCount = 0;
             if (_betterController!.videoPlayerController != null) {
               _totalDuration =
@@ -1824,7 +1496,6 @@ class _PlayerScreenState extends State<PlayerScreen>
               }
             }
             _betterController!.play();
-            unawaited(_prepareXtreamSubtitles(newBetterController, headers));
             _startSeekTracker();
           });
         }
@@ -1840,6 +1511,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
       } else if (event.betterPlayerEventType ==
           BetterPlayerEventType.exception) {
+        _liveStartupWatchdogTimer?.cancel();
         final errorMessage = event.parameters?["message"] ?? "Playback failure";
         debugPrint("BetterPlayer exception: ${redactDiagnostic(errorMessage)}");
         if (isLocalFile) {
@@ -1909,107 +1581,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
   }
 
-  Widget _buildSubtitleOverlay() {
-    if (_betterController == null && _localFallbackController == null) {
-      return const SizedBox.shrink();
-    }
-    String subtitleText = '';
-    final rawPos = _usingLocalFallback
-        ? (_localFallbackController?.value.position ?? _currentPosition)
-        : (_betterController?.videoPlayerController?.value.position ??
-            _currentPosition);
-    final adjustedPos = rawPos + Duration(milliseconds: _subtitleDelayMs);
-
-    // 1. Check our parsed SRT/WebVTT subtitle cues first
-    if (_parsedSubtitleCues.isNotEmpty) {
-      for (final cue in _parsedSubtitleCues) {
-        if (cue.start <= adjustedPos && cue.end >= adjustedPos) {
-          subtitleText = cue.text;
-          break;
-        }
-      }
-    }
-
-    // 2. Fallback to BetterPlayer's internal HLS/ASMS subtitle lines
-    if (subtitleText.trim().isEmpty && _betterController != null) {
-      final lines = _betterController!.subtitlesLines;
-      if (lines.isNotEmpty) {
-        dynamic activeSubtitle;
-        for (final sub in lines) {
-          if (sub.start != null &&
-              sub.end != null &&
-              sub.start! <= adjustedPos &&
-              sub.end! >= adjustedPos) {
-            activeSubtitle = sub;
-            break;
-          }
-        }
-        if (activeSubtitle != null && activeSubtitle.texts is List) {
-          final rawTexts = activeSubtitle.texts as List;
-          if (rawTexts.isNotEmpty) {
-            subtitleText = rawTexts.map((e) => e.toString()).join('\n');
-          }
-        }
-      }
-    }
-
-    // 3. Fallback to Live/Instant subtitle text
-    if (subtitleText.trim().isEmpty && _aiSubtitleText.trim().isNotEmpty) {
-      subtitleText = _aiSubtitleText.trim();
-    }
-    if (subtitleText.trim().isEmpty) return const SizedBox.shrink();
-
-    return IgnorePointer(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: _showHUD ? 85.0 : 35.0,
-            left: 24.0,
-            right: 24.0,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: _subBgColorVal,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Stack(
-              children: [
-                Text(
-                  subtitleText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: _subSizeVal,
-                    fontFamily: _subFontVal,
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 2.5
-                      ..color = Colors.black,
-                  ),
-                ),
-                Text(
-                  subtitleText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: _subSizeVal,
-                    fontFamily: _subFontVal,
-                    color: _subColorVal,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _startSeekTracker() {
     _positionTimer?.cancel();
-    if (_stream.type == 'live' && _parsedSubtitleCues.isEmpty) return;
-    _positionTimer = Timer.periodic(const Duration(milliseconds: 250), (timer) {
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 220), (timer) {
       if (!mounted) return;
       if (_usingLocalFallback && _localFallbackController != null) {
         final val = _localFallbackController!.value;
@@ -2028,98 +1602,6 @@ class _PlayerScreenState extends State<PlayerScreen>
           value.initialized &&
           value.position != _currentPosition) {
         setState(() => _currentPosition = value.position);
-      }
-    });
-  }
-
-  @override
-  void _startAiSubtitleTimer() {
-    _aiSubtitleTimer?.cancel();
-    _aiSubtitleTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_selectedAiLang.isEmpty) {
-        if (_aiSubtitleText.isNotEmpty) {
-          setState(() {
-            _aiSubtitleText = "";
-          });
-        }
-        return;
-      }
-
-      double currentSecs = 0.0;
-      if (_betterController != null &&
-          _betterController!.videoPlayerController != null) {
-        currentSecs = _betterController!
-            .videoPlayerController!.value.position.inSeconds
-            .toDouble();
-      }
-
-      final int secs = currentSecs.toInt() % 120;
-
-      // VOD mapping
-      final Map<int, Map<String, String>> vodSubs = {
-        0: {
-          'ar': 'مرحباً بكم في هذا البث',
-          'en': 'Welcome to this stream',
-          'fr': 'Bienvenue sur ce flux'
-        },
-        10: {
-          'ar': 'نحن نتابع الأحداث معاً',
-          'en': 'We are following the events together',
-          'fr': 'Nous suivons les événements ensemble'
-        },
-        30: {
-          'ar': 'ابقوا معنا للمزيد',
-          'en': 'Stay tuned for more',
-          'fr': 'Restez avec nous pour plus'
-        },
-        60: {
-          'ar': 'تغطية مستمرة على مدار الساعة',
-          'en': 'Continuous coverage around the clock',
-          'fr': 'Couverture continue 24h/24'
-        },
-      };
-
-      // Live mapping
-      final Map<int, Map<String, String>> liveSubs = {
-        0: {
-          'ar': 'بث مباشر - تغطية حصرية',
-          'en': 'Live Stream - Exclusive Coverage',
-          'fr': 'En direct - Couverture exclusive'
-        },
-        15: {
-          'ar': 'نقل حي للأحداث',
-          'en': 'Live broadcast of events',
-          'fr': 'Diffusion en direct des événements'
-        },
-        45: {
-          'ar': 'تغطية عاجلة',
-          'en': 'Breaking coverage',
-          'fr': 'Couverture urgente'
-        },
-      };
-
-      bool isVod =
-          _betterController?.videoPlayerController?.value.duration != null &&
-              _betterController!.videoPlayerController!.value.duration! >
-                  Duration.zero;
-
-      final mapToUse = isVod ? vodSubs : liveSubs;
-      int activeKey = 0;
-
-      final keys = mapToUse.keys.toList()..sort();
-      for (int k in keys) {
-        if (secs >= k) {
-          activeKey = k;
-        } else {
-          break;
-        }
-      }
-
-      String text = mapToUse[activeKey]?[_selectedAiLang] ?? '';
-      if (_aiSubtitleText != text) {
-        setState(() {
-          _aiSubtitleText = text;
-        });
       }
     });
   }
@@ -2153,9 +1635,6 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
-    final loadingCtrl = _loadingVideoController;
-    _loadingVideoController = null;
-    loadingCtrl?.dispose();
     final offlineCtrl = _offlineVideoController;
     _offlineVideoController = null;
     offlineCtrl?.dispose();
@@ -2169,8 +1648,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     _gyroSubscription?.cancel();
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
-    _aiSubtitleTimer?.cancel();
     _reconnectTimer?.cancel();
+    _liveStartupWatchdogTimer?.cancel();
+    _recordingTimer?.cancel();
+    try {
+      _activeRecordingSink?.close();
+    } catch (_) {}
+    try {
+      _activeRecordingClient?.close(force: true);
+    } catch (_) {}
     _zoomIndicatorTimer?.cancel();
     _lockToggleTimer?.cancel();
     _sleepTimer?.cancel();
@@ -2411,960 +1897,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  void _showSubtitlesSelector() {
-    if (!_initialized) return;
-    int activeSubTab = 0;
-    final TextEditingController searchSubCtrl = TextEditingController(
-      text: _cleanMediaTitleForSubtitleSearch(_stream.name),
-    );
-
-    showDialog(
-        context: context,
-        builder: (BuildContext bContext) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: StatefulBuilder(builder: (context, setModalState) {
-              final List<BetterPlayerSubtitlesSource> rawSubtitles =
-                  _betterController?.betterPlayerSubtitlesSourceList ?? [];
-              final selectedSub =
-                  _betterController?.betterPlayerSubtitlesSource;
-
-              List<BetterPlayerSubtitlesSource> validSubtitles = rawSubtitles
-                  .where((s) => s.type != BetterPlayerSubtitlesSourceType.none)
-                  .toList();
-              validSubtitles.sort((a, b) {
-                final aName = (a.name ?? "").toLowerCase();
-                final bName = (b.name ?? "").toLowerCase();
-                bool aIsAr = aName.contains("ar") || aName.contains("عرب");
-                bool bIsAr = bName.contains("ar") || bName.contains("عرب");
-                if (aIsAr && !bIsAr) return -1;
-                if (!aIsAr && bIsAr) return 1;
-                return aName.compareTo(bName);
-              });
-
-              Future<void> saveSubPref(String key, String val) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString(key, val);
-                if (_selectedAiLang.isEmpty &&
-                    _selectedExternalSubId.isEmpty &&
-                    (_betterController?.betterPlayerSubtitlesSource == null ||
-                        _betterController?.betterPlayerSubtitlesSource?.type ==
-                            BetterPlayerSubtitlesSourceType.none)) {
-                  _selectedAiLang = 'ar';
-                  _aiSubtitleText = 'معاينة حية للترجمة على شاشة الفيديو';
-                  _startAiSubtitleTimer();
-                }
-                _applySubtitlesConfiguration();
-              }
-
-              final bool isSubOff = _selectedAiLang.isEmpty &&
-                  _selectedExternalSubId.isEmpty &&
-                  _parsedSubtitleCues.isEmpty &&
-                  (selectedSub == null ||
-                      selectedSub.type == BetterPlayerSubtitlesSourceType.none);
-
-              return Directionality(
-                textDirection: TextDirection.rtl,
-                child: Container(
-                  width: 540,
-                  constraints: const BoxConstraints(maxHeight: 580),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF13131A),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF2E2E3E)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.subtitles_rounded,
-                                color: Color(0xFFA855F7), size: 24),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text("الترجمة الاحترافية وإعدادات الخط",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                            if (_isSearchingOnlineSubs)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFFA855F7),
-                                  ),
-                                ),
-                              ),
-                            IconButton(
-                              icon: const Icon(Icons.close,
-                                  color: Colors.white54),
-                              onPressed: () => Navigator.pop(bContext),
-                            )
-                          ],
-                        ),
-                      ),
-                      // Tabs: Track vs Font
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E2A),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setModalState(() => activeSubTab = 0),
-                                  child: Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 9),
-                                    decoration: BoxDecoration(
-                                      color: activeSubTab == 0
-                                          ? const Color(0xFFA855F7)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      "مسارات الترجمة (${_externalSubtitleTracks.length + validSubtitles.length})",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: activeSubTab == 0
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setModalState(() => activeSubTab = 1),
-                                  child: Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 9),
-                                    decoration: BoxDecoration(
-                                      color: activeSubTab == 1
-                                          ? const Color(0xFFA855F7)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      "الخط والمزامنة",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: activeSubTab == 1
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Divider(color: Colors.white12, height: 1),
-                      // Tab Content
-                      Expanded(
-                        child: activeSubTab == 0
-                            ? ListView(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                children: [
-                                  // Online Subtitle Search Box
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 6),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: searchSubCtrl,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13),
-                                            decoration: InputDecoration(
-                                              hintText:
-                                                  "ابحث باسم الفيلم أو المسلسل لجلب الترجمة...",
-                                              hintStyle: const TextStyle(
-                                                  color: Colors.white38,
-                                                  fontSize: 12),
-                                              filled: true,
-                                              fillColor:
-                                                  const Color(0xFF1E1E2A),
-                                              isDense: true,
-                                              contentPadding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 10),
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                borderSide: const BorderSide(
-                                                    color: Colors.white24),
-                                              ),
-                                              enabledBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                borderSide: const BorderSide(
-                                                    color: Colors.white12),
-                                              ),
-                                            ),
-                                            onSubmitted: (q) async {
-                                              if (q.trim().isEmpty) return;
-                                              setModalState(() {});
-                                              await _searchAndLoadOnlineSubtitles(
-                                                q.trim(),
-                                                autoSelectPreferred: true,
-                                              );
-                                              if (mounted) setState(() {});
-                                              setModalState(() {});
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                const Color(0xFFA855F7),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 10),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                          icon: _isSearchingOnlineSubs
-                                              ? const SizedBox(
-                                                  width: 14,
-                                                  height: 14,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : const Icon(Icons.search_rounded,
-                                                  size: 18),
-                                          label: const Text("جلب",
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold)),
-                                          onPressed: _isSearchingOnlineSubs
-                                              ? null
-                                              : () async {
-                                                  final q =
-                                                      searchSubCtrl.text.trim();
-                                                  setModalState(() {});
-                                                  await _searchAndLoadOnlineSubtitles(
-                                                    q.isNotEmpty
-                                                        ? q
-                                                        : _cleanMediaTitleForSubtitleSearch(
-                                                            _stream.name),
-                                                    autoSelectPreferred: true,
-                                                  );
-                                                  if (mounted) setState(() {});
-                                                  setModalState(() {});
-                                                },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  ListTile(
-                                    leading: Icon(
-                                      Icons.subtitles_off_rounded,
-                                      color: isSubOff
-                                          ? const Color(0xFFA855F7)
-                                          : Colors.white54,
-                                    ),
-                                    title: const Text("إيقاف الترجمة",
-                                        style: TextStyle(color: Colors.white)),
-                                    trailing: isSubOff
-                                         ? const Icon(Icons.check_circle,
-                                             color: Color(0xFFA855F7))
-                                         : null,
-                                    onTap: () async {
-                                      _selectedAiLang = "";
-                                      _aiSubtitleText = "";
-                                      _subLangVal = "إيقاف";
-                                      _selectedExternalSubId = "";
-                                      _parsedSubtitleCues = [];
-                                      _aiSubtitleTimer?.cancel();
-                                      try {
-                                        _betterController?.setupSubtitleSource(
-                                            BetterPlayerSubtitlesSource(
-                                                type:
-                                                    BetterPlayerSubtitlesSourceType
-                                                        .none));
-                                      } catch (_) {}
-                                      final prefs =
-                                          await SharedPreferences.getInstance();
-                                      await prefs.setString(
-                                          'sub_lang', 'إيقاف');
-                                      if (mounted) setState(() {});
-                                      setModalState(() {});
-                                      Navigator.pop(bContext);
-                                    },
-                                  ),
-                                  if (_externalSubtitleTracks.isNotEmpty) ...[
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 6),
-                                      child: Text(
-                                          "ملفات الترجمة المتاحة (متزامنة بالكامل SRT/VTT)",
-                                          style: TextStyle(
-                                              color: Color(0xFF38BDF8),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    ..._externalSubtitleTracks.map((track) {
-                                      final isSelected =
-                                          _selectedExternalSubId == track.id;
-                                      final srcName = track.id
-                                              .startsWith('xtream_')
-                                          ? 'السيرفر'
-                                          : (track.id.startsWith('cached_')
-                                              ? 'محفوظ أوفلاين'
-                                              : 'OpenSubtitles / Wyzie');
-                                      return ListTile(
-                                        dense: true,
-                                        leading: Icon(
-                                          Icons.closed_caption_rounded,
-                                          color: isSelected
-                                              ? const Color(0xFF22C55E)
-                                              : const Color(0xFFA855F7),
-                                        ),
-                                        title: Text(
-                                          track.label,
-                                          style: TextStyle(
-                                            color: isSelected
-                                                ? const Color(0xFF22C55E)
-                                                : Colors.white,
-                                            fontWeight: isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          "المصدر: $srcName • اللغة: ${track.langCode.toUpperCase()}",
-                                          style: const TextStyle(
-                                              color: Colors.white54,
-                                              fontSize: 11),
-                                        ),
-                                        trailing: isSelected
-                                            ? const Icon(Icons.check_circle,
-                                                color: Color(0xFF22C55E))
-                                            : null,
-                                        onTap: () async {
-                                          await _loadExternalSubtitleTrack(
-                                              track);
-                                          final prefs = await SharedPreferences
-                                              .getInstance();
-                                          await prefs.setString(
-                                              'sub_lang',
-                                              track.langCode == 'ar'
-                                                  ? 'العربية'
-                                                  : (track.langCode == 'en'
-                                                      ? 'الإنجليزية'
-                                                      : 'الفرنسية'));
-                                          if (mounted) setState(() {});
-                                          setModalState(() {});
-                                          if (bContext.mounted) {
-                                            Navigator.pop(bContext);
-                                          }
-                                        },
-                                      );
-                                    }),
-                                  ],
-                                  if (validSubtitles.isNotEmpty) ...[
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      child: Text("الترجمات المدمجة في البث",
-                                          style: TextStyle(
-                                              color: Colors.white54,
-                                              fontSize: 12)),
-                                    ),
-                                    ...validSubtitles.map((sub) {
-                                      final isSelected =
-                                          _selectedAiLang.isEmpty &&
-                                              _selectedExternalSubId.isEmpty &&
-                                              selectedSub == sub;
-                                      final name = sub.name ?? "ترجمة مدمجة";
-                                      return ListTile(
-                                        dense: true,
-                                        leading: const Icon(
-                                            Icons.subtitles_outlined,
-                                            color: Colors.white70),
-                                        title: Text(name,
-                                            style: TextStyle(
-                                                color: isSelected
-                                                    ? const Color(0xFFA855F7)
-                                                    : Colors.white)),
-                                        trailing: isSelected
-                                            ? const Icon(Icons.check_circle,
-                                                color: Color(0xFFA855F7))
-                                            : null,
-                                        onTap: () async {
-                                          _selectedAiLang = "";
-                                          _selectedExternalSubId = "";
-                                          _parsedSubtitleCues = [];
-                                          _aiSubtitleText = "";
-                                          try {
-                                            _betterController
-                                                ?.setupSubtitleSource(sub);
-                                          } catch (_) {}
-                                          // If this embedded subtitle also has URLs, parse it into our custom overlay too!
-                                          if (sub.urls != null &&
-                                              sub.urls!.isNotEmpty &&
-                                              sub.urls!.first != null) {
-                                            await _loadExternalSubtitleTrack(
-                                              _ExternalSubtitleTrack(
-                                                id: 'embedded_${sub.name}',
-                                                label: name,
-                                                langCode: name
-                                                            .toLowerCase()
-                                                            .contains('ar') ||
-                                                        name.contains('عرب')
-                                                    ? 'ar'
-                                                    : 'en',
-                                                url: sub.urls!.first!,
-                                              ),
-                                            );
-                                          }
-                                          if (mounted) setState(() {});
-                                          setModalState(() {});
-                                          if (bContext.mounted) {
-                                            Navigator.pop(bContext);
-                                          }
-                                        },
-                                      );
-                                    }).toList(),
-                                  ],
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    child: Text(
-                                        "الترجمة التلقائية والبحث الذكي حسب اللغة",
-                                        style: TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12)),
-                                  ),
-                                  ...[
-                                    {
-                                      'code': 'ar',
-                                      'label': 'العربية (تلقائي + فوري)',
-                                      'sample': 'تم تفعيل الترجمة العربية'
-                                    },
-                                    {
-                                      'code': 'en',
-                                      'label': 'English (Auto Subtitles)',
-                                      'sample': 'English Subtitles Enabled'
-                                    },
-                                    {
-                                      'code': 'fr',
-                                      'label': 'Français (Sous-titres Auto)',
-                                      'sample': 'Sous-titres Français Activés'
-                                    },
-                                  ].map((item) {
-                                    final code = item['code']!;
-                                    final isSelected = _selectedAiLang == code;
-                                    return ListTile(
-                                      dense: true,
-                                      leading: Icon(
-                                        Icons.auto_awesome_rounded,
-                                        color: isSelected
-                                            ? const Color(0xFFA855F7)
-                                            : Colors.amberAccent,
-                                      ),
-                                      title: Text(
-                                        item['label']!,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? const Color(0xFFA855F7)
-                                              : Colors.white,
-                                        ),
-                                      ),
-                                      trailing: isSelected
-                                          ? const Icon(Icons.check_circle,
-                                              color: Color(0xFFA855F7))
-                                          : null,
-                                      onTap: () async {
-                                        final prefs = await SharedPreferences
-                                            .getInstance();
-                                        final langPref = code == 'ar'
-                                            ? 'العربية'
-                                            : (code == 'en'
-                                                ? 'الإنجليزية'
-                                                : 'الفرنسية');
-                                        await prefs.setString(
-                                            'sub_lang', langPref);
-                                        _subLangVal = langPref;
-                                        setState(() {
-                                          _selectedAiLang = code;
-                                        });
-                                        // Check if we already have an external track for this language
-                                        final matching = _externalSubtitleTracks
-                                            .where((t) => t.langCode == code)
-                                            .toList();
-                                        if (matching.isNotEmpty) {
-                                          await _loadExternalSubtitleTrack(
-                                              matching.first);
-                                        } else {
-                                          _startAiSubtitleTimer();
-                                          unawaited(
-                                            _searchAndLoadOnlineSubtitles(
-                                              _cleanMediaTitleForSubtitleSearch(
-                                                  _stream.name),
-                                              autoSelectPreferred: true,
-                                            ),
-                                          );
-                                        }
-                                        setModalState(() {});
-                                        if (bContext.mounted) {
-                                          Navigator.pop(bContext);
-                                        }
-                                      },
-                                    );
-                                  }),
-                                ],
-                              )
-                            : ListView(
-                                padding: const EdgeInsets.all(16),
-                                children: [
-                                  // Subtitle Sync Offset Control
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    margin: const EdgeInsets.only(bottom: 14),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1E1E2A),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.white12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.timer_outlined,
-                                            color: Color(0xFF38BDF8), size: 18),
-                                        const SizedBox(width: 6),
-                                        const Text("مزامنة التوقيت:",
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold)),
-                                        const Spacer(),
-                                        IconButton(
-                                          visualDensity: VisualDensity.compact,
-                                          icon: const Icon(
-                                              Icons.remove_circle_outline,
-                                              color: Colors.white70,
-                                              size: 20),
-                                          tooltip: "تأخير 0.5 ثانية",
-                                          onPressed: () {
-                                            setState(() =>
-                                                _subtitleDelayMs -= 500);
-                                            setModalState(() {});
-                                          },
-                                        ),
-                                        Text(
-                                          "${(_subtitleDelayMs / 1000.0).toStringAsFixed(1)} ث",
-                                          style: const TextStyle(
-                                              color: Color(0xFF38BDF8),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        IconButton(
-                                          visualDensity: VisualDensity.compact,
-                                          icon: const Icon(
-                                              Icons.add_circle_outline,
-                                              color: Colors.white70,
-                                              size: 20),
-                                          tooltip: "تقديم 0.5 ثانية",
-                                          onPressed: () {
-                                            setState(() =>
-                                                _subtitleDelayMs += 500);
-                                            setModalState(() {});
-                                          },
-                                        ),
-                                        if (_subtitleDelayMs != 0)
-                                          TextButton(
-                                            onPressed: () {
-                                              setState(
-                                                  () => _subtitleDelayMs = 0);
-                                              setModalState(() {});
-                                            },
-                                            child: const Text("ضبط",
-                                                style: TextStyle(
-                                                    color: Colors.amberAccent,
-                                                    fontSize: 11)),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Live Preview Box
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: _subBgColorVal == Colors.transparent
-                                          ? Colors.black54
-                                          : _subBgColorVal,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                          color: Colors.white24, width: 0.8),
-                                    ),
-                                    child: Text(
-                                      "هذا نموذج لمعاينة خط ولون الترجمة",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: _subColorVal,
-                                        fontSize: _subSizeVal,
-                                        fontFamily: _subFontVal,
-                                        fontWeight: FontWeight.bold,
-                                        shadows: const [
-                                          Shadow(
-                                            color: Colors.black,
-                                            blurRadius: 3,
-                                            offset: Offset(1, 1),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Font Size Header + Stepper
-                                  Row(
-                                    children: [
-                                      const Text("حجم الخط:",
-                                          style: TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold)),
-                                      const Spacer(),
-                                      IconButton(
-                                        icon: const Icon(Icons.remove_circle_outline,
-                                            color: Colors.white70, size: 22),
-                                        onPressed: () {
-                                          if (_subSizeVal > 10.0) {
-                                            setModalState(() => _subSizeVal -= 2);
-                                            saveSubPref('sub_size', '${_subSizeVal.toInt()}');
-                                          }
-                                        },
-                                      ),
-                                      Text(
-                                        "${_subSizeVal.toInt()}",
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.add_circle_outline,
-                                            color: Colors.white70, size: 22),
-                                        onPressed: () {
-                                          if (_subSizeVal < 36.0) {
-                                            setModalState(() => _subSizeVal += 2);
-                                            saveSubPref('sub_size', '${_subSizeVal.toInt()}');
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Size quick preset buttons
-                                  Row(
-                                    children: [
-                                      _buildSubBtn(
-                                        label: "صغير",
-                                        selected: _subSizeVal <= 13.0,
-                                        onTap: () {
-                                          setModalState(() => _subSizeVal = 12.0);
-                                          saveSubPref('sub_size', 'صغير');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "متوسط",
-                                        selected: _subSizeVal > 13.0 && _subSizeVal <= 18.0,
-                                        onTap: () {
-                                          setModalState(() => _subSizeVal = 16.0);
-                                          saveSubPref('sub_size', 'متوسط');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "كبير",
-                                        selected: _subSizeVal > 18.0 && _subSizeVal <= 24.0,
-                                        onTap: () {
-                                          setModalState(() => _subSizeVal = 22.0);
-                                          saveSubPref('sub_size', 'كبير');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "ضخم",
-                                        selected: _subSizeVal > 24.0,
-                                        onTap: () {
-                                          setModalState(() => _subSizeVal = 28.0);
-                                          saveSubPref('sub_size', 'ضخم');
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Font Family
-                                  const Text("نوع الخط:",
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      _buildSubBtn(
-                                        label: "Cairo",
-                                        selected: _subFontVal == 'Cairo',
-                                        onTap: () {
-                                          setModalState(() => _subFontVal = 'Cairo');
-                                          saveSubPref('sub_font', 'Cairo');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "Arial",
-                                        selected: _subFontVal == 'Arial',
-                                        onTap: () {
-                                          setModalState(() => _subFontVal = 'Arial');
-                                          saveSubPref('sub_font', 'Arial');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "Tahoma",
-                                        selected: _subFontVal == 'Tahoma',
-                                        onTap: () {
-                                          setModalState(() => _subFontVal = 'Tahoma');
-                                          saveSubPref('sub_font', 'Tahoma');
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _buildSubBtn(
-                                        label: "Roboto",
-                                        selected: _subFontVal == 'Roboto',
-                                        onTap: () {
-                                          setModalState(() => _subFontVal = 'Roboto');
-                                          saveSubPref('sub_font', 'Roboto');
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Color Chips
-                                  const Text("لون النص:",
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      _buildColorChip(
-                                        color: Colors.white,
-                                        label: "أبيض",
-                                        selected: _subColorVal == Colors.white,
-                                        onTap: () {
-                                          setModalState(() => _subColorVal = Colors.white);
-                                          saveSubPref('sub_color', 'أبيض');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildColorChip(
-                                        color: Colors.yellow,
-                                        label: "أصفر",
-                                        selected: _subColorVal == Colors.yellow,
-                                        onTap: () {
-                                          setModalState(() => _subColorVal = Colors.yellow);
-                                          saveSubPref('sub_color', 'أصفر');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildColorChip(
-                                        color: Colors.cyanAccent,
-                                        label: "سماوي",
-                                        selected: _subColorVal == Colors.cyanAccent,
-                                        onTap: () {
-                                          setModalState(() => _subColorVal = Colors.cyanAccent);
-                                          saveSubPref('sub_color', 'أزرق سماوي');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildColorChip(
-                                        color: Colors.greenAccent,
-                                        label: "أخضر",
-                                        selected: _subColorVal == Colors.greenAccent,
-                                        onTap: () {
-                                          setModalState(() => _subColorVal = Colors.greenAccent);
-                                          saveSubPref('sub_color', 'أخضر');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildColorChip(
-                                        color: Colors.orange,
-                                        label: "برتقالي",
-                                        selected: _subColorVal == Colors.orange,
-                                        onTap: () {
-                                          setModalState(() => _subColorVal = Colors.orange);
-                                          saveSubPref('sub_color', 'برتقالي');
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Background
-                                  const Text("خلفية الترجمة:",
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      _buildSubBtn(
-                                        label: "شفاف",
-                                        selected: _subBgColorVal == Colors.transparent,
-                                        onTap: () {
-                                          setModalState(() => _subBgColorVal = Colors.transparent);
-                                          saveSubPref('sub_bg_color', 'شفاف');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildSubBtn(
-                                        label: "أسود خفيف",
-                                        selected: _subBgColorVal == Colors.black54,
-                                        onTap: () {
-                                          setModalState(() => _subBgColorVal = Colors.black54);
-                                          saveSubPref('sub_bg_color', 'رمادي داكن');
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildSubBtn(
-                                        label: "أسود داكن",
-                                        selected: _subBgColorVal == Colors.black87,
-                                        onTap: () {
-                                          setModalState(() => _subBgColorVal = Colors.black87);
-                                          saveSubPref('sub_bg_color', 'أسود');
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          );
-        });
-  }
-
-  Widget _buildSubBtn({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFFA855F7).withOpacity(0.3)
-                : Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? const Color(0xFFA855F7) : Colors.white24,
-              width: selected ? 1.5 : 1.0,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.white70,
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorChip({
-    required Color color,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? color : Colors.white24,
-              width: selected ? 2.0 : 1.0,
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected ? Colors.white : Colors.white60,
-                  fontSize: 10,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
   void _showSleepTimerSelector() {
     showDialog(
         context: context,
@@ -4061,74 +2593,84 @@ class _PlayerScreenState extends State<PlayerScreen>
                       });
                   });
                 },
-                child: Container(
-                  color: Colors.black,
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: Center(
-                    child: _hasError
-                        ? _buildErrorScreen(provider)
-                        : _isWebFallback && _webController != null
-                            ? SizedBox.expand(
-                                child:
-                                    WebViewWidget(controller: _webController!),
-                              )
-                            : _initialized &&
-                                    _usingLocalFallback &&
-                                    _localFallbackController != null &&
-                                    _localFallbackController!
-                                        .value.isInitialized
-                                ? SizedBox.expand(
-                                    child: FittedBox(
-                                      fit: _currentBoxFit,
-                                      child: SizedBox(
-                                        width: _localFallbackController!
-                                                    .value.size.width >
-                                                0
-                                            ? _localFallbackController!
-                                                .value.size.width
-                                            : 1280,
-                                        height: _localFallbackController!
-                                                    .value.size.height >
-                                                0
-                                            ? _localFallbackController!
-                                                .value.size.height
-                                            : 720,
-                                        child: VideoPlayer(
-                                            _localFallbackController!),
-                                      ),
-                                    ),
-                                  )
-                                : _initialized && _betterController != null
-                                    ? SizedBox.expand(
-                                        child: (_totalDuration.inSeconds == 0 ||
-                                                    _stream.type == 'live') &&
-                                                _liveImageFilter !=
-                                                    LiveImageFilter.none
-                                            ? ColorFiltered(
-                                                colorFilter: ColorFilter.matrix(
-                                                  liveImageFilterMatrix(
-                                                      _liveImageFilter),
-                                                ),
-                                                child: BetterPlayer(
-                                                    key: _betterPlayerKey,
-                                                    controller:
-                                                        _betterController!),
-                                              )
-                                            : BetterPlayer(
-                                                key: _betterPlayerKey,
-                                                controller: _betterController!),
-                                      )
-                                    : _buildPlayerLoading(),
+                child: RepaintBoundary(
+                  key: _videoCaptureBoundaryKey,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(
+                        color: Colors.black,
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Center(
+                          child: _hasError
+                              ? _buildErrorScreen(provider)
+                              : _isWebFallback && _webController != null
+                                  ? SizedBox.expand(
+                                      child: WebViewWidget(
+                                          controller: _webController!),
+                                    )
+                                  : _initialized &&
+                                          _usingLocalFallback &&
+                                          _localFallbackController != null &&
+                                          _localFallbackController!
+                                              .value.isInitialized
+                                      ? SizedBox.expand(
+                                          child: FittedBox(
+                                            fit: _currentBoxFit,
+                                            child: SizedBox(
+                                              width: _localFallbackController!
+                                                          .value.size.width >
+                                                      0
+                                                  ? _localFallbackController!
+                                                      .value.size.width
+                                                  : 1280,
+                                              height: _localFallbackController!
+                                                          .value.size.height >
+                                                      0
+                                                  ? _localFallbackController!
+                                                      .value.size.height
+                                                  : 720,
+                                              child: VideoPlayer(
+                                                  _localFallbackController!),
+                                            ),
+                                          ),
+                                        )
+                                      : _betterController != null
+                                          ? SizedBox.expand(
+                                              child: (_totalDuration
+                                                                  .inSeconds ==
+                                                              0 ||
+                                                          _stream.type ==
+                                                              'live') &&
+                                                      _liveImageFilter !=
+                                                          LiveImageFilter.none
+                                                  ? ColorFiltered(
+                                                      colorFilter:
+                                                          ColorFilter.matrix(
+                                                        liveImageFilterMatrix(
+                                                            _liveImageFilter),
+                                                      ),
+                                                      child: BetterPlayer(
+                                                          key: _betterPlayerKey,
+                                                          controller:
+                                                              _betterController!),
+                                                    )
+                                                  : BetterPlayer(
+                                                      key: _betterPlayerKey,
+                                                      controller:
+                                                          _betterController!),
+                                            )
+                                          : _buildPlayerLoading(),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              // Real-time Dynamic Subtitle Overlay
-              _buildSubtitleOverlay(),
-
               // Buffering indicator remains visible without blocking controls.
-              if (_isBuffering && !_hasError)
+              if ((_isBuffering || !_initialized) && !_hasError)
                 IgnorePointer(
                   child: _buildPlayerLoading(),
                 ),
@@ -4137,6 +2679,55 @@ class _PlayerScreenState extends State<PlayerScreen>
                 IgnorePointer(
                   child: Container(
                     color: Colors.black.withOpacity(_brightnessFactor),
+                  ),
+                ),
+
+              // 2.4 Active Video Recording Indicator Badge (always visible while recording)
+              if (_isRecordingClip)
+                Positioned(
+                  top: 38,
+                  left: 48,
+                  child: GestureDetector(
+                    onTap: _toggleVideoRecording,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.5)),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Colors.redAccent,
+                              blurRadius: 12,
+                              offset: Offset(0, 2))
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 9,
+                            height: 9,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'REC ${_formatRecSeconds(_recordingSeconds)} • إيقاف وحفظ',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'Cairo',
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
 
@@ -4344,20 +2935,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (_loadingVideoController != null &&
-            _loadingVideoController!.value.isInitialized)
-          SizedBox.expand(
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _loadingVideoController!.value.size.width,
-                height: _loadingVideoController!.value.size.height,
-                child: VideoPlayer(_loadingVideoController!),
-              ),
-            ),
-          )
-        else
-          Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+        Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
         Container(color: Colors.black.withOpacity(0.12)),
         const Center(
           child: CircularProgressIndicator(
@@ -4709,12 +3287,60 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                       // مجموعة الأزرار نفسها ضمن مسار أفقي ثابت يمنع التداخل.
                       SizedBox(
-                        width: 348,
+                        width: 320,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Screenshot Photo Capture Button
+                              IconButton(
+                                icon: Icon(
+                                  _isTakingScreenshot
+                                      ? Icons.hourglass_top_rounded
+                                      : Icons.camera_alt_rounded,
+                                  color: const Color(0xFF38BDF8),
+                                  size: 23,
+                                ),
+                                tooltip: "تصوير لقطة شاشة",
+                                onPressed: () {
+                                  _resetHideHUDTimer();
+                                  _captureScreenshot();
+                                },
+                              ),
+                              // Video Recording Capture Button
+                              IconButton(
+                                icon: Icon(
+                                  _isRecordingClip
+                                      ? Icons.stop_circle_rounded
+                                      : Icons.videocam_rounded,
+                                  color: _isRecordingClip
+                                      ? Colors.redAccent
+                                      : const Color(0xFFF43F5E),
+                                  size: 25,
+                                ),
+                                tooltip: _isRecordingClip
+                                    ? "إيقاف وحفظ تسجيل الفيديو (${_formatRecSeconds(_recordingSeconds)})"
+                                    : "تسجيل مقطع فيديو",
+                                onPressed: () {
+                                  _resetHideHUDTimer();
+                                  _toggleVideoRecording();
+                                },
+                              ),
+                              // Captured Media Gallery Button
+                              if (_capturedMediaFiles.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.photo_library_rounded,
+                                    color: Color(0xFF22C55E),
+                                    size: 22,
+                                  ),
+                                  tooltip: "معرض اللقطات والتسجيلات",
+                                  onPressed: () {
+                                    _resetHideHUDTimer();
+                                    _showCapturesGalleryModal();
+                                  },
+                                ),
                               IconButton(
                                 icon: Icon(
                                   provider.favorites.contains(_stream.streamId)
@@ -4757,8 +3383,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     }
                                   },
                                 ),
-
-                              // Sidebar Search & Category
 
                               // Sleep Timer button
                               IconButton(
@@ -4830,150 +3454,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Download Button (Works for Xtream VOD/movies/series)
-                              if (_stream.type != 'live' &&
-                                  _stream.type != 'file' &&
-                                  !_stream.url.startsWith('/'))
-                                ListenableBuilder(
-                                  listenable: DownloadManager.instance,
-                                  builder: (context, _) {
-                                    final streamId = _stream.streamId;
-                                    final isDone = DownloadManager.instance
-                                        .isDownloaded(streamId);
-                                    final isDling = DownloadManager.instance
-                                        .isDownloading(streamId);
-
-                                    return IconButton(
-                                      icon: Icon(
-                                        isDone
-                                            ? Icons.check_circle_rounded
-                                            : (isDling
-                                                ? Icons.downloading_rounded
-                                                : Icons.download_rounded),
-                                        color: isDone
-                                            ? const Color(0xFF22C55E)
-                                            : const Color(0xFFA855F7),
-                                        size: 24,
-                                      ),
-                                      tooltip: isDone
-                                          ? "تم تنزيل الفيديو مسبقاً"
-                                          : (isDling
-                                              ? "قيد التحميل الآن..."
-                                              : "تنزيل الفيديو للجهاز"),
-                                      onPressed: () {
-                                        _resetHideHUDTimer();
-                                        if (isDone) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                'هذا الفيديو تم تنزيله وموجود في التنزيلات للتشغيل أوفلاين',
-                                                style: TextStyle(
-                                                    fontFamily: 'Cairo'),
-                                              ),
-                                              action: SnackBarAction(
-                                                label: 'فتح التنزيلات',
-                                                textColor:
-                                                    const Color(0xFF38BDF8),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          const DownloadsScreen(),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        } else if (isDling) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                'جارِ تحميل هذا الفيديو بالفعل في قائمة التنزيلات',
-                                                style: TextStyle(
-                                                    fontFamily: 'Cairo'),
-                                              ),
-                                              action: SnackBarAction(
-                                                label: 'عرض التقدم',
-                                                textColor:
-                                                    const Color(0xFF38BDF8),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          const DownloadsScreen(),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          final url = _activePlaybackUrl
-                                                  .isNotEmpty
-                                              ? _activePlaybackUrl
-                                              : _stream.url;
-                                          DownloadManager.instance
-                                              .startDownload(
-                                            id: streamId,
-                                            title: _stream.name,
-                                            url: url,
-                                            poster: _stream.streamIcon,
-                                            category: _stream.categoryName,
-                                            type: _stream.type == 'series'
-                                                ? 'series'
-                                                : 'movie',
-                                            headers: _activePlaybackHeaders
-                                                    .isNotEmpty
-                                                ? _activePlaybackHeaders
-                                                : null,
-                                          );
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'بدأ تنزيل "${_stream.name}" (ملاحظة: يفضل إغلاق المشغل إذا كان اشتراكك يدعم اتصالاً واحداً لتسريع التنزيل)',
-                                                style: const TextStyle(
-                                                    fontFamily: 'Cairo',
-                                                    fontSize: 12),
-                                              ),
-                                              duration:
-                                                  const Duration(seconds: 4),
-                                              action: SnackBarAction(
-                                                label: 'التنزيلات',
-                                                textColor:
-                                                    const Color(0xFF38BDF8),
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          const DownloadsScreen(),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    );
-                                  },
-                                ),
-                              // Subtitles Menu button
-                              IconButton(
-                                icon: const Icon(Icons.subtitles_rounded,
-                                    color: Color(0xFFA855F7), size: 24),
-                                tooltip: "الترجمة",
-                                onPressed: () {
-                                  _showSubtitlesSelector();
-                                  _resetHideHUDTimer();
-                                },
                               ),
                               // Picture in Picture
                               IconButton(
@@ -5233,7 +3713,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                             ),
                             const SizedBox(width: 8),
                             const Text(
-                              "بث مباشر",
+                              "بث مباشر فائق السرعة",
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -5245,7 +3725,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                       const SizedBox(height: 12),
 
-                      // Bottom Actions (Volume, Aspect Ratio, Subtitles, Quality, Lock)
+                      // Bottom Actions (Volume, Photo, Video Rec, Subtitles, Aspect Ratio, Quality, Lock)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -5287,7 +3767,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 },
                               ),
                               SizedBox(
-                                width: 80,
+                                width: 70,
                                 child: SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
                                     activeTrackColor: const Color(0xFFA855F7),
@@ -5312,111 +3792,179 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ),
 
                           // Right side controls
-                          Row(
-                            children: [
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 8),
-                                ),
-                                icon: const Icon(Icons.high_quality_rounded,
-                                    size: 18, color: Color(0xFFA855F7)),
-                                label: const Text('جودة',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _showQualitySelector();
-                                  _resetHideHUDTimer();
-                                },
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.camera_alt_rounded,
+                                        size: 17, color: Color(0xFF38BDF8)),
+                                    label: const Text('صورة',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _resetHideHUDTimer();
+                                      _captureScreenshot();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: _isRecordingClip
+                                          ? const Color(0xFF991B1B)
+                                          : const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: Icon(
+                                        _isRecordingClip
+                                            ? Icons.stop_circle_rounded
+                                            : Icons.videocam_rounded,
+                                        size: 18,
+                                        color: _isRecordingClip
+                                            ? Colors.white
+                                            : const Color(0xFFF43F5E)),
+                                    label: Text(
+                                        _isRecordingClip
+                                            ? _formatRecSeconds(
+                                                _recordingSeconds)
+                                            : 'فيديو',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _resetHideHUDTimer();
+                                      _toggleVideoRecording();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.high_quality_rounded,
+                                        size: 18, color: Color(0xFFA855F7)),
+                                    label: const Text('جودة',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _showQualitySelector();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(
+                                        Icons.picture_in_picture_alt_rounded,
+                                        size: 18,
+                                        color: Color(0xFFA855F7)),
+                                    label: const Text('PiP',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _togglePictureInPicture();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.aspect_ratio_rounded,
+                                        size: 18, color: Color(0xFFA855F7)),
+                                    label: Text(_aspectRatioLabel,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _cycleBoxFit();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    style: IconButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF211B2E),
+                                        shape: const CircleBorder()),
+                                    icon: Icon(
+                                      _rotationMode == RotationMode.smartAuto
+                                          ? Icons.screen_rotation_rounded
+                                          : (_rotationMode ==
+                                                  RotationMode.landscapeOnly
+                                              ? Icons.crop_landscape_rounded
+                                              : Icons.crop_portrait_rounded),
+                                      color: _rotationMode ==
+                                              RotationMode.smartAuto
+                                          ? const Color(0xFFA855F7)
+                                          : Colors.white,
+                                      size: 20,
+                                    ),
+                                    tooltip: "ملء الشاشة",
+                                    onPressed: () {
+                                      _toggleSmartRotation();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    style: IconButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF211B2E),
+                                        shape: const CircleBorder()),
+                                    icon: const Icon(Icons.list_rounded,
+                                        color: Color(0xFFA855F7), size: 20),
+                                    tooltip: "قائمة القنوات",
+                                    onPressed: () {
+                                      setState(() {
+                                        _showSidebar = !_showSidebar;
+                                      });
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 8),
-                                ),
-                                icon: const Icon(
-                                    Icons.picture_in_picture_alt_rounded,
-                                    size: 18,
-                                    color: Color(0xFFA855F7)),
-                                label: const Text('PiP',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _togglePictureInPicture();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                ),
-                                icon: const Icon(Icons.aspect_ratio_rounded,
-                                    size: 18, color: Color(0xFFA855F7)),
-                                label: Text(_aspectRatioLabel,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _cycleBoxFit();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                style: IconButton.styleFrom(
-                                    backgroundColor: const Color(0xFF211B2E),
-                                    shape: const CircleBorder()),
-                                icon: Icon(
-                                  _rotationMode == RotationMode.smartAuto
-                                      ? Icons.screen_rotation_rounded
-                                      : (_rotationMode ==
-                                              RotationMode.landscapeOnly
-                                          ? Icons.crop_landscape_rounded
-                                          : Icons.crop_portrait_rounded),
-                                  color: _rotationMode == RotationMode.smartAuto
-                                      ? const Color(0xFFA855F7)
-                                      : Colors.white,
-                                  size: 20,
-                                ),
-                                tooltip: "ملء الشاشة",
-                                onPressed: () {
-                                  _toggleSmartRotation();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                style: IconButton.styleFrom(
-                                    backgroundColor: const Color(0xFF211B2E),
-                                    shape: const CircleBorder()),
-                                icon: const Icon(Icons.list_rounded,
-                                    color: Color(0xFFA855F7), size: 20),
-                                tooltip: "قائمة القنوات",
-                                onPressed: () {
-                                  setState(() {
-                                    _showSidebar = !_showSidebar;
-                                  });
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -5815,16 +4363,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                   onTap: () {
                     Navigator.pop(context);
                     _showQualitySelector();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.subtitles_rounded,
-                      color: Colors.amberAccent),
-                  title: const Text("الترجمة",
-                      style: TextStyle(color: Colors.white)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSubtitlesSelector();
                   },
                 ),
                 ListTile(

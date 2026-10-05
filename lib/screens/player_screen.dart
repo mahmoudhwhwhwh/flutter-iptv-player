@@ -767,7 +767,11 @@ class _PlayerScreenState extends State<PlayerScreen>
               continue;
             }
             if (resp.statusCode == 200) {
-              final bytes = await consolidateHttpClientResponseBytes(resp);
+              final builder = BytesBuilder(copy: false);
+              await for (final chunk in resp) {
+                builder.add(chunk);
+              }
+              final bytes = builder.takeBytes();
               srtContent = _decodeSubtitleBytes(bytes);
             }
             break;
@@ -2444,7 +2448,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString(key, val);
                 if (_selectedAiLang.isEmpty &&
-                    _activeExternalTrack == null &&
+                    _selectedExternalSubId.isEmpty &&
                     (_betterController?.betterPlayerSubtitlesSource == null ||
                         _betterController?.betterPlayerSubtitlesSource?.type ==
                             BetterPlayerSubtitlesSourceType.none)) {
@@ -2456,7 +2460,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               }
 
               final bool isSubOff = _selectedAiLang.isEmpty &&
-                  _activeExternalTrack == null &&
+                  _selectedExternalSubId.isEmpty &&
                   _parsedSubtitleCues.isEmpty &&
                   (selectedSub == null ||
                       selectedSub.type == BetterPlayerSubtitlesSourceType.none);
@@ -2489,7 +2493,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold)),
                             ),
-                            if (_isFetchingOnlineSubtitles)
+                            if (_isSearchingOnlineSubs)
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 8),
                                 child: SizedBox(
@@ -2533,7 +2537,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      "مسارات الترجمة (${_externalSubTracks.length + validSubtitles.length})",
+                                      "مسارات الترجمة (${_externalSubtitleTracks.length + validSubtitles.length})",
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white,
@@ -2628,8 +2632,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             onSubmitted: (q) async {
                                               if (q.trim().isEmpty) return;
                                               setModalState(() {});
-                                              await _discoverAllSubtitlesForCurrentMedia(
-                                                customQuery: q.trim(),
+                                              await _searchAndLoadOnlineSubtitles(
+                                                q.trim(),
                                                 autoSelectPreferred: true,
                                               );
                                               if (mounted) setState(() {});
@@ -2650,7 +2654,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                                   BorderRadius.circular(10),
                                             ),
                                           ),
-                                          icon: _isFetchingOnlineSubtitles
+                                          icon: _isSearchingOnlineSubs
                                               ? const SizedBox(
                                                   width: 14,
                                                   height: 14,
@@ -2666,16 +2670,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                                               style: TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.bold)),
-                                          onPressed: _isFetchingOnlineSubtitles
+                                          onPressed: _isSearchingOnlineSubs
                                               ? null
                                               : () async {
                                                   final q =
                                                       searchSubCtrl.text.trim();
                                                   setModalState(() {});
-                                                  await _discoverAllSubtitlesForCurrentMedia(
-                                                    customQuery: q.isNotEmpty
+                                                  await _searchAndLoadOnlineSubtitles(
+                                                    q.isNotEmpty
                                                         ? q
-                                                        : null,
+                                                        : _cleanMediaTitleForSubtitleSearch(
+                                                            _stream.name),
                                                     autoSelectPreferred: true,
                                                   );
                                                   if (mounted) setState(() {});
@@ -2695,14 +2700,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     title: const Text("إيقاف الترجمة",
                                         style: TextStyle(color: Colors.white)),
                                     trailing: isSubOff
-                                        ? const Icon(Icons.check_circle,
-                                            color: Color(0xFFA855F7))
-                                        : null,
+                                         ? const Icon(Icons.check_circle,
+                                             color: Color(0xFFA855F7))
+                                         : null,
                                     onTap: () async {
                                       _selectedAiLang = "";
                                       _aiSubtitleText = "";
                                       _subLangVal = "إيقاف";
-                                      _activeExternalTrack = null;
+                                      _selectedExternalSubId = "";
                                       _parsedSubtitleCues = [];
                                       _aiSubtitleTimer?.cancel();
                                       try {
@@ -2721,7 +2726,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                       Navigator.pop(bContext);
                                     },
                                   ),
-                                  if (_externalSubTracks.isNotEmpty) ...[
+                                  if (_externalSubtitleTracks.isNotEmpty) ...[
                                     const Padding(
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 16, vertical: 6),
@@ -2732,9 +2737,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold)),
                                     ),
-                                    ..._externalSubTracks.map((track) {
+                                    ..._externalSubtitleTracks.map((track) {
                                       final isSelected =
-                                          _activeExternalTrack?.id == track.id;
+                                          _selectedExternalSubId == track.id;
+                                      final srcName = track.id
+                                              .startsWith('xtream_')
+                                          ? 'السيرفر'
+                                          : (track.id.startsWith('cached_')
+                                              ? 'محفوظ أوفلاين'
+                                              : 'OpenSubtitles / Wyzie');
                                       return ListTile(
                                         dense: true,
                                         leading: Icon(
@@ -2756,7 +2767,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                           ),
                                         ),
                                         subtitle: Text(
-                                          "المصدر: ${track.source} • اللغة: ${track.lang.toUpperCase()}",
+                                          "المصدر: $srcName • اللغة: ${track.langCode.toUpperCase()}",
                                           style: const TextStyle(
                                               color: Colors.white54,
                                               fontSize: 11),
@@ -2766,15 +2777,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                                                 color: Color(0xFF22C55E))
                                             : null,
                                         onTap: () async {
-                                          await _selectAndLoadExternalTrack(
+                                          await _loadExternalSubtitleTrack(
                                               track);
                                           final prefs = await SharedPreferences
                                               .getInstance();
                                           await prefs.setString(
                                               'sub_lang',
-                                              track.lang == 'ar'
+                                              track.langCode == 'ar'
                                                   ? 'العربية'
-                                                  : (track.lang == 'en'
+                                                  : (track.langCode == 'en'
                                                       ? 'الإنجليزية'
                                                       : 'الفرنسية'));
                                           if (mounted) setState(() {});
@@ -2798,7 +2809,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     ...validSubtitles.map((sub) {
                                       final isSelected =
                                           _selectedAiLang.isEmpty &&
-                                              _activeExternalTrack == null &&
+                                              _selectedExternalSubId.isEmpty &&
                                               selectedSub == sub;
                                       final name = sub.name ?? "ترجمة مدمجة";
                                       return ListTile(
@@ -2817,7 +2828,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             : null,
                                         onTap: () async {
                                           _selectedAiLang = "";
-                                          _activeExternalTrack = null;
+                                          _selectedExternalSubId = "";
                                           _parsedSubtitleCues = [];
                                           _aiSubtitleText = "";
                                           try {
@@ -2828,18 +2839,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                                           if (sub.urls != null &&
                                               sub.urls!.isNotEmpty &&
                                               sub.urls!.first != null) {
-                                            await _selectAndLoadExternalTrack(
+                                            await _loadExternalSubtitleTrack(
                                               _ExternalSubtitleTrack(
                                                 id: 'embedded_${sub.name}',
                                                 label: name,
-                                                lang: name
+                                                langCode: name
                                                             .toLowerCase()
                                                             .contains('ar') ||
                                                         name.contains('عرب')
                                                     ? 'ar'
                                                     : 'en',
                                                 url: sub.urls!.first!,
-                                                source: 'مدمجة',
                                               ),
                                             );
                                           }
@@ -2915,16 +2925,18 @@ class _PlayerScreenState extends State<PlayerScreen>
                                           _selectedAiLang = code;
                                         });
                                         // Check if we already have an external track for this language
-                                        final matching = _externalSubTracks
-                                            .where((t) => t.lang == code)
+                                        final matching = _externalSubtitleTracks
+                                            .where((t) => t.langCode == code)
                                             .toList();
                                         if (matching.isNotEmpty) {
-                                          await _selectAndLoadExternalTrack(
+                                          await _loadExternalSubtitleTrack(
                                               matching.first);
                                         } else {
                                           _startAiSubtitleTimer();
                                           unawaited(
-                                            _discoverAllSubtitlesForCurrentMedia(
+                                            _searchAndLoadOnlineSubtitles(
+                                              _cleanMediaTitleForSubtitleSearch(
+                                                  _stream.name),
                                               autoSelectPreferred: true,
                                             ),
                                           );
@@ -4011,7 +4023,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       final pos =
                           _currentPosition - const Duration(seconds: 10);
                       final target = pos < Duration.zero ? Duration.zero : pos;
-                      if (_usingLocalFallbackEngine &&
+                      if (_usingLocalFallback &&
                           _localFallbackController != null) {
                         _localFallbackController!.seekTo(target);
                       } else {
@@ -4029,7 +4041,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           _currentPosition + const Duration(seconds: 10);
                       final target =
                           pos > _totalDuration ? _totalDuration : pos;
-                      if (_usingLocalFallbackEngine &&
+                      if (_usingLocalFallback &&
                           _localFallbackController != null) {
                         _localFallbackController!.seekTo(target);
                       } else {
@@ -4062,7 +4074,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     WebViewWidget(controller: _webController!),
                               )
                             : _initialized &&
-                                    _usingLocalFallbackEngine &&
+                                    _usingLocalFallback &&
                                     _localFallbackController != null &&
                                     _localFallbackController!
                                         .value.isInitialized
@@ -4902,9 +4914,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             ),
                                           );
                                         } else {
-                                          final url = _activeResolvedPlaybackUrl
+                                          final url = _activePlaybackUrl
                                                   .isNotEmpty
-                                              ? _activeResolvedPlaybackUrl
+                                              ? _activePlaybackUrl
                                               : _stream.url;
                                           DownloadManager.instance
                                               .startDownload(
@@ -4916,9 +4928,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             type: _stream.type == 'series'
                                                 ? 'series'
                                                 : 'movie',
-                                            headers: _activeResolvedHeaders
+                                            headers: _activePlaybackHeaders
                                                     .isNotEmpty
-                                                ? _activeResolvedHeaders
+                                                ? _activePlaybackHeaders
                                                 : null,
                                           );
                                           ScaffoldMessenger.of(context)
@@ -5030,7 +5042,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   const Duration(seconds: 10);
                               final target =
                                   pos < Duration.zero ? Duration.zero : pos;
-                              if (_usingLocalFallbackEngine &&
+                              if (_usingLocalFallback &&
                                   _localFallbackController != null) {
                                 _localFallbackController!.seekTo(target);
                               } else {
@@ -5049,7 +5061,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           onTap: () {
                             if (_initialized) {
                               setState(() {
-                                if (_usingLocalFallbackEngine &&
+                                if (_usingLocalFallback &&
                                     _localFallbackController != null) {
                                   _localFallbackController!.value.isPlaying
                                       ? _localFallbackController!.pause()
@@ -5076,7 +5088,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                               ],
                             ),
                             child: Icon(
-                              (_usingLocalFallbackEngine
+                              (_usingLocalFallback
                                       ? (_localFallbackController
                                               ?.value.isPlaying ??
                                           false)
@@ -5101,7 +5113,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   const Duration(seconds: 10);
                               final target =
                                   pos > _totalDuration ? _totalDuration : pos;
-                              if (_usingLocalFallbackEngine &&
+                              if (_usingLocalFallback &&
                                   _localFallbackController != null) {
                                 _localFallbackController!.seekTo(target);
                               } else {
@@ -5183,7 +5195,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     _resetHideHUDTimer();
                                     final target =
                                         Duration(seconds: val.toInt());
-                                    if (_usingLocalFallbackEngine &&
+                                    if (_usingLocalFallback &&
                                         _localFallbackController != null) {
                                       _localFallbackController!.seekTo(target);
                                     } else {

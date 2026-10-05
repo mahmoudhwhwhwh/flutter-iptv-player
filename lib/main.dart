@@ -3187,6 +3187,64 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     } catch (e) {}
     final epId =
         ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty) return;
+    var epUrl = _resolveEpisodeStreamUrl(ep, host: host, user: user, pass: pass);
+    final epDisplayTitle =
+        "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}";
+    final offlineMatch = DownloadManager.instance.findCompletedForStream(
+      streamId: epId.toString(),
+      url: epUrl,
+      title: epDisplayTitle,
+    );
+    if (offlineMatch != null && offlineMatch.filePath.isNotEmpty) {
+      epUrl = offlineMatch.filePath;
+    }
+    if (epUrl.isEmpty) return;
+    final stream = PlaylistItem(
+      streamId: epId.toString(),
+      name: epDisplayTitle,
+      url: epUrl,
+      type: offlineMatch != null ? "file" : "series",
+      streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
+      categoryId: "",
+      categoryName: "مسلسلات",
+    );
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+  }
+
+  String _resolveEpisodeStreamUrl(
+    dynamic ep, {
+    String? host,
+    String? user,
+    String? pass,
+  }) {
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    String resolvedHost = host ?? '';
+    String resolvedUser = user ?? '';
+    String resolvedPass = pass ?? '';
+    if (resolvedHost.isEmpty) {
+      try {
+        final uri = Uri.parse(widget.series.url);
+        final segments = uri.pathSegments;
+        final seriesIndex = segments.indexOf('series');
+        if (seriesIndex >= 0 && segments.length >= seriesIndex + 4) {
+          final baseSegments = segments.take(seriesIndex).toList();
+          resolvedHost = Uri(
+            scheme: uri.scheme,
+            host: uri.host,
+            port: uri.hasPort ? uri.port : null,
+            path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
+          ).toString().replaceFirst(RegExp(r'/$'), '');
+          resolvedUser = Uri.decodeComponent(segments[seriesIndex + 1]);
+          resolvedPass = Uri.decodeComponent(segments[seriesIndex + 2]);
+        }
+      } catch (_) {}
+    }
+
+    final epId =
+        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty) return '';
     final info = ep['info'] is Map
         ? Map<String, dynamic>.from(ep['info'])
         : <String, dynamic>{};
@@ -3203,7 +3261,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final directUrl = directCandidates
         .map((value) => value?.toString().trim() ?? '')
         .firstWhere((value) => value.isNotEmpty, orElse: () => '');
-    if (epId == null || epId.toString().isEmpty) return;
     final rawExt = ep['container_extension'] ??
         ep['extension'] ??
         info['container_extension'] ??
@@ -3229,32 +3286,55 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         }
       }
     }
-    if (epUrl.isEmpty && host.isNotEmpty) {
+    if (epUrl.isEmpty && resolvedHost.isNotEmpty) {
       epUrl =
-          "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
+          "$resolvedHost/series/${Uri.encodeComponent(resolvedUser)}/${Uri.encodeComponent(resolvedPass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
     }
-    final epDisplayTitle =
-        "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}";
-    final offlineMatch = DownloadManager.instance.findCompletedForStream(
-      streamId: epId.toString(),
-      url: epUrl,
-      title: epDisplayTitle,
-    );
-    if (offlineMatch != null && offlineMatch.filePath.isNotEmpty) {
-      epUrl = offlineMatch.filePath;
+    return epUrl;
+  }
+
+  void _downloadEpisode(dynamic ep, int index) {
+    final epId =
+        (ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'] ?? '')
+            .toString();
+    if (epId.isEmpty) return;
+    final epTitle = ep['title'] ?? ep['name'] ?? "الحلقة ${index + 1}";
+    final epDisplayTitle = "${widget.series.name} - $epTitle";
+    final epCover =
+        (ep['info']?['movie_image'] ?? widget.series.streamIcon ?? '').toString();
+    if (DownloadManager.instance.isDownloaded(epId)) {
+      _playEpisode(ep, seasonNumber: _selectedSeason);
+      return;
     }
+    if (DownloadManager.instance.isDownloading(epId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'هذه الحلقة قيد التحميل حالياً في قائمة التنزيلات',
+            style: TextStyle(fontFamily: 'Cairo'),
+          ),
+        ),
+      );
+      return;
+    }
+    final epUrl = _resolveEpisodeStreamUrl(ep);
     if (epUrl.isEmpty) return;
-    final stream = PlaylistItem(
-      streamId: epId.toString(),
-      name: epDisplayTitle,
+    DownloadManager.instance.startDownload(
+      id: epId,
+      title: epDisplayTitle,
       url: epUrl,
-      type: offlineMatch != null ? "file" : "series",
-      streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
-      categoryId: "",
-      categoryName: "مسلسلات",
+      poster: epCover,
+      category: 'مسلسلات',
+      type: 'series',
     );
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'بدأ تنزيل "$epDisplayTitle" بالسرعة القصوى',
+          style: const TextStyle(fontFamily: 'Cairo'),
+        ),
+      ),
+    );
   }
 
   @override
@@ -3631,6 +3711,74 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                     ],
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                ListenableBuilder(
+                                  listenable: DownloadManager.instance,
+                                  builder: (context, _) {
+                                    final epIdStr = (ep['id'] ??
+                                            ep['episode_id'] ??
+                                            ep['stream_id'] ??
+                                            ep['media_id'] ??
+                                            '')
+                                        .toString();
+                                    final isDone = epIdStr.isNotEmpty &&
+                                        DownloadManager.instance
+                                            .isDownloaded(epIdStr);
+                                    final isDling = epIdStr.isNotEmpty &&
+                                        DownloadManager.instance
+                                            .isDownloading(epIdStr);
+                                    final dlItem = epIdStr.isNotEmpty
+                                        ? DownloadManager.instance
+                                            .getItem(epIdStr)
+                                        : null;
+                                    return IconButton(
+                                      tooltip: isDone
+                                          ? 'تم التنزيل (اضغط للتشغيل أوفلاين)'
+                                          : (isDling
+                                              ? 'جاري التحميل...'
+                                              : 'تنزيل الحلقة للجهاز'),
+                                      onPressed: () => _downloadEpisode(ep, i),
+                                      icon: isDling
+                                          ? SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  CircularProgressIndicator(
+                                                    value: (dlItem != null &&
+                                                            dlItem.progress > 0)
+                                                        ? dlItem.progress
+                                                        : null,
+                                                    strokeWidth: 2.2,
+                                                    color:
+                                                        const Color(0xFFA855F7),
+                                                  ),
+                                                  Text(
+                                                    '${((dlItem?.progress ?? 0) * 100).toInt()}%',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 7,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : Icon(
+                                              isDone
+                                                  ? Icons.offline_pin_rounded
+                                                  : Icons
+                                                      .download_for_offline_rounded,
+                                              color: isDone
+                                                  ? const Color(0xFF22C55E)
+                                                  : const Color(0xFFA855F7),
+                                              size: isMobile ? 22 : 26,
+                                            ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -3969,6 +4117,72 @@ Widget buildStreamCardLocal(
               ),
             ),
           ),
+          // Direct Download Button on Movie cards
+          if (!isSeries &&
+              stream is PlaylistItem &&
+              stream.type != 'live' &&
+              stream.type != 'stalker')
+            Positioned(
+              top: 4,
+              right: 4,
+              child: ListenableBuilder(
+                listenable: DownloadManager.instance,
+                builder: (context, _) {
+                  final isDone = DownloadManager.instance.isDownloaded(streamId);
+                  final isDling =
+                      DownloadManager.instance.isDownloading(streamId);
+                  return InkWell(
+                    onTap: () {
+                      if (isDone) {
+                        provider.selectStream(stream);
+                        provider.addToRecentlyPlayed(stream);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PlayerScreen(stream: stream),
+                          ),
+                        );
+                      } else if (!isDling) {
+                        DownloadManager.instance.startDownload(
+                          id: streamId,
+                          title: name,
+                          url: stream.url,
+                          poster: stream.streamIcon,
+                          category: stream.categoryName,
+                          type: 'movie',
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'بدأ تنزيل "$name" في قائمة التنزيلات',
+                              style: const TextStyle(fontFamily: 'Cairo'),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(isMobile ? 3 : 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.65),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isDone
+                            ? Icons.offline_pin_rounded
+                            : (isDling
+                                ? Icons.downloading_rounded
+                                : Icons.download_for_offline_rounded),
+                        color: isDone
+                            ? const Color(0xFF22C55E)
+                            : const Color(0xFFA855F7),
+                        size: isMobile ? 15 : 17,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     ),

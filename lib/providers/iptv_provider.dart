@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../models/playlist_item.dart';
 import '../models/saved_subscription_code.dart';
 import '../services/filter_service.dart';
+import '../services/download_manager.dart';
 import '../services/subscription_profile.dart';
 import '../services/redacted_diagnostics.dart';
 import '../services/secure_playlist_store.dart';
@@ -831,6 +832,7 @@ class IPTVProvider with ChangeNotifier {
           .map((e) => PlaylistItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
 
+      _injectOfflineDownloadsIntoStreams();
       _applyFilters();
       debugPrint('Loaded ${_allStreams.length} cached streams for $playlistId');
       return true;
@@ -840,11 +842,78 @@ class IPTVProvider with ChangeNotifier {
     }
   }
 
+  void _injectOfflineDownloadsIntoStreams() {
+    try {
+      final completed = DownloadManager.instance.completedItems;
+      if (completed.isEmpty) return;
+      final existingIds = _allStreams.map((s) => s.streamId).toSet();
+      for (final dl in completed) {
+        if (!existingIds.contains(dl.id)) {
+          _allStreams.insert(
+            0,
+            PlaylistItem(
+              streamId: dl.id,
+              name: dl.title,
+              streamIcon: dl.poster,
+              categoryId: 'downloads',
+              categoryName: dl.category.isNotEmpty
+                  ? dl.category
+                  : (dl.type == 'series' ? 'مسلسلات' : 'أفلام'),
+              url: dl.filePath,
+              type: 'movie',
+            ),
+          );
+          existingIds.add(dl.id);
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _saveCachedPlaylist(String playlistId) async {
     try {
       if (_allStreams.isEmpty) return;
       final filePath = await _getCacheFilePath(playlistId);
       final file = File(filePath);
+      final hasVodOrSeries = _allStreams.any((s) =>
+          s.type == 'movie' ||
+          s.type == 'series' ||
+          s.type == 'stalker_movie' ||
+          s.type == 'stalker_series');
+      if (!hasVodOrSeries && file.existsSync()) {
+        try {
+          final prevRaw = jsonDecode(await file.readAsString());
+          if (prevRaw is Map && prevRaw['streams'] is List) {
+            final prevStreams = (prevRaw['streams'] as List)
+                .whereType<Map>()
+                .map((e) => PlaylistItem.fromJson(Map<String, dynamic>.from(e)))
+                .where((s) =>
+                    s.type == 'movie' ||
+                    s.type == 'series' ||
+                    s.type == 'stalker_movie' ||
+                    s.type == 'stalker_series')
+                .toList();
+            if (prevStreams.isNotEmpty) {
+              _allStreams.addAll(prevStreams);
+              if (_movieCategories.isEmpty &&
+                  prevRaw['movie_categories'] is List) {
+                _movieCategories = (prevRaw['movie_categories'] as List)
+                    .whereType<Map>()
+                    .map((e) => Map<String, String>.from(
+                        e.map((k, v) => MapEntry(k.toString(), v.toString()))))
+                    .toList();
+              }
+              if (_seriesCategories.isEmpty &&
+                  prevRaw['series_categories'] is List) {
+                _seriesCategories = (prevRaw['series_categories'] as List)
+                    .whereType<Map>()
+                    .map((e) => Map<String, String>.from(
+                        e.map((k, v) => MapEntry(k.toString(), v.toString()))))
+                    .toList();
+              }
+            }
+          }
+        } catch (_) {}
+      }
       final payload = {
         'cached_at': DateTime.now().millisecondsSinceEpoch,
         'playlist_id': playlistId,
@@ -1282,6 +1351,7 @@ class IPTVProvider with ChangeNotifier {
     _isVersionBlocked = false;
 
     HttpOverrides.global = MyHttpOverrides("");
+    bool cacheLoadedOnInit = false;
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
       final preferredId = _activePlaylistId ??
           (_activationCode.isNotEmpty
@@ -1292,16 +1362,28 @@ class IPTVProvider with ChangeNotifier {
           : _savedPlaylists.where((item) => item.id == preferredId).toList();
       final restored = matching.isEmpty ? null : matching.first;
       _activePlaylistId = restored?.id ?? _savedPlaylists.first.id;
-      await _loadCachedPlaylist(_activePlaylistId!);
+      cacheLoadedOnInit = await _loadCachedPlaylist(_activePlaylistId!);
     }
+    _injectOfflineDownloadsIntoStreams();
+    _applyFilters();
     _isLoading = false;
+    _isFetchingData = false;
     PerformanceMetrics.mark('provider.init.ready');
     notifyListeners();
     if (_isLoggedIn && _activationCode.trim().isNotEmpty) {
       unawaited(checkRemoteBlocking());
     }
     if (_isLoggedIn && _activePlaylistId != null && _isSecured) {
-      unawaited(loadPlaylistStreams(_activePlaylistId!));
+      if (!cacheLoadedOnInit || _allStreams.isEmpty) {
+        unawaited(loadPlaylistStreams(_activePlaylistId!));
+      } else if ((_activationCode == '2027' || _activationCode == '8090') &&
+          !_allStreams.any((s) => s.type == 'movie' || s.type == 'series')) {
+        unawaited(_appendXtreamVodFromCode('55669977').then((_) {
+          if (_activePlaylistId != null) {
+            _saveCachedPlaylist(_activePlaylistId!);
+          }
+        }));
+      }
     }
   }
 
@@ -1794,6 +1876,7 @@ class IPTVProvider with ChangeNotifier {
         if (cleanCode == '2027' || cleanCode == '8090') {
           await _appendXtreamVodFromCode('55669977');
         }
+        await _saveCachedPlaylist(list.id);
       } else {
         await loadPlaylistStreams(list.id);
       }
@@ -1811,6 +1894,13 @@ class IPTVProvider with ChangeNotifier {
   }
 
   void _applyCuratedMenu(List<dynamic> decoded) {
+    final preservedVodAndSeries = _allStreams
+        .where((s) =>
+            s.type == 'movie' ||
+            s.type == 'series' ||
+            s.type == 'stalker_movie' ||
+            s.type == 'stalker_series')
+        .toList();
     _allStreams = [];
     _liveCategories = [];
     final seen = <String>{};
@@ -1854,6 +1944,10 @@ class IPTVProvider with ChangeNotifier {
         type: 'live',
       ));
     }
+    if (preservedVodAndSeries.isNotEmpty) {
+      _allStreams.addAll(preservedVodAndSeries);
+    }
+    _injectOfflineDownloadsIntoStreams();
     _applyFilters();
   }
 

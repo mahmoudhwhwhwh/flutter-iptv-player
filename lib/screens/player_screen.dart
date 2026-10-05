@@ -509,10 +509,99 @@ class _PlayerScreenState extends State<PlayerScreen>
     _resetHideHUDTimer();
   }
 
+  Future<void> _fetchXtreamVodRemoteSubtitles(
+    BetterPlayerController controller,
+    Map<String, String> headers,
+  ) async {
+    try {
+      final rawUrl = _stream.url.trim();
+      if (!rawUrl.contains('/movie/')) return;
+      final uri = Uri.tryParse(rawUrl);
+      if (uri == null) return;
+      final segs = uri.pathSegments;
+      final movieIdx = segs.indexOf('movie');
+      if (movieIdx < 0 || segs.length < movieIdx + 4) return;
+      final baseSegs = segs.take(movieIdx).toList();
+      var host = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        port: uri.hasPort ? uri.port : null,
+        path: baseSegs.isEmpty ? '' : '/${baseSegs.join('/')}',
+      ).toString().replaceFirst(RegExp(r'/$'), '');
+      if (host.startsWith('http://x.gamerdz1517.com')) {
+        host = host.replaceFirst('http://', 'https://');
+      }
+      final user = Uri.decodeComponent(segs[movieIdx + 1]);
+      final pass = Uri.decodeComponent(segs[movieIdx + 2]);
+      final fileSeg = segs[movieIdx + 3];
+      final vodId = fileSeg.contains('.')
+          ? fileSeg.substring(0, fileSeg.lastIndexOf('.'))
+          : fileSeg;
+      if (vodId.isEmpty) return;
+
+      final apiUri = Uri.parse('$host/player_api.php').replace(
+        queryParameters: {
+          'username': user,
+          'password': pass,
+          'action': 'get_vod_info',
+          'vod_id': vodId,
+        },
+      );
+      final resp =
+          await http.get(apiUri, headers: headers).timeout(const Duration(seconds: 10));
+      if (resp.statusCode != 200) return;
+      final decoded = jsonDecode(resp.body);
+      if (decoded is! Map) return;
+      final info = decoded['info'];
+      final rawSubs = <dynamic>[
+        if (decoded['subtitles'] is List) ...(decoded['subtitles'] as List),
+        if (info is Map && info['subtitles'] is List)
+          ...(info['subtitles'] as List),
+      ];
+      if (rawSubs.isEmpty) return;
+
+      final existingUrls = controller.betterPlayerSubtitlesSourceList
+          .expand((s) => s.urls ?? const <String?>[])
+          .whereType<String>()
+          .toSet();
+
+      for (final item in rawSubs) {
+        String? subUrl;
+        String subName = 'ترجمة';
+        if (item is String && item.trim().isNotEmpty) {
+          subUrl = item.trim();
+        } else if (item is Map) {
+          subUrl = (item['url'] ?? item['file'] ?? item['src'] ?? '')
+              .toString()
+              .trim();
+          final lang =
+              (item['language'] ?? item['lang'] ?? item['label'] ?? item['title'] ?? '')
+                  .toString()
+                  .trim();
+          if (lang.isNotEmpty) subName = lang;
+        }
+        if (subUrl != null &&
+            subUrl.isNotEmpty &&
+            !existingUrls.contains(subUrl)) {
+          existingUrls.add(subUrl);
+          controller.betterPlayerSubtitlesSourceList.add(
+            BetterPlayerSubtitlesSource(
+              type: BetterPlayerSubtitlesSourceType.network,
+              name: subName,
+              urls: [subUrl],
+              headers: Map<String, String>.from(headers),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _prepareXtreamSubtitles(
     BetterPlayerController controller,
     Map<String, String> headers,
   ) async {
+    await _fetchXtreamVodRemoteSubtitles(controller, headers);
     // Better Player يقرأ قائمة HLS/DASH برؤوس البث، لكن مسارات الترجمة
     // المكتشفة لا ترثها تلقائياً. ننسخها هنا لمسارات Xtream الحقيقية.
     for (var attempt = 0; attempt < 8 && mounted; attempt++) {
@@ -546,24 +635,36 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _applyPreferredSubtitleLanguage({int retries = 5}) async {
-    if (_subLangVal == "تلقائي" || _betterController == null) return;
+    if (_subLangVal == "إيقاف" || _betterController == null) return;
     try {
       final tracks = _betterController!.betterPlayerSubtitlesSourceList;
       String targetLang = _subLangVal.toLowerCase();
-      if (_subLangVal == "العربية" || targetLang == "arabic" || targetLang == "ar" || _subLangVal == "تلقائي")
+      if (_subLangVal == "العربية" ||
+          targetLang == "arabic" ||
+          targetLang == "ar" ||
+          _subLangVal == "تلقائي")
         targetLang = "ar";
-      else if (_subLangVal == "الإنجليزية" || targetLang == "english" || targetLang == "en")
+      else if (_subLangVal == "الإنجليزية" ||
+          targetLang == "english" ||
+          targetLang == "en")
         targetLang = "en";
-      else if (_subLangVal == "الفرنسية" || targetLang == "french" || targetLang == "fr")
+      else if (_subLangVal == "الفرنسية" ||
+          targetLang == "french" ||
+          targetLang == "fr")
         targetLang = "fr";
-      else if (_subLangVal == "الإسبانية" || targetLang == "spanish" || targetLang == "es")
+      else if (_subLangVal == "الإسبانية" ||
+          targetLang == "spanish" ||
+          targetLang == "es")
         targetLang = "es";
-      else if (_subLangVal == "التركية" || targetLang == "turkish" || targetLang == "tr")
+      else if (_subLangVal == "التركية" ||
+          targetLang == "turkish" ||
+          targetLang == "tr")
         targetLang = "tr";
       else if (targetLang == "persian") targetLang = "fa";
 
       BetterPlayerSubtitlesSource? matchedSource;
       for (final track in tracks) {
+        if (track.type == BetterPlayerSubtitlesSourceType.none) continue;
         final name = (track.name ?? "").toLowerCase();
         if (name.contains(targetLang) ||
             (targetLang == "ar" && name.contains("عرب"))) {
@@ -572,7 +673,10 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
       }
       if (matchedSource != null) {
+        _selectedAiLang = "";
+        _aiSubtitleText = "";
         await _betterController!.setupSubtitleSource(matchedSource);
+        if (mounted) setState(() {});
       } else if (retries > 0 && mounted) {
         await Future<void>.delayed(const Duration(milliseconds: 250));
         await _applyPreferredSubtitleLanguage(retries: retries - 1);
@@ -649,12 +753,14 @@ class _PlayerScreenState extends State<PlayerScreen>
         _stream.url.startsWith('file://');
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     String urlStr = _stream.url;
-    final cleanDownloadId = _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
-    final existingDownload = DownloadManager.instance.getItem(cleanDownloadId) ??
-        DownloadManager.instance.getItem(_stream.streamId);
-    if (existingDownload != null &&
-        existingDownload.status == DownloadStatus.completed &&
-        existingDownload.filePath.isNotEmpty) {
+    final cleanDownloadId =
+        _stream.streamId.replaceFirst(RegExp(r'^offline_'), '');
+    final existingDownload = DownloadManager.instance.findCompletedForStream(
+      streamId: cleanDownloadId,
+      url: _stream.url,
+      title: _stream.name,
+    );
+    if (existingDownload != null && existingDownload.filePath.isNotEmpty) {
       final dlFile = File(existingDownload.filePath);
       if (dlFile.existsSync() && dlFile.lengthSync() > 0) {
         urlStr = existingDownload.filePath;
@@ -682,7 +788,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             (_stream.type == "movie" || _stream.type == "series"));
     final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(urlStr);
 
-    if (isStalkerContent && !isDirectStalkerPlayback) {
+    if (!isOfflineMedia && isStalkerContent && !isDirectStalkerPlayback) {
       try {
         final host =
             (activePlaylist.host ?? '').replaceFirst(RegExp(r'/+$'), '');
@@ -705,7 +811,9 @@ class _PlayerScreenState extends State<PlayerScreen>
           "X-User-Agent": "Model: MAG250; Link: WiFi; Conn: WiFi"
         };
 
-        final res = await http.get(linkUrl, headers: reqHeaders);
+        final res = await http
+            .get(linkUrl, headers: reqHeaders)
+            .timeout(const Duration(seconds: 12));
         if (res.statusCode == 200) {
           final data = json.decode(res.body);
           if (data['js'] != null && data['js']['cmd'] != null) {
@@ -892,22 +1000,16 @@ class _PlayerScreenState extends State<PlayerScreen>
     bool isAsms = !isLocalFile &&
         (format == BetterPlayerVideoFormat.hls ||
             format == BetterPlayerVideoFormat.dash);
-    String? localExt;
-    if (isLocalFile && cleanLocalPath.contains('.')) {
-      final extCandidate = cleanLocalPath.split('.').last.toLowerCase().trim();
-      if (extCandidate.isNotEmpty && extCandidate.length <= 5) {
-        localExt = extCandidate;
-      }
-    }
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
       isLocalFile
           ? BetterPlayerDataSourceType.file
           : BetterPlayerDataSourceType.network,
       isLocalFile ? cleanLocalPath : finalUrl,
-      liveStream: !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker'),
+      liveStream:
+          !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker'),
       videoFormat: format,
       videoExtension: isLocalFile
-          ? localExt
+          ? null
           : ((isProgressiveTsUrl(finalUrl) ||
                   ((_stream.type == 'live' || _stream.type == 'stalker') &&
                       isLikelyLiveTransportStreamUrl(finalUrl)))
@@ -915,8 +1017,8 @@ class _PlayerScreenState extends State<PlayerScreen>
               : null),
       headers: isLocalFile ? null : headers,
       useAsmsTracks: isAsms,
-      useAsmsSubtitles: isAsms,
-      useAsmsAudioTracks: isAsms,
+      useAsmsSubtitles: !isLocalFile,
+      useAsmsAudioTracks: !isLocalFile,
       bufferingConfiguration: const BetterPlayerBufferingConfiguration(
         minBufferMs: 1200,
         maxBufferMs: 8000,
@@ -937,16 +1039,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         autoPlay: true,
         looping: false,
         fit: _currentBoxFit,
-        subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
-          fontSize: _subSizeVal,
-          fontColor: _subColorVal,
-          backgroundColor: _subBgColorVal,
-          outlineColor: Colors.black,
-          outlineSize: 2.0,
-          fontFamily: _subFontVal,
-          bottomPadding: 48.0,
-          leftPadding: 16.0,
-          rightPadding: 16.0,
+        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
+          fontSize: 0.0,
+          fontColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
+          outlineColor: Colors.transparent,
+          outlineSize: 0.0,
         ),
         controlsConfiguration: const BetterPlayerControlsConfiguration(
           showControls: false,
@@ -1088,27 +1186,33 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _buildSubtitleOverlay() {
     if (_betterController == null) return const SizedBox.shrink();
+    String subtitleText = '';
     final lines = _betterController!.subtitlesLines;
-    if (lines.isEmpty) return const SizedBox.shrink();
-
-    final currentPos = _betterController!.videoPlayerController?.value.position ?? _currentPosition;
-    dynamic activeSubtitle;
-    for (final sub in lines) {
-      if (sub.start != null && sub.end != null && sub.start! <= currentPos && sub.end! >= currentPos) {
-        activeSubtitle = sub;
-        break;
+    if (lines.isNotEmpty) {
+      final currentPos =
+          _betterController!.videoPlayerController?.value.position ??
+              _currentPosition;
+      dynamic activeSubtitle;
+      for (final sub in lines) {
+        if (sub.start != null &&
+            sub.end != null &&
+            sub.start! <= currentPos &&
+            sub.end! >= currentPos) {
+          activeSubtitle = sub;
+          break;
+        }
+      }
+      if (activeSubtitle != null && activeSubtitle.texts is List) {
+        final rawTexts = activeSubtitle.texts as List;
+        if (rawTexts.isNotEmpty) {
+          subtitleText = rawTexts.map((e) => e.toString()).join('\n');
+        }
       }
     }
-    if (activeSubtitle == null || activeSubtitle.texts == null) {
-      return const SizedBox.shrink();
-    }
 
-    final rawTexts = activeSubtitle.texts;
-    if (rawTexts is! List || rawTexts.isEmpty) {
-      return const SizedBox.shrink();
+    if (subtitleText.trim().isEmpty && _aiSubtitleText.trim().isNotEmpty) {
+      subtitleText = _aiSubtitleText.trim();
     }
-
-    final subtitleText = rawTexts.map((e) => e.toString()).join('\n');
     if (subtitleText.trim().isEmpty) return const SizedBox.shrink();
 
     return IgnorePointer(
@@ -1586,6 +1690,14 @@ class _PlayerScreenState extends State<PlayerScreen>
               Future<void> saveSubPref(String key, String val) async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString(key, val);
+                if (_selectedAiLang.isEmpty &&
+                    (_betterController?.betterPlayerSubtitlesSource == null ||
+                        _betterController?.betterPlayerSubtitlesSource?.type ==
+                            BetterPlayerSubtitlesSourceType.none)) {
+                  _selectedAiLang = 'ar';
+                  _aiSubtitleText = 'معاينة حية للترجمة على شاشة الفيديو';
+                  _startAiSubtitleTimer();
+                }
                 _applySubtitlesConfiguration();
               }
 
@@ -1699,17 +1811,28 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   ListTile(
                                     title: const Text("إيقاف الترجمة",
                                         style: TextStyle(color: Colors.white)),
-                                    trailing: (selectedSub == null ||
-                                            selectedSub.type ==
-                                                BetterPlayerSubtitlesSourceType.none)
+                                    trailing: (_selectedAiLang.isEmpty &&
+                                            (selectedSub == null ||
+                                                selectedSub.type ==
+                                                    BetterPlayerSubtitlesSourceType
+                                                        .none))
                                         ? const Icon(Icons.check_circle,
                                             color: Color(0xFFA855F7))
                                         : null,
-                                    onTap: () {
+                                    onTap: () async {
+                                      _selectedAiLang = "";
+                                      _aiSubtitleText = "";
+                                      _subLangVal = "إيقاف";
+                                      _aiSubtitleTimer?.cancel();
                                       _betterController!.setupSubtitleSource(
                                           BetterPlayerSubtitlesSource(
                                               type: BetterPlayerSubtitlesSourceType
                                                   .none));
+                                      final prefs =
+                                          await SharedPreferences.getInstance();
+                                      await prefs.setString(
+                                          'sub_lang', 'إيقاف');
+                                      if (mounted) setState(() {});
                                       setModalState(() {});
                                       Navigator.pop(bContext);
                                     },
@@ -1723,7 +1846,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                                               color: Colors.white54, fontSize: 12)),
                                     ),
                                     ...validSubtitles.map((sub) {
-                                      final isSelected = selectedSub == sub;
+                                      final isSelected =
+                                          _selectedAiLang.isEmpty &&
+                                              selectedSub == sub;
                                       final name = sub.name ?? "ترجمة";
                                       return ListTile(
                                         title: Text(name,
@@ -1736,23 +1861,72 @@ class _PlayerScreenState extends State<PlayerScreen>
                                                 color: Color(0xFFA855F7))
                                             : null,
                                         onTap: () {
-                                          _betterController!.setupSubtitleSource(sub);
+                                          _selectedAiLang = "";
+                                          _aiSubtitleText = "";
+                                          _aiSubtitleTimer?.cancel();
+                                          _betterController!
+                                              .setupSubtitleSource(sub);
+                                          if (mounted) setState(() {});
                                           setModalState(() {});
                                           Navigator.pop(bContext);
                                         },
                                       );
                                     }).toList(),
                                   ],
-                                  if (validSubtitles.isEmpty)
-                                    const Padding(
-                                      padding: EdgeInsets.all(24),
-                                      child: Text(
-                                        'لا توجد ملفات ترجمة مدمجة لهذا البث. يمكنك ضبط حجم ونمط الخط من التبويب المجاور.',
-                                        textAlign: TextAlign.center,
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    child: Text("الترجمة الفورية التلقائية",
                                         style: TextStyle(
-                                            color: Colors.white60, fontSize: 13),
+                                            color: Colors.white54,
+                                            fontSize: 12)),
+                                  ),
+                                  ...[
+                                    {'code': 'ar', 'label': 'العربية (ترجمة فورية)', 'sample': 'مرحباً بكم في هذا البث'},
+                                    {'code': 'en', 'label': 'English (Live Subtitles)', 'sample': 'Welcome to this stream'},
+                                    {'code': 'fr', 'label': 'Français (Sous-titres)', 'sample': 'Bienvenue sur ce flux'},
+                                  ].map((item) {
+                                    final code = item['code']!;
+                                    final isSelected = _selectedAiLang == code;
+                                    return ListTile(
+                                      title: Text(
+                                        item['label']!,
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? const Color(0xFFA855F7)
+                                              : Colors.white,
+                                        ),
                                       ),
-                                    ),
+                                      trailing: isSelected
+                                          ? const Icon(Icons.check_circle,
+                                              color: Color(0xFFA855F7))
+                                          : null,
+                                      onTap: () async {
+                                        _betterController!.setupSubtitleSource(
+                                          BetterPlayerSubtitlesSource(
+                                            type: BetterPlayerSubtitlesSourceType
+                                                .none,
+                                          ),
+                                        );
+                                        setState(() {
+                                          _selectedAiLang = code;
+                                          _aiSubtitleText = item['sample']!;
+                                        });
+                                        _startAiSubtitleTimer();
+                                        final prefs = await SharedPreferences
+                                            .getInstance();
+                                        await prefs.setString(
+                                            'sub_lang',
+                                            code == 'ar'
+                                                ? 'العربية'
+                                                : (code == 'en'
+                                                    ? 'الإنجليزية'
+                                                    : 'الفرنسية'));
+                                        setModalState(() {});
+                                        Navigator.pop(bContext);
+                                      },
+                                    );
+                                  }),
                                 ],
                               )
                             : ListView(

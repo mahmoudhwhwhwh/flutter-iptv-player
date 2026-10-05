@@ -259,7 +259,14 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final isCompleted = item.status == DownloadStatus.completed;
     final isFailed = item.status == DownloadStatus.failed;
 
-    return Container(
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: isCompleted
+          ? () => _playOfflineItem(context, item)
+          : (isPaused || isFailed
+              ? () => DownloadManager.instance.resumeDownload(item.id)
+              : null),
+      child: Container(
       decoration: BoxDecoration(
         color: const Color(0xFF161622),
         borderRadius: BorderRadius.circular(16),
@@ -475,16 +482,17 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             ),
         ],
       ),
+      ),
     );
   }
 
   void _playOfflineItem(BuildContext context, DownloadItem item) {
     final file = File(item.filePath);
-    if (!file.existsSync()) {
+    if (!file.existsSync() || file.lengthSync() <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'الملف غير موجود في الجهاز، قد تم حذفه.',
+            'الملف غير موجود في الجهاز أو غير مكتمل، يرجى إعادة تنزيله.',
             style: TextStyle(fontFamily: 'Cairo'),
           ),
         ),
@@ -493,7 +501,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     }
 
     final localStream = PlaylistItem(
-      streamId: 'offline_${item.id}',
+      streamId: item.id,
       name: item.title,
       streamIcon: item.poster,
       categoryId: 'downloads',

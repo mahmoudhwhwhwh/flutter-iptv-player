@@ -2673,7 +2673,7 @@ class StreamsListScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: provider.isFetchingData
+            child: (provider.isFetchingData && streams.isEmpty)
                 ? Center(child: CircularProgressIndicator(color: accent))
                 : GridView.builder(
                     padding: EdgeInsets.fromLTRB(
@@ -2958,6 +2958,70 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     };
   }
 
+  String get _seriesCacheKey => 'series_cache_${widget.series.streamId}';
+
+  Future<void> _saveSeriesCache(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_seriesCacheKey, jsonEncode(data));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> _loadOfflineSeriesFallback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_seriesCacheKey);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      }
+    } catch (_) {}
+
+    final downloadedEpisodes = DownloadManager.instance.completedItems
+        .where((d) =>
+            d.type == 'series' &&
+            (d.title.startsWith(widget.series.name) ||
+                d.id == widget.series.streamId))
+        .toList();
+    if (downloadedEpisodes.isEmpty) return null;
+
+    final eps = downloadedEpisodes
+        .asMap()
+        .entries
+        .map((entry) => <String, dynamic>{
+              'id': entry.value.id,
+              'episode_num': entry.key + 1,
+              'title': entry.value.title
+                  .replaceFirst('${widget.series.name} - ', ''),
+              'url': entry.value.filePath,
+              'direct_source': entry.value.filePath,
+              'info': <String, dynamic>{
+                'movie_image': entry.value.poster.isNotEmpty
+                    ? entry.value.poster
+                    : widget.series.streamIcon,
+              },
+            })
+        .toList();
+
+    return <String, dynamic>{
+      'info': <String, dynamic>{
+        'name': widget.series.name,
+        'cover': widget.series.streamIcon,
+      },
+      'seasons': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'season_number': '1',
+          'name': 'التنزيلات المحفوظة',
+        }
+      ],
+      'episodes': <String, dynamic>{
+        '1': eps,
+      },
+    };
+  }
+
   Future<void> _fetchSeriesInfo() async {
     try {
       final s = widget.series;
@@ -2967,6 +3031,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           .replaceFirst('series_', '');
       if (s.type == 'stalker_series') {
         final data = await _fetchStalkerSeriesInfo(rawId, provider);
+        await _saveSeriesCache(data);
         if (mounted) {
           setState(() {
             _seriesData = data;
@@ -3039,21 +3104,32 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         cover,
       );
 
+      final resultData = <String, dynamic>{
+        'info': data['info'] is Map
+            ? Map<String, dynamic>.from(data['info'])
+            : <String, dynamic>{},
+        'seasons': parsedSeasons,
+        'episodes': parsedEpisodes,
+      };
+      await _saveSeriesCache(resultData);
+
       if (mounted) {
         setState(() {
-          _seriesData = {
-            'info': data['info'] is Map
-                ? Map<String, dynamic>.from(data['info'])
-                : <String, dynamic>{},
-            'seasons': parsedSeasons,
-            'episodes': parsedEpisodes,
-          };
+          _seriesData = resultData;
           _isLoading = false;
         });
       }
       return;
     } catch (e) {
       debugPrint('Error fetching series info: $e');
+      final fallback = await _loadOfflineSeriesFallback();
+      if (fallback != null && mounted) {
+        setState(() {
+          _seriesData = fallback;
+          _isLoading = false;
+        });
+        return;
+      }
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -3157,12 +3233,22 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       epUrl =
           "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
     }
+    final epDisplayTitle =
+        "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}";
+    final offlineMatch = DownloadManager.instance.findCompletedForStream(
+      streamId: epId.toString(),
+      url: epUrl,
+      title: epDisplayTitle,
+    );
+    if (offlineMatch != null && offlineMatch.filePath.isNotEmpty) {
+      epUrl = offlineMatch.filePath;
+    }
     if (epUrl.isEmpty) return;
     final stream = PlaylistItem(
       streamId: epId.toString(),
-      name: "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}",
+      name: epDisplayTitle,
       url: epUrl,
-      type: "series",
+      type: offlineMatch != null ? "file" : "series",
       streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
       categoryId: "",
       categoryName: "مسلسلات",

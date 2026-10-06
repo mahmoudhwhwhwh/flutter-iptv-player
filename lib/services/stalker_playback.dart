@@ -1,3 +1,5 @@
+import 'dart:io';
+
 String stripFfmpegPrefix(String url) {
   return url
       .replaceFirst(RegExp(r'^\s*ffmpeg\s+', caseSensitive: false), '')
@@ -230,6 +232,17 @@ String repairKnownDeadStreamUrl(String rawUrl, {String streamName = ''}) {
     u = u.replaceFirst('http://', 'https://');
   }
 
+  if (u.toLowerCase().contains('so.ta2al.us')) {
+    final liveMatch = RegExp(r'/live/[^/]+/[^/]+/(\d+)', caseSensitive: false).firstMatch(u);
+    if (liveMatch != null) {
+      return '$_kGamerdzLiveBase/${liveMatch.group(1)}.ts';
+    }
+    final vodMatch = RegExp(r'/(movie|series)/[^/]+/[^/]+/(.+)$', caseSensitive: false).firstMatch(u);
+    if (vodMatch != null) {
+      return 'https://x.gamerdz1517.com/${vodMatch.group(1)}/00%3A1A%3A79%3A27%3A9F%3AA2/b8cfjif9/${vodMatch.group(2)}';
+    }
+  }
+
   final customMatch =
       RegExp(r'/v1/custom/stream/(\d+)\.ts', caseSensitive: false).firstMatch(u);
   if (customMatch != null) {
@@ -310,5 +323,70 @@ String repairKnownDeadStreamUrl(String rawUrl, {String streamName = ''}) {
   }
 
   return u;
+}
+
+/// Resolves a single-hop redirect (if any) without consuming the final media stream.
+/// Useful for ExoPlayer when an HTTPS panel redirects (302) to an HTTP storage node.
+Future<String> resolveCrossProtocolRedirectForPlayback(
+  String rawUrl,
+  Map<String, String> headers,
+) async {
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 6)
+    ..idleTimeout = const Duration(seconds: 15)
+    ..autoUncompress = false
+    ..badCertificateCallback =
+        (X509Certificate cert, String host, int port) => true;
+  try {
+    Uri currentUri = Uri.parse(rawUrl.trim());
+    for (int hop = 0; hop < 5; hop++) {
+      final request = await client
+          .getUrl(currentUri)
+          .timeout(const Duration(seconds: 6));
+      request.followRedirects = false;
+      headers.forEach((k, v) {
+        if (v.isNotEmpty) request.headers.set(k, v);
+      });
+      final response =
+          await request.close().timeout(const Duration(seconds: 6));
+      final code = response.statusCode;
+      if (code == HttpStatus.movedPermanently ||
+          code == HttpStatus.found ||
+          code == HttpStatus.seeOther ||
+          code == HttpStatus.temporaryRedirect ||
+          code == HttpStatus.permanentRedirect) {
+        final location = response.headers.value(HttpHeaders.locationHeader);
+        await response.drain<void>().catchError((_) {});
+        if (location == null || location.trim().isEmpty) break;
+        final nextUri = currentUri.resolve(location.trim());
+        // If redirected to a direct storage node (different host or port), return it immediately
+        // before opening a connection to the storage node so one-time tokens remain valid for ExoPlayer.
+        if (nextUri.host != currentUri.host ||
+            nextUri.port != currentUri.port ||
+            nextUri.scheme != currentUri.scheme) {
+          // If it's just http -> https on the same domain (Cloudflare), follow one more hop
+          if (nextUri.host == currentUri.host &&
+              currentUri.scheme == 'http' &&
+              nextUri.scheme == 'https') {
+            currentUri = nextUri;
+            continue;
+          }
+          return nextUri.toString();
+        }
+        currentUri = nextUri;
+        continue;
+      }
+      // Not a redirect; abort connection immediately and return currentUri
+      client.close(force: true);
+      return currentUri.toString();
+    }
+    return currentUri.toString();
+  } catch (_) {
+    return rawUrl;
+  } finally {
+    try {
+      client.close(force: true);
+    } catch (_) {}
+  }
 }
 

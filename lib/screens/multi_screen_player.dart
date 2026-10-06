@@ -566,14 +566,29 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       }
     }
 
+    if (finalUrl.contains('/movie/') ||
+        finalUrl.contains('/series/') ||
+        finalUrl.contains('x.gamerdz1517.com') ||
+        finalUrl.contains('marveliptv.life')) {
+      finalUrl = await resolveCrossProtocolRedirectForPlayback(
+        finalUrl,
+        headers,
+      );
+      if (!mounted) return;
+    }
+
+    final bool isXtreamLiveEndpoint = RegExp(
+          r'/live/[^/]+/[^/]+/\d+',
+          caseSensitive: false,
+        ).hasMatch(finalUrl) ||
+        finalUrl.toLowerCase().contains('x.gamerdz1517.com/live/');
     BetterPlayerVideoFormat? format;
-    if (isHlsPlaybackUrl(finalUrl)) {
+    if (isXtreamLiveEndpoint || isProgressiveTsUrl(finalUrl)) {
+      format = null;
+    } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
-    } else if (isProgressiveTsUrl(finalUrl)) {
-      // Let ExoPlayer infer progressive MPEG-TS from the URL/content type.
-      format = null;
     }
 
     final bool isAsms = format == BetterPlayerVideoFormat.hls ||
@@ -587,13 +602,13 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
       useAsmsTracks: isAsms,
-      useAsmsSubtitles: false,
-      useAsmsAudioTracks: isAsms,
+      useAsmsSubtitles: true,
+      useAsmsAudioTracks: true,
       bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 1500,
-        maxBufferMs: 10000,
-        bufferForPlaybackMs: 500,
-        bufferForPlaybackAfterRebufferMs: 1000,
+        minBufferMs: 1200,
+        maxBufferMs: 8000,
+        bufferForPlaybackMs: 300,
+        bufferForPlaybackAfterRebufferMs: 800,
       ),
       drmConfiguration:
           widget.stream.clearKeys != null && widget.stream.clearKeys!.isNotEmpty

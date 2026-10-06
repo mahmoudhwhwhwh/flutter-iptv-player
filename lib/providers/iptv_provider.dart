@@ -581,7 +581,7 @@ class IPTVProvider with ChangeNotifier {
   Future<void> setStreamFormat(String val) async {
     _streamFormat = val;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('stream_format_v251', val);
+    await prefs.setString('stream_format_v252', val);
     await prefs.setString('stream_format', val);
     _playerSettingsVersion++;
     notifyListeners();
@@ -654,8 +654,16 @@ class IPTVProvider with ChangeNotifier {
       final savedStr = prefs.getString('recently_played_streams');
       if (savedStr != null) {
         final List decoded = jsonDecode(savedStr);
-        _recentlyPlayed =
-            decoded.map((item) => PlaylistItem.fromJson(item)).toList();
+        _recentlyPlayed = decoded.map((item) {
+          if (item is Map) {
+            final map = Map<String, dynamic>.from(item);
+            final rawUrl = map['url']?.toString() ?? '';
+            final rawName = map['name']?.toString() ?? '';
+            map['url'] = repairKnownDeadStreamUrl(rawUrl, streamName: rawName);
+            return PlaylistItem.fromJson(map);
+          }
+          return PlaylistItem.fromJson(item);
+        }).toList();
         notifyListeners();
       }
     } catch (_) {}
@@ -790,7 +798,7 @@ class IPTVProvider with ChangeNotifier {
   Future<String> _getCacheFilePath(String playlistId) async {
     final dir = await getApplicationDocumentsDirectory();
     final safeId = playlistId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
-    return '${dir.path}/playlist_cache_v251_$safeId.json';
+    return '${dir.path}/playlist_cache_v252_$safeId.json';
   }
 
   Future<bool> _loadCachedPlaylist(String playlistId) async {
@@ -1178,7 +1186,7 @@ class IPTVProvider with ChangeNotifier {
   // The repository stays private; production menu delivery goes through Worker/D1.
   // Playback URLs inside the menu still point to the authenticated Worker proxy.
   static const String _menuUrl = '$_workerBase/v1/custom/menu';
-  static const String _customMenuCacheKey = 'cached_custom_menu_v251';
+  static const String _customMenuCacheKey = 'cached_custom_menu_v252';
 
   Future<void> _refreshRemoteConfig({bool forceRefresh = false}) async {
     try {
@@ -1244,7 +1252,7 @@ class IPTVProvider with ChangeNotifier {
     // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
     _showMoviesSeries = true;
     await prefs.setBool('filter_show_movies_series', true);
-    _streamFormat = prefs.getString('stream_format_v251') ?? 'ts';
+    _streamFormat = prefs.getString('stream_format_v252') ?? 'ts';
     _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
     _lockedCategories = prefs.getStringList('locked_categories') ?? [];
@@ -1262,18 +1270,35 @@ class IPTVProvider with ChangeNotifier {
     }
     _subscriptionType = prefs.getString('active_code_sub_name') ?? "";
 
-    // Preserve the validated origin returned by the subscription service.
-    // Do not rewrite it to a Worker gateway unless that gateway is known to
-    // implement the complete Xtream/Stalker contract for this account.
+    // Preserve the validated origin returned by the subscription service,
+    // while migrating known dead origins (so.ta2al.us) to the active HTTPS Xtream gateway.
     _savedPlaylists = _savedPlaylists.map((playlist) {
       final host =
           (playlist.host ?? '').trim().replaceFirst(RegExp(r'/+$'), '');
       final isXtream = playlist.type.toLowerCase() == 'xtream';
       final isStalker = playlist.type.toLowerCase() == 'stalker';
       if (!isXtream && !isStalker) return playlist;
+      if (host.contains('so.ta2al.us')) {
+        return UserPlaylist(
+          id: playlist.id,
+          name: playlist.name,
+          type: playlist.type,
+          host: 'https://x.gamerdz1517.com',
+          username: '00:1A:79:27:9F:A2',
+          password: 'b8cfjif9',
+        );
+      }
+      if (host.startsWith('http://x.gamerdz1517.com')) {
+        return UserPlaylist(
+          id: playlist.id,
+          name: playlist.name,
+          type: playlist.type,
+          host: host.replaceFirst('http://', 'https://'),
+          username: playlist.username,
+          password: playlist.password,
+        );
+      }
       if (host.isEmpty || host.startsWith(_workerBase)) return playlist;
-      // Keep the origin. The app must not silently replace a working server
-      // with a route that may not exist on the deployed Worker.
       return playlist;
     }).toList();
     final savedCodesJson =
@@ -1352,7 +1377,7 @@ class IPTVProvider with ChangeNotifier {
         unawaited(loadPlaylistStreams(_activePlaylistId!));
       } else if ((_activationCode == '2027' || _activationCode == '8090') &&
           !_allStreams.any((s) => s.type == 'movie' || s.type == 'series')) {
-        unawaited(_appendXtreamVodFromCode('55669977').then((_) {
+        unawaited(_appendXtreamVodFromCode('8090').then((_) {
           if (_activePlaylistId != null) {
             _saveCachedPlaylist(_activePlaylistId!);
           }
@@ -1468,9 +1493,18 @@ class IPTVProvider with ChangeNotifier {
         .toString()
         .toLowerCase();
     final mode = (server['content_mode'] ?? 'iptv').toString().toLowerCase();
-    final host = server['host']?.toString() ?? '';
-    final username = server['username']?.toString() ?? '';
-    final password = server['password']?.toString() ?? '';
+    var host = (server['host']?.toString() ?? '')
+        .trim()
+        .replaceFirst(RegExp(r'/+$'), '');
+    var username = server['username']?.toString() ?? '';
+    var password = server['password']?.toString() ?? '';
+    if (host.contains('so.ta2al.us')) {
+      host = 'https://x.gamerdz1517.com';
+      username = '00:1A:79:27:9F:A2';
+      password = 'b8cfjif9';
+    } else if (host.startsWith('http://x.gamerdz1517.com')) {
+      host = host.replaceFirst('http://', 'https://');
+    }
     if (!hasCompleteWorkerSubscriptionProfile(data)) return false;
 
     var durationHours = -1;

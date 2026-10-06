@@ -361,12 +361,13 @@ class _PlayerScreenState extends State<PlayerScreen>
         final basePath = lowerPath.endsWith('.m3u8')
             ? path.substring(0, path.length - 5)
             : path.substring(0, path.length - 3);
-        if (preferredFormat == 'm3u8') {
-          add(uri.replace(path: '$basePath.m3u8').toString());
+        if (uri.host.toLowerCase().contains('gamerdz1517.com') ||
+            preferredFormat != 'm3u8') {
           add(uri.replace(path: '$basePath.ts').toString());
+          add(uri.replace(path: '$basePath.m3u8').toString());
         } else {
-          add(uri.replace(path: '$basePath.ts').toString());
           add(uri.replace(path: '$basePath.m3u8').toString());
+          add(uri.replace(path: '$basePath.ts').toString());
         }
       }
     }
@@ -1353,23 +1354,36 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activePlaybackUrl = cleanLocalPath;
       _activePlaybackHeaders = const {};
     } else {
+      // Resolve HTTPS <-> HTTP cross-protocol 302 redirects for VOD/Series/Live before ExoPlayer
+      if (finalUrl.contains('/movie/') ||
+          finalUrl.contains('/series/') ||
+          finalUrl.contains('x.gamerdz1517.com') ||
+          finalUrl.contains('marveliptv.life')) {
+        finalUrl = await resolveCrossProtocolRedirectForPlayback(
+          finalUrl,
+          headers,
+        );
+        if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
+      }
       _activePlaybackUrl = finalUrl;
       _activePlaybackHeaders = Map<String, String>.from(headers);
     }
 
     final bool isLiveChan =
         !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
-    final bool isXtreamLiveUrl = finalUrl.toLowerCase().contains('/live/');
+    final bool isXtreamLiveEndpoint = RegExp(
+          r'/live/[^/]+/[^/]+/\d+',
+          caseSensitive: false,
+        ).hasMatch(finalUrl) ||
+        finalUrl.toLowerCase().contains('x.gamerdz1517.com/live/');
     BetterPlayerVideoFormat? format;
-    if (isLocalFile) {
+    if (isLocalFile || isXtreamLiveEndpoint) {
       format = null;
     } else if (isProgressiveTsUrl(finalUrl) ||
         (isLiveChan && isLikelyLiveTransportStreamUrl(finalUrl))) {
       format = null;
     } else if (isHlsPlaybackUrl(finalUrl)) {
-      format = (isXtreamLiveUrl && _retryCount > 0)
-          ? null
-          : BetterPlayerVideoFormat.hls;
+      format = BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
     } else {
@@ -1393,13 +1407,13 @@ class _PlayerScreenState extends State<PlayerScreen>
               : null),
       headers: isLocalFile ? null : headers,
       useAsmsTracks: isAsms,
-      useAsmsSubtitles: false,
-      useAsmsAudioTracks: isAsms,
+      useAsmsSubtitles: !isLocalFile,
+      useAsmsAudioTracks: !isLocalFile,
       bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-        minBufferMs: 2000,
-        maxBufferMs: 15000,
-        bufferForPlaybackMs: 500,
-        bufferForPlaybackAfterRebufferMs: 1000,
+        minBufferMs: 1200,
+        maxBufferMs: 8000,
+        bufferForPlaybackMs: 300,
+        bufferForPlaybackAfterRebufferMs: 800,
       ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
@@ -1415,6 +1429,13 @@ class _PlayerScreenState extends State<PlayerScreen>
         autoPlay: true,
         looping: false,
         fit: _currentBoxFit,
+        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
+          fontSize: 0.0,
+          fontColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
+          outlineColor: Colors.transparent,
+          outlineSize: 0.0,
+        ),
         controlsConfiguration: const BetterPlayerControlsConfiguration(
           showControls: false,
           showControlsOnInitialize: false,
@@ -1426,12 +1447,6 @@ class _PlayerScreenState extends State<PlayerScreen>
       ),
       betterPlayerDataSource: dataSource,
     );
-
-    if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
-      setState(() {
-        _betterController = newBetterController;
-      });
-    }
 
     // Watchdog for Live TV: only switch candidate if stream genuinely hangs > 9.5s
     _liveStartupWatchdogTimer?.cancel();
@@ -1468,6 +1483,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               } catch (_) {}
               _betterController!.dispose();
             }
+            _betterPlayerKey = GlobalKey();
             _betterController = newBetterController;
             _initialized = true;
             _isBuffering = false;
@@ -2642,7 +2658,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             ),
                                           ),
                                         )
-                                      : _betterController != null
+                                      : _initialized && _betterController != null
                                           ? SizedBox.expand(
                                               child: (_totalDuration
                                                                   .inSeconds ==
@@ -2676,7 +2692,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               ),
 
               // Buffering indicator remains visible without blocking controls.
-              if ((_isBuffering || !_initialized) && !_hasError)
+              if (_isBuffering && !_hasError)
                 IgnorePointer(
                   child: _buildPlayerLoading(),
                 ),

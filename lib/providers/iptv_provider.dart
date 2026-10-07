@@ -601,7 +601,7 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 303;
+  static const int APP_VERSION_CODE = 304;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
   String _currentVersionStr = "2.2.2";

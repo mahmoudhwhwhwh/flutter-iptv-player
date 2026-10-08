@@ -21,6 +21,8 @@ import 'services/app_translations.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
 import 'services/performance_metrics.dart';
+import 'services/offline_download_manager.dart';
+import 'screens/downloads_screen.dart';
 import 'widgets/pin_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -76,6 +78,43 @@ Future<void> _initializeFirebaseInBackground() async {
     await Firebase.initializeApp();
     appAnalytics = FirebaseAnalytics.instance;
   } catch (_) {}
+}
+
+Future<void> _queueMovieDownload(
+  BuildContext context,
+  IPTVProvider provider,
+  PlaylistItem stream,
+) async {
+  final url = stream.url.split('|').first;
+  final clean = url.split('?').first.toLowerCase();
+  final supported = clean.endsWith('.mp4') ||
+      clean.endsWith('.m4v') ||
+      clean.endsWith('.mov');
+  if (!supported) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+          'التنزيل متاح حالياً لملفات MP4 فقط؛ صيغة HLS غير مدعومة دون اتصال.'),
+    ));
+    return;
+  }
+  final item = await OfflineDownloadManager.instance.add(
+    title: stream.name,
+    url: stream.url,
+    subscriptionScope: provider.activePlaylistId,
+  );
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(item == null
+        ? 'تعذر بدء التنزيل لهذا المصدر.'
+        : 'تمت إضافة ${stream.name} إلى التنزيلات.'),
+    action: item == null
+        ? null
+        : SnackBarAction(
+            label: 'التنزيلات',
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DownloadsScreen())),
+          ),
+  ));
 }
 
 class LiveFootballApp extends StatelessWidget {
@@ -1309,6 +1348,13 @@ class _MainDashboardState extends State<MainDashboard> {
               icon: const Icon(Icons.search_rounded,
                   color: Colors.white, size: 31),
               onPressed: () => updateIndex(1),
+            ),
+            IconButton(
+              tooltip: "التنزيلات",
+              icon: const Icon(Icons.download_rounded,
+                  color: Color(0xFFA855F7), size: 29),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DownloadsScreen())),
             ),
             IconButton(
               tooltip: "الإعدادات",
@@ -3250,6 +3296,53 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
   }
 
+  Future<void> _downloadEpisode(dynamic ep, int index) async {
+    if (widget.series.type == 'stalker_series') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تنزيل حلقات MAC/Stalker غير مدعوم حالياً.')));
+      return;
+    }
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    final epId = ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty) return;
+    final url = _resolveEpisodeStreamUrl(ep);
+    final clean = url.split('?').first.toLowerCase();
+    final advertisedExtension = (ep['container_extension'] ??
+            ep['extension'] ??
+            (ep['info'] is Map ? ep['info']['container_extension'] : null) ??
+            (ep['info'] is Map ? ep['info']['extension'] : null))
+        ?.toString();
+    final isMp4 = clean.endsWith('.mp4') ||
+        clean.endsWith('.m4v') ||
+        clean.endsWith('.mov') ||
+        ['mp4', 'm4v', 'mov'].contains(
+            advertisedExtension?.replaceFirst('.', '').toLowerCase());
+    if (!isMp4) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('هذه الحلقة ليست ملف MP4 قابلاً للتنزيل حالياً.')));
+      return;
+    }
+    final title =
+        '${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة ${index + 1}'}';
+    final item = await OfflineDownloadManager.instance.add(
+      title: title,
+      url: url,
+      subscriptionScope: provider.activePlaylistId,
+      advertisedExtension: advertisedExtension,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(item == null ? 'تعذر بدء تنزيل الحلقة.' : 'تمت إضافة الحلقة إلى التنزيلات.'),
+      action: item == null
+          ? null
+          : SnackBarAction(
+              label: 'التنزيلات',
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DownloadsScreen())),
+            ),
+    ));
+  }
+
   String _resolveEpisodeStreamUrl(
     dynamic ep, {
     String? host,
@@ -3705,6 +3798,12 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
+                                IconButton(
+                                  tooltip: 'تنزيل الحلقة',
+                                  icon: const Icon(Icons.download_rounded,
+                                      color: Color(0xFFA855F7), size: 23),
+                                  onPressed: () => _downloadEpisode(ep, i),
+                                ),
                                 const Icon(
                                   Icons.play_circle_fill_rounded,
                                   color: Color(0xFFA855F7),
@@ -4020,6 +4119,23 @@ Widget buildStreamCardLocal(
               ),
             ),
           ),
+          if (!isSeries && stream is PlaylistItem && stream.type == 'movie')
+            Positioned(
+              top: 4,
+              right: 4,
+              child: InkWell(
+                onTap: () => _queueMovieDownload(context, provider, stream),
+                child: Container(
+                  padding: EdgeInsets.all(isMobile ? 4 : 5),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.72),
+                      shape: BoxShape.circle),
+                  child: Icon(Icons.download_rounded,
+                      color: const Color(0xFFA855F7),
+                      size: isMobile ? 16 : 18),
+                ),
+              ),
+            ),
         ],
       ),
     ),

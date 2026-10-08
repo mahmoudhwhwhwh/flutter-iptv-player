@@ -230,6 +230,19 @@ class _PlayerScreenState extends State<PlayerScreen>
   int? _selectedVirtualBitrate;
   int _lastPlayerSettingsVersion = -1;
 
+  // Real BetterPlayer subtitle renderer preferences. These values are loaded
+  // before the controller is created and are persisted for later sessions.
+  double _subtitleFontSize = 22.0;
+  Color _subtitleFontColor = Colors.white;
+  Color _subtitleBackgroundColor = Colors.black;
+  double _subtitleBackgroundOpacity = 0.0;
+  bool _subtitleOutlineEnabled = true;
+  Color _subtitleOutlineColor = Colors.black;
+  String _subtitleFontFamily = 'Roboto';
+  Alignment _subtitleAlignment = Alignment.bottomCenter;
+  bool _subtitleEnabled = true;
+  String? _selectedSubtitleKey;
+
   // Position tracker
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
@@ -436,6 +449,111 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (_) {}
 
     return jsonEncode(keys);
+  }
+
+  BetterPlayerSubtitlesConfiguration _subtitleConfiguration() {
+    return BetterPlayerSubtitlesConfiguration(
+      fontSize: _subtitleFontSize,
+      fontColor: _subtitleFontColor,
+      backgroundColor: _subtitleBackgroundColor.withOpacity(
+        _subtitleBackgroundOpacity,
+      ),
+      outlineEnabled: _subtitleOutlineEnabled,
+      outlineColor: _subtitleOutlineColor,
+      outlineSize: _subtitleOutlineEnabled ? 2.0 : 0.0,
+      fontFamily: _subtitleFontFamily,
+      alignment: _subtitleAlignment,
+      bottomPadding: 28.0,
+      leftPadding: 12.0,
+      rightPadding: 12.0,
+    );
+  }
+
+  Alignment _subtitleAlignmentFromKey(String key) {
+    switch (key) {
+      case 'top':
+        return Alignment.topCenter;
+      case 'center':
+        return Alignment.center;
+      default:
+        return Alignment.bottomCenter;
+    }
+  }
+
+  String _subtitleAlignmentKey(Alignment alignment) {
+    if (alignment == Alignment.topCenter) return 'top';
+    if (alignment == Alignment.center) return 'center';
+    return 'bottom';
+  }
+
+  Future<void> _loadSubtitlePreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _subtitleFontSize = prefs.getDouble('subtitle_font_size') ?? 22.0;
+      _subtitleFontColor = Color(
+          prefs.getInt('subtitle_font_color') ?? Colors.white.value);
+      _subtitleBackgroundColor = Color(
+          prefs.getInt('subtitle_background_color') ?? Colors.black.value);
+      _subtitleBackgroundOpacity =
+          prefs.getDouble('subtitle_background_opacity') ?? 0.0;
+      _subtitleOutlineEnabled =
+          prefs.getBool('subtitle_outline_enabled') ?? true;
+      _subtitleOutlineColor = Color(
+          prefs.getInt('subtitle_outline_color') ?? Colors.black.value);
+      _subtitleFontFamily =
+          prefs.getString('subtitle_font_family') ?? 'Roboto';
+      _subtitleAlignment = _subtitleAlignmentFromKey(
+          prefs.getString('subtitle_alignment') ?? 'bottom');
+      _subtitleEnabled = prefs.getBool('subtitle_enabled') ?? true;
+      _selectedSubtitleKey = prefs.getString('subtitle_track_key');
+    } catch (_) {}
+  }
+
+  Future<void> _saveSubtitlePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('subtitle_font_size', _subtitleFontSize);
+    await prefs.setInt('subtitle_font_color', _subtitleFontColor.value);
+    await prefs.setInt(
+        'subtitle_background_color', _subtitleBackgroundColor.value);
+    await prefs.setDouble(
+        'subtitle_background_opacity', _subtitleBackgroundOpacity);
+    await prefs.setBool('subtitle_outline_enabled', _subtitleOutlineEnabled);
+    await prefs.setInt('subtitle_outline_color', _subtitleOutlineColor.value);
+    await prefs.setString('subtitle_font_family', _subtitleFontFamily);
+    await prefs.setString(
+        'subtitle_alignment', _subtitleAlignmentKey(_subtitleAlignment));
+    await prefs.setBool('subtitle_enabled', _subtitleEnabled);
+    if (_selectedSubtitleKey == null) {
+      await prefs.remove('subtitle_track_key');
+    } else {
+      await prefs.setString('subtitle_track_key', _selectedSubtitleKey!);
+    }
+  }
+
+  String _subtitleSourceKey(BetterPlayerSubtitlesSource source) {
+    final name = source.name?.trim() ?? '';
+    final url = source.urls?.whereType<String>().join('|') ?? '';
+    return '$name::$url';
+  }
+
+  Future<void> _restoreSubtitleTrack(BetterPlayerController controller) async {
+    if (!_subtitleEnabled || _selectedSubtitleKey == null) {
+      if (!_subtitleEnabled) {
+        controller.setupSubtitleSource(BetterPlayerSubtitlesSource(
+          type: BetterPlayerSubtitlesSourceType.none,
+        ));
+      }
+      return;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    BetterPlayerSubtitlesSource? source;
+    for (final item in controller.betterPlayerSubtitlesSourceList) {
+      if (_subtitleSourceKey(item) == _selectedSubtitleKey) {
+        source = item;
+        break;
+      }
+    }
+    if (source != null) await controller.setupSubtitleSource(source);
   }
 
   Future<void> _loadSubSettings() async {
@@ -1009,7 +1127,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _initializeController();
+    _loadSubtitlePreferences().whenComplete(_initializeController);
     _resetHideHUDTimer();
   }
 
@@ -1429,13 +1547,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         autoPlay: true,
         looping: false,
         fit: _currentBoxFit,
-        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
-          fontSize: 0.0,
-          fontColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          outlineColor: Colors.transparent,
-          outlineSize: 0.0,
-        ),
+        subtitlesConfiguration: _subtitleConfiguration(),
         controlsConfiguration: const BetterPlayerControlsConfiguration(
           showControls: false,
           showControlsOnInitialize: false,
@@ -1518,6 +1630,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               }
             }
             _betterController!.play();
+            unawaited(_restoreSubtitleTrack(_betterController!));
             _startSeekTracker();
           });
         }
@@ -1917,6 +2030,244 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
       );
     }
+  }
+
+  Future<void> _showSubtitleSettings() async {
+    if (!mounted || _betterController == null) return;
+    final sources = _betterController!.betterPlayerSubtitlesSourceList
+        .where((source) =>
+            source.type != BetterPlayerSubtitlesSourceType.none)
+        .toList();
+    var enabled = _subtitleEnabled;
+    var size = _subtitleFontSize;
+    var fontColor = _subtitleFontColor;
+    var backgroundColor = _subtitleBackgroundColor;
+    var backgroundOpacity = _subtitleBackgroundOpacity;
+    var outlineEnabled = _subtitleOutlineEnabled;
+    var outlineColor = _subtitleOutlineColor;
+    var fontFamily = _subtitleFontFamily;
+    var alignment = _subtitleAlignment;
+    var trackKey = _selectedSubtitleKey;
+
+    const colors = <Color>[
+      Colors.white,
+      Colors.yellow,
+      Colors.cyan,
+      Colors.greenAccent,
+      Colors.orange,
+      Colors.pinkAccent,
+    ];
+    const fonts = <String>['Roboto', 'Arial', 'Cairo', 'sans-serif'];
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          Widget colorChoices(Color selected, void Function(Color) onPick) {
+            return Wrap(
+              spacing: 8,
+              children: colors
+                  .map((color) => GestureDetector(
+                        onTap: () => setModalState(() => onPick(color)),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected.value == color.value
+                                  ? const Color(0xFFA855F7)
+                                  : Colors.white24,
+                              width: selected.value == color.value ? 3 : 1,
+                            ),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            );
+          }
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1B2B),
+            title: const Text('إعدادات الترجمة',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(color: Colors.white)),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('تشغيل الترجمة',
+                            style: TextStyle(color: Colors.white)),
+                        value: enabled,
+                        activeColor: const Color(0xFFA855F7),
+                        onChanged: (value) =>
+                            setModalState(() => enabled = value),
+                      ),
+                      const SizedBox(height: 8),
+                      if (sources.isNotEmpty)
+                        DropdownButtonFormField<String>(
+                          value: sources.any((s) =>
+                                  _subtitleSourceKey(s) == trackKey)
+                              ? trackKey
+                              : _subtitleSourceKey(sources.first),
+                          dropdownColor: const Color(0xFF29233B),
+                          decoration: const InputDecoration(
+                            labelText: 'مسار الترجمة',
+                            labelStyle: TextStyle(color: Colors.white70),
+                          ),
+                          items: sources
+                              .map((source) => DropdownMenuItem<String>(
+                                    value: _subtitleSourceKey(source),
+                                    child: Text(source.name ?? 'ترجمة',
+                                        style: const TextStyle(
+                                            color: Colors.white)),
+                                  ))
+                              .toList(),
+                          onChanged: enabled
+                              ? (value) => setModalState(() => trackKey = value)
+                              : null,
+                        )
+                      else
+                        const Text('لا توجد مسارات ترجمة من المصدر الحالي.',
+                            style: TextStyle(color: Colors.white60)),
+                      const SizedBox(height: 14),
+                      Text('حجم الخط: ${size.toInt()}',
+                          style: const TextStyle(color: Colors.white)),
+                      Slider(
+                        value: size,
+                        min: 12,
+                        max: 48,
+                        divisions: 18,
+                        activeColor: const Color(0xFFA855F7),
+                        onChanged: enabled
+                            ? (value) => setModalState(() => size = value)
+                            : null,
+                      ),
+                      const Text('لون الخط',
+                          style: TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 6),
+                      colorChoices(fontColor, (value) => fontColor = value),
+                      const SizedBox(height: 12),
+                      const Text('لون الخلفية',
+                          style: TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 6),
+                      colorChoices(backgroundColor,
+                          (value) => backgroundColor = value),
+                      Text('شفافية الخلفية: ${(backgroundOpacity * 100).toInt()}%',
+                          style: const TextStyle(color: Colors.white)),
+                      Slider(
+                        value: backgroundOpacity,
+                        min: 0,
+                        max: 1,
+                        divisions: 10,
+                        activeColor: const Color(0xFFA855F7),
+                        onChanged: enabled
+                            ? (value) => setModalState(
+                                () => backgroundOpacity = value)
+                            : null,
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('حدود النص',
+                            style: TextStyle(color: Colors.white)),
+                        value: outlineEnabled,
+                        activeColor: const Color(0xFFA855F7),
+                        onChanged: enabled
+                            ? (value) => setModalState(
+                                () => outlineEnabled = value)
+                            : null,
+                      ),
+                      if (outlineEnabled) ...[
+                        const Text('لون الحدود',
+                            style: TextStyle(color: Colors.white70)),
+                        const SizedBox(height: 6),
+                        colorChoices(outlineColor,
+                            (value) => outlineColor = value),
+                      ],
+                      DropdownButtonFormField<String>(
+                        value: fonts.contains(fontFamily) ? fontFamily : fonts.first,
+                        dropdownColor: const Color(0xFF29233B),
+                        decoration: const InputDecoration(
+                          labelText: 'نوع الخط',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                        items: fonts
+                            .map((font) => DropdownMenuItem<String>(
+                                  value: font,
+                                  child: Text(font,
+                                      style: const TextStyle(color: Colors.white)),
+                                ))
+                            .toList(),
+                        onChanged: enabled
+                            ? (value) => setModalState(
+                                () => fontFamily = value ?? fonts.first)
+                            : null,
+                      ),
+                      DropdownButtonFormField<Alignment>(
+                        value: alignment,
+                        dropdownColor: const Color(0xFF29233B),
+                        decoration: const InputDecoration(
+                          labelText: 'موضع الترجمة',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                              value: Alignment.topCenter,
+                              child: Text('أعلى')),
+                          DropdownMenuItem(
+                              value: Alignment.center,
+                              child: Text('وسط')),
+                          DropdownMenuItem(
+                              value: Alignment.bottomCenter,
+                              child: Text('أسفل')),
+                        ],
+                        onChanged: enabled
+                            ? (value) => setModalState(
+                                () => alignment = value ?? Alignment.bottomCenter)
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('تطبيق'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (result != true || !mounted) return;
+    setState(() {
+      _subtitleEnabled = enabled;
+      _subtitleFontSize = size;
+      _subtitleFontColor = fontColor;
+      _subtitleBackgroundColor = backgroundColor;
+      _subtitleBackgroundOpacity = backgroundOpacity;
+      _subtitleOutlineEnabled = outlineEnabled;
+      _subtitleOutlineColor = outlineColor;
+      _subtitleFontFamily = fontFamily;
+      _subtitleAlignment = alignment;
+      _selectedSubtitleKey = trackKey;
+    });
+    await _saveSubtitlePreferences();
+    _showOnScreenToast('تم حفظ إعدادات الترجمة وإعادة تطبيقها', Icons.subtitles);
+    _initializeController(isRetry: true);
   }
 
   void _showSleepTimerSelector() {
@@ -3426,6 +3777,21 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   tooltip: "سرعة التشغيل",
                                   onPressed: () {
                                     _showSpeedSelector();
+                                    _resetHideHUDTimer();
+                                  },
+                                ),
+                              if (!isLive)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.subtitles_rounded,
+                                    color: _subtitleEnabled
+                                        ? const Color(0xFFA855F7)
+                                        : Colors.white54,
+                                    size: 24,
+                                  ),
+                                  tooltip: 'إعدادات الترجمة',
+                                  onPressed: () {
+                                    _showSubtitleSettings();
                                     _resetHideHUDTimer();
                                   },
                                 ),

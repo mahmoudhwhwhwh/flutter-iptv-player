@@ -1,3 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_iptv_player/widgets/pin_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -10,6 +15,7 @@ import 'multi_screen_player.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:video_player/video_player.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -17,6 +23,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_iptv_player/main.dart';
 import 'package:flutter_iptv_player/models/playlist_item.dart';
 import 'package:flutter_iptv_player/providers/iptv_provider.dart';
+import 'dart:typed_data';
 import 'package:flutter_iptv_player/services/stalker_playback.dart';
 import 'package:flutter_iptv_player/services/channel_switch_guard.dart';
 import 'package:flutter_iptv_player/services/redacted_diagnostics.dart';
@@ -145,8 +152,40 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
+  VideoPlayerController? _loadingVideoController;
+  VideoPlayerController? _offlineVideoController;
+
+  void _initOfflineVideo() {
+    if (_offlineVideoController != null &&
+        _offlineVideoController!.value.isInitialized) {
+      return;
+    }
+    try {
+      final ctrl = VideoPlayerController.asset('assets/channel_offline.mp4');
+      ctrl.initialize().then((_) {
+        if (!mounted) {
+          ctrl.dispose();
+          return;
+        }
+        ctrl.setLooping(true);
+        ctrl.setVolume(0.0);
+        ctrl.play();
+        setState(() {
+          _offlineVideoController = ctrl;
+        });
+      }).catchError((_) {});
+    } catch (_) {}
+  }
+
+  void _initLoadingVideo() {
+    // Kept lightweight to avoid competing with ExoPlayer hardware decoder
+  }
   WebViewController? _webController;
   bool _isWebFallback = false;
+  VideoPlayerController? _localFallbackController;
+  bool _usingLocalFallback = false;
+  String _activePlaybackUrl = '';
+  Map<String, String> _activePlaybackHeaders = const {};
   GlobalKey _betterPlayerKey = GlobalKey();
   bool _initialized = false;
   bool _hasError = false;
@@ -156,9 +195,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _showHUD = true;
   Timer? _hideHUDTimer;
   bool _isPipActive = false;
-  String _aiSubtitleText = "";
-  String _selectedAiLang = "";
-  Timer? _aiSubtitleTimer;
 
   BoxFit _currentBoxFit = BoxFit.contain;
   String _aspectRatioLabel = "تلقائي";
@@ -200,11 +236,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   Timer? _positionTimer;
   final ChannelSwitchGuard _channelSwitchGuard = ChannelSwitchGuard();
 
-  double _subSizeVal = 16.0;
-  Color _subColorVal = Colors.white;
-  Color _subBgColorVal = Colors.transparent;
-  String _subFontVal = 'Cairo';
-  String _subLangVal = "تلقائي";
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
 
@@ -241,13 +272,26 @@ class _PlayerScreenState extends State<PlayerScreen>
   int _retryCount = 0;
   final int _maxRetries = 3;
   Timer? _reconnectTimer;
+  Timer? _liveStartupWatchdogTimer;
+
+  // Photo & Video Capture State
+  final GlobalKey _videoCaptureBoundaryKey = GlobalKey();
+  bool _isTakingScreenshot = false;
+  bool _isRecordingClip = false;
+  bool _recordingStopRequested = false;
+  int _recordingSeconds = 0;
+  int _recordedBytes = 0;
+  Timer? _recordingTimer;
+  HttpClient? _activeRecordingClient;
+  IOSink? _activeRecordingSink;
+  String? _activeRecordingFilePath;
+  final List<String> _capturedMediaFiles = [];
 
   bool get _isLiveStream =>
-      _stream.type == 'live' || _totalDuration.inSeconds == 0;
+      _stream.type == 'live' || _stream.type == 'stalker';
 
   Duration _liveRetryDelay() {
-    final seconds = (1 << (_retryCount.clamp(0, 4))).toInt();
-    return Duration(seconds: seconds.clamp(1, 12));
+    return const Duration(milliseconds: 250);
   }
 
   bool get _isDrm => _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty;
@@ -255,7 +299,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<String?> _malformedHlsTsFallback(String url) async {
     try {
       final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
       if (response.statusCode < 200 || response.statusCode >= 300) return null;
       final body = response.body;
       if (RegExp(r'^#EXTM3U', multiLine: true).allMatches(body).length < 2) {
@@ -289,18 +333,64 @@ class _PlayerScreenState extends State<PlayerScreen>
         candidates.add(normalized);
       }
     }
-    add(primary);
-    final uri = Uri.tryParse(primary);
-    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      add(uri.replace(scheme: uri.scheme == 'http' ? 'https' : 'http').toString());
-      final path = uri.path.toLowerCase();
-      if (path.endsWith('.ts')) {
-        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 3)}m3u8').toString());
-      } else if (path.endsWith('.m3u8')) {
-        add(uri.replace(path: '${uri.path.substring(0, uri.path.length - 5)}ts').toString());
+    String preferredFormat = 'ts';
+    try {
+      if (mounted) {
+        preferredFormat =
+            Provider.of<IPTVProvider>(context, listen: false).streamFormat;
+      }
+    } catch (_) {}
+
+    final repairedPrimary =
+        repairKnownDeadStreamUrl(primary.trim(), streamName: _stream.name);
+    var uri = Uri.tryParse(repairedPrimary);
+    if (uri != null &&
+        uri.host.toLowerCase() == 'x.gamerdz1517.com' &&
+        uri.scheme == 'http') {
+      uri = uri.replace(scheme: 'https');
+    }
+    final isXtreamVodOrSeries = repairedPrimary.contains('/movie/') ||
+        repairedPrimary.contains('/series/');
+    final isXtreamLive = uri != null &&
+        !isXtreamVodOrSeries &&
+        uri.path.toLowerCase().contains('/live/');
+    if (isXtreamLive) {
+      final path = uri.path;
+      final lowerPath = path.toLowerCase();
+      if (lowerPath.endsWith('.ts') || lowerPath.endsWith('.m3u8')) {
+        final basePath = lowerPath.endsWith('.m3u8')
+            ? path.substring(0, path.length - 5)
+            : path.substring(0, path.length - 3);
+        if (uri.host.toLowerCase().contains('gamerdz1517.com') ||
+            preferredFormat != 'm3u8') {
+          add(uri.replace(path: '$basePath.ts').toString());
+          add(uri.replace(path: '$basePath.m3u8').toString());
+        } else {
+          add(uri.replace(path: '$basePath.m3u8').toString());
+          add(uri.replace(path: '$basePath.ts').toString());
+        }
       }
     }
-    if (_stream.fallbackUrl?.trim().isNotEmpty == true) add(_stream.fallbackUrl!);
+    add(uri != null ? uri.toString() : repairedPrimary);
+    if (_stream.fallbackUrl?.trim().isNotEmpty == true) {
+      add(repairKnownDeadStreamUrl(_stream.fallbackUrl!,
+          streamName: _stream.name));
+    }
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      if (isXtreamVodOrSeries) {
+        final dotIdx = uri.path.lastIndexOf('.');
+        final slashIdx = uri.path.lastIndexOf('/');
+        final prefix =
+            dotIdx > slashIdx ? uri.path.substring(0, dotIdx) : uri.path;
+        for (final ext in ['mp4', 'mkv', 'ts']) {
+          add(uri.replace(path: '$prefix.$ext').toString());
+        }
+      } else if (isXtreamLive) {
+        add(uri
+            .replace(scheme: uri.scheme == 'http' ? 'https' : 'http')
+            .toString());
+      }
+    }
     return candidates;
   }
 
@@ -351,81 +441,549 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<void> _loadSubSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      String sSize = prefs.getString('sub_size') ?? "متوسط";
-      String sCol = prefs.getString('sub_color') ?? "أبيض";
-      String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
-      _subFontVal = prefs.getString('sub_font') ?? 'Cairo';
-      _subLangVal = prefs.getString('sub_lang') ?? "تلقائي";
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
-
-      if (sSize == "صغير")
-        _subSizeVal = 12.0;
-      else if (sSize == "متوسط")
-        _subSizeVal = 16.0;
-      else if (sSize == "كبير")
-        _subSizeVal = 22.0;
-      else if (sSize == "ضخم")
-        _subSizeVal = 28.0;
-      else
-        _subSizeVal = 16.0;
-
-      if (sCol == "أصفر")
-        _subColorVal = Colors.yellow;
-      else if (sCol == "أزرق سماوي")
-        _subColorVal = Colors.cyanAccent;
-      else if (sCol == "أخضر")
-        _subColorVal = Colors.greenAccent;
-      else if (sCol == "أحمر")
-        _subColorVal = Colors.redAccent;
-      else if (sCol == "أزرق")
-        _subColorVal = Colors.blueAccent;
-      else if (sCol == "وردي")
-        _subColorVal = Colors.pinkAccent;
-      else if (sCol == "برتقالي")
-        _subColorVal = Colors.orange;
-      else if (sCol == "بنفسجي")
-        _subColorVal = Colors.purpleAccent;
-      else if (sCol == "أسود")
-        _subColorVal = Colors.black;
-      else if (sCol == "رمادي")
-        _subColorVal = Colors.grey;
-      else
-        _subColorVal = Colors.white;
-
-      if (sBg == "أسود")
-        _subBgColorVal = Colors.black87;
-      else if (sBg == "رمادي داكن")
-        _subBgColorVal = Colors.black54;
-      else if (sBg == "أحمر داكن")
-        _subBgColorVal = Colors.red[900]!.withOpacity(0.8);
-      else if (sBg == "أزرق داكن")
-        _subBgColorVal = Colors.blue[900]!.withOpacity(0.8);
-      else if (sBg == "أخضر داكن")
-        _subBgColorVal = Colors.green[900]!.withOpacity(0.8);
-      else if (sBg == "أرجواني داكن")
-        _subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
-      else if (sBg == "أبيض")
-        _subBgColorVal = Colors.white70;
-      else
-        _subBgColorVal = Colors.transparent;
-
-      // المشغّل يُعرض أفقياً دائماً لتثبيت الأزرار ومنع التدوير غير المتوقع.
       _isPortrait = false;
       _rotationMode = RotationMode.landscapeOnly;
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-
       if (mounted) setState(() {});
-    } catch (e) {}
+    } catch (_) {}
+  }
+
+  Future<Directory> _resolveCapturesDirectory() async {
+    try {
+      if (Platform.isAndroid) {
+        final dlDir = Directory('/storage/emulated/0/Download/LiveStreamPro');
+        if (!dlDir.existsSync()) {
+          await dlDir.create(recursive: true);
+        }
+        if (dlDir.existsSync()) return dlDir;
+      }
+    } catch (_) {}
+    final docs = await getApplicationDocumentsDirectory();
+    final capDir = Directory('${docs.path}/captures');
+    if (!capDir.existsSync()) {
+      await capDir.create(recursive: true);
+    }
+    return capDir;
+  }
+
+  String _formatRecSeconds(int sec) {
+    final m = (sec ~/ 60).toString().padLeft(2, '0');
+    final s = (sec % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  String _formatBytesCount(int bytes) {
+    if (bytes <= 0) return '0 KB';
+    final mb = bytes / (1024 * 1024);
+    if (mb >= 1.0) return '${mb.toStringAsFixed(1)} MB';
+    return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  }
+
+  Future<void> _captureScreenshot() async {
+    if (_isTakingScreenshot) return;
+    setState(() {
+      _isTakingScreenshot = true;
+    });
+    try {
+      final boundaryContext = _videoCaptureBoundaryKey.currentContext;
+      if (boundaryContext == null) {
+        _showOnScreenToast('انتظر لحظة حتى يجهز المشغل للتصوير', Icons.camera_alt_rounded);
+        return;
+      }
+      final boundary =
+          boundaryContext.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      _showOnScreenToast('جارٍ التقاط الصورة...', Icons.camera_alt_rounded);
+      final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      final ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      final dir = await _resolveCapturesDirectory();
+      final cleanTitle = _stream.name
+          .replaceAll(RegExp(r'[^\w\u0600-\u06FF\- ]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '_');
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName =
+          'SHOT_${cleanTitle.isEmpty ? "stream" : cleanTitle}_$stamp.png';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(pngBytes, flush: true);
+
+      if (!mounted) return;
+      setState(() {
+        _capturedMediaFiles.insert(0, file.path);
+      });
+      _showOnScreenToast('تم حفظ لقطة الشاشة بنجاح 📸', Icons.check_circle_rounded);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF14112B),
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.memory(
+                  pngBytes,
+                  width: 48,
+                  height: 30,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تم حفظ الصورة: $fileName',
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'المعرض',
+            textColor: const Color(0xFF38BDF8),
+            onPressed: _showCapturesGalleryModal,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Screenshot capture error: $e');
+      if (mounted) {
+        _showOnScreenToast('تعذر التقاط الصورة حالياً', Icons.error_outline_rounded);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTakingScreenshot = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleVideoRecording() async {
+    if (_isRecordingClip) {
+      await _stopVideoRecording();
+      return;
+    }
+
+    final sourceUrl =
+        _activePlaybackUrl.isNotEmpty ? _activePlaybackUrl : _stream.url.trim();
+    if (sourceUrl.isEmpty) {
+      _showOnScreenToast('لا يوجد بث نشط لتسجيله حالياً', Icons.videocam_off_rounded);
+      return;
+    }
+
+    final dir = await _resolveCapturesDirectory();
+    final cleanTitle = _stream.name
+        .replaceAll(RegExp(r'[^\w\u0600-\u06FF\- ]'), '')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_');
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final isLocalSource = sourceUrl.startsWith('/') || sourceUrl.startsWith('file://');
+    final ext = isLocalSource
+        ? (sourceUrl.endsWith('.mkv') ? 'mkv' : 'mp4')
+        : (sourceUrl.toLowerCase().contains('.mp4') ? 'mp4' : 'ts');
+    final outPath =
+        '${dir.path}/REC_${cleanTitle.isEmpty ? "video" : cleanTitle}_$stamp.$ext';
+
+    setState(() {
+      _isRecordingClip = true;
+      _recordingStopRequested = false;
+      _recordingSeconds = 0;
+      _recordedBytes = 0;
+      _activeRecordingFilePath = outPath;
+    });
+
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _isRecordingClip) {
+        setState(() {
+          _recordingSeconds += 1;
+        });
+      }
+    });
+
+    _showOnScreenToast('بدأ تسجيل الفيديو 🔴 اضغط مرة أخرى للإيقاف والحفظ', Icons.fiber_manual_record_rounded);
+    unawaited(_runStreamClipRecorder(sourceUrl, outPath));
+  }
+
+  Future<void> _runStreamClipRecorder(String sourceUrl, String outPath) async {
+    final outFile = File(outPath);
+    IOSink? sink;
+    HttpClient? client;
+    try {
+      sink = outFile.openWrite(mode: FileMode.writeOnlyAppend);
+      _activeRecordingSink = sink;
+
+      // Case 1: Recording from a local file clip
+      if (sourceUrl.startsWith('/') || sourceUrl.startsWith('file://')) {
+        final srcFile = File(sourceUrl.replaceFirst(RegExp(r'^file://'), ''));
+        if (srcFile.existsSync()) {
+          final totalLen = srcFile.lengthSync();
+          final durSec = _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : 1;
+          final startOffset = ((_currentPosition.inSeconds / durSec) * totalLen)
+              .round()
+              .clamp(0, totalLen > 0 ? totalLen - 1 : 0);
+          final raf = await srcFile.open(mode: FileMode.read);
+          await raf.setPosition(startOffset);
+          while (_isRecordingClip && !_recordingStopRequested) {
+            final chunk = await raf.read(65536);
+            if (chunk.isEmpty) break;
+            sink.add(chunk);
+            _recordedBytes += chunk.length;
+            await Future<void>.delayed(const Duration(milliseconds: 120));
+          }
+          await raf.close();
+        }
+        return;
+      }
+
+      client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
+      client.badCertificateCallback = (cert, host, port) => true;
+      _activeRecordingClient = client;
+
+      final headers = <String, String>{
+        'User-Agent': _activePlaybackHeaders['User-Agent'] ?? 'VLC/3.0.20 LibVLC/3.0.20',
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+        ..._activePlaybackHeaders,
+      };
+
+      // Build candidate URLs (try both .ts and .m3u8 for live streams)
+      final candidates = <String>[sourceUrl];
+      if (sourceUrl.endsWith('.m3u8')) {
+        candidates.add('${sourceUrl.substring(0, sourceUrl.length - 5)}.ts');
+      } else if (sourceUrl.endsWith('.ts')) {
+        candidates.add('${sourceUrl.substring(0, sourceUrl.length - 3)}.m3u8');
+      }
+
+      for (final candidate in candidates) {
+        if (!_isRecordingClip || _recordingStopRequested) break;
+        final uri = Uri.tryParse(candidate);
+        if (uri == null) continue;
+
+        final req = await client.getUrl(uri).timeout(const Duration(seconds: 10));
+        headers.forEach((k, v) {
+          if (v.isNotEmpty) req.headers.set(k, v);
+        });
+        final resp = await req.close().timeout(const Duration(seconds: 10));
+        if (resp.statusCode < 200 || resp.statusCode >= 300) {
+          await resp.drain<void>().catchError((_) {});
+          continue;
+        }
+
+        final cType = (resp.headers.contentType?.mimeType ?? '').toLowerCase();
+        final isM3u8 = candidate.toLowerCase().contains('.m3u8') ||
+            cType.contains('mpegurl');
+
+        if (!isM3u8) {
+          await for (final chunk in resp) {
+            if (!_isRecordingClip || _recordingStopRequested) break;
+            sink.add(chunk);
+            _recordedBytes += chunk.length;
+          }
+          if (_recordedBytes > 0) break;
+        } else {
+          // Read initial playlist text
+          final firstBytes = await resp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+          String playlistText = utf8.decode(firstBytes, allowMalformed: true);
+          Uri playlistUri = uri;
+
+          // If master playlist, resolve variant
+          if (playlistText.contains('#EXT-X-STREAM-INF')) {
+            final lines = playlistText.split(RegExp(r'\r?\n'));
+            for (final line in lines) {
+              final t = line.trim();
+              if (t.isNotEmpty && !t.startsWith('#')) {
+                playlistUri = uri.resolve(t);
+                break;
+              }
+            }
+          }
+
+          final seenSegments = <String>{};
+          while (_isRecordingClip && !_recordingStopRequested) {
+            final plReq = await client.getUrl(playlistUri).timeout(const Duration(seconds: 8));
+            headers.forEach((k, v) {
+              if (v.isNotEmpty) plReq.headers.set(k, v);
+            });
+            final plResp = await plReq.close().timeout(const Duration(seconds: 8));
+            if (plResp.statusCode == 200) {
+              final plBytes = await plResp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+              final text = utf8.decode(plBytes, allowMalformed: true);
+              final segUrls = <Uri>[];
+              for (final rawLine in text.split(RegExp(r'\r?\n'))) {
+                final l = rawLine.trim();
+                if (l.isEmpty || l.startsWith('#')) continue;
+                final resolved = playlistUri.resolve(l);
+                if (seenSegments.add(resolved.toString())) {
+                  segUrls.add(resolved);
+                }
+              }
+              for (final segUri in segUrls) {
+                if (!_isRecordingClip || _recordingStopRequested) break;
+                try {
+                  final segReq = await client.getUrl(segUri).timeout(const Duration(seconds: 8));
+                  headers.forEach((k, v) {
+                    if (v.isNotEmpty) segReq.headers.set(k, v);
+                  });
+                  final segResp = await segReq.close().timeout(const Duration(seconds: 8));
+                  if (segResp.statusCode >= 200 && segResp.statusCode < 300) {
+                    await for (final chunk in segResp) {
+                      if (!_isRecordingClip || _recordingStopRequested) break;
+                      sink.add(chunk);
+                      _recordedBytes += chunk.length;
+                    }
+                  } else {
+                    await segResp.drain<void>().catchError((_) {});
+                  }
+                } catch (_) {}
+              }
+            } else {
+              await plResp.drain<void>().catchError((_) {});
+            }
+            if (!_isRecordingClip || _recordingStopRequested) break;
+            await Future<void>.delayed(const Duration(seconds: 2));
+          }
+          if (_recordedBytes > 0) break;
+        }
+      }
+    } catch (e) {
+      debugPrint('Video clip recording error: $e');
+    } finally {
+      try {
+        await sink?.flush();
+        await sink?.close();
+      } catch (_) {}
+      try {
+        client?.close(force: true);
+      } catch (_) {}
+      _activeRecordingSink = null;
+      _activeRecordingClient = null;
+    }
+  }
+
+  Future<void> _stopVideoRecording() async {
+    _recordingStopRequested = true;
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
+    final recordedPath = _activeRecordingFilePath;
+    final durationSecs = _recordingSeconds;
+    try {
+      await _activeRecordingSink?.flush();
+      await _activeRecordingSink?.close();
+    } catch (_) {}
+    try {
+      _activeRecordingClient?.close(force: true);
+    } catch (_) {}
+    _activeRecordingSink = null;
+    _activeRecordingClient = null;
+
+    if (!mounted) return;
+    setState(() {
+      _isRecordingClip = false;
+    });
+
+    if (recordedPath != null) {
+      final f = File(recordedPath);
+      if (f.existsSync() && f.lengthSync() > 0) {
+        setState(() {
+          _capturedMediaFiles.insert(0, recordedPath);
+        });
+        _showOnScreenToast(
+          'تم حفظ الفيديو المسجل (${_formatBytesCount(f.lengthSync())}) 🎬',
+          Icons.check_circle_rounded,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF14112B),
+              duration: const Duration(seconds: 4),
+              content: Text(
+                'تم حفظ الفيديو المسجل (${durationSecs} ثانية • ${_formatBytesCount(f.lengthSync())})',
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              action: SnackBarAction(
+                label: 'المعرض',
+                textColor: const Color(0xFF38BDF8),
+                onPressed: _showCapturesGalleryModal,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    _showOnScreenToast(
+      'تم إيقاف التسجيل (تأكد من دعم السيرفر لاتصال إضافي أثناء المشاهدة)',
+      Icons.info_outline_rounded,
+    );
+  }
+
+  void _showCapturesGalleryModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF12101B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.photo_library_rounded,
+                          color: Color(0xFFA855F7)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'الصور والفيديوهات الملتقطة',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (_capturedMediaFiles.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'لم تقم بالتقاط صور أو تسجيل فيديو في هذه الجلسة بعد',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 180,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _capturedMediaFiles.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final path = _capturedMediaFiles[index];
+                          final file = File(path);
+                          final isImage = path.toLowerCase().endsWith('.png') ||
+                              path.toLowerCase().endsWith('.jpg');
+                          final name = path.split('/').last;
+                          return GestureDetector(
+                            onTap: () {
+                              if (!isImage && file.existsSync()) {
+                                Navigator.pop(ctx);
+                                _zapStream(
+                                  Provider.of<IPTVProvider>(context,
+                                      listen: false),
+                                  PlaylistItem(
+                                    name: name,
+                                    url: path,
+                                    streamIcon: _stream.streamIcon,
+                                    categoryId: 'captures',
+                                    categoryName: 'تسجيلات الشاشة',
+                                    streamId: 'cap_${path.hashCode}',
+                                    type: 'file',
+                                  ),
+                                );
+                              }
+                            },
+                            child: Container(
+                              width: 200,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C192B),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: isImage && file.existsSync()
+                                        ? Image.file(file, fit: BoxFit.cover)
+                                        : Container(
+                                            color: Colors.black54,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.play_circle_fill_rounded,
+                                                color: Color(0xFFA855F7),
+                                                size: 42,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontFamily: 'Cairo',
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final version = context.watch<IPTVProvider>().playerSettingsVersion;
+    final version =
+        Provider.of<IPTVProvider>(context, listen: false).playerSettingsVersion;
     final shouldRefresh = _lastPlayerSettingsVersion >= 0 &&
         _lastPlayerSettingsVersion != version &&
         _initialized;
@@ -433,10 +991,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (shouldRefresh) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _loadSubSettings();
-        // Better Player يحتفظ بنمط الترجمة في State داخلي؛ المفتاح الجديد
-        // يعيد إنشاء طبقة النص بالقيم المحفوظة بدلاً من الشكل الافتراضي القديم.
-        _betterPlayerKey = GlobalKey();
-        if (mounted) _initializeController(isRetry: true);
       });
     }
   }
@@ -449,10 +1003,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _screenOnTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) WakelockPlus.enable();
     });
-    _loadSubSettings();
     _stream = widget.stream;
-
-    // عرض ثابت أفقي للمشغّل؛ لا تُستخدم حساسات الحركة لتفادي التدوير العشوائي.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
@@ -462,86 +1013,23 @@ class _PlayerScreenState extends State<PlayerScreen>
     _resetHideHUDTimer();
   }
 
-  Future<void> _prepareXtreamSubtitles(
-    BetterPlayerController controller,
-    Map<String, String> headers,
-  ) async {
-    // Better Player يقرأ قائمة HLS/DASH برؤوس البث، لكن مسارات الترجمة
-    // المكتشفة لا ترثها تلقائياً. ننسخها هنا لمسارات Xtream الحقيقية.
-    for (var attempt = 0; attempt < 8 && mounted; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
-      final sources = controller.betterPlayerSubtitlesSourceList;
-      final trackIndexes = <int>[];
-      for (var i = 0; i < sources.length; i++) {
-        if (sources[i].type != BetterPlayerSubtitlesSourceType.none) {
-          trackIndexes.add(i);
-        }
-      }
-      if (trackIndexes.isEmpty) continue;
-
-      for (final index in trackIndexes) {
-        final source = sources[index];
-        sources[index] = BetterPlayerSubtitlesSource(
-          type: source.type,
-          name: source.name,
-          urls: source.urls,
-          content: source.content,
-          selectedByDefault: source.selectedByDefault,
-          headers: Map<String, String>.from(headers),
-          asmsIsSegmented: source.asmsIsSegmented,
-          asmsSegmentsTime: source.asmsSegmentsTime,
-          asmsSegments: source.asmsSegments,
-        );
-      }
-      await _applyPreferredSubtitleLanguage(retries: 0);
-      return;
-    }
-  }
-
-  Future<void> _applyPreferredSubtitleLanguage({int retries = 5}) async {
-    if (_subLangVal == "تلقائي" || _betterController == null) return;
-    try {
-      final tracks = _betterController!.betterPlayerSubtitlesSourceList;
-      String targetLang = _subLangVal.toLowerCase();
-      if (targetLang == "arabic")
-        targetLang = "ar";
-      else if (targetLang == "english")
-        targetLang = "en";
-      else if (targetLang == "french")
-        targetLang = "fr";
-      else if (targetLang == "spanish")
-        targetLang = "es";
-      else if (targetLang == "turkish")
-        targetLang = "tr";
-      else if (targetLang == "persian") targetLang = "fa";
-
-      BetterPlayerSubtitlesSource? matchedSource;
-      for (final track in tracks) {
-        final name = (track.name ?? "").toLowerCase();
-        if (name.contains(targetLang) ||
-            (targetLang == "ar" && name.contains("عرب"))) {
-          matchedSource = track;
-          break;
-        }
-      }
-      if (matchedSource != null) {
-        await _betterController!.setupSubtitleSource(matchedSource);
-      } else if (retries > 0 && mounted) {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
-        await _applyPreferredSubtitleLanguage(retries: retries - 1);
-      }
-    } catch (e) {
-      debugPrint(
-          "Failed to apply Xtream subtitle language: ${redactDiagnostic(e)}");
-    }
-  }
-
   void _disposeActiveController() {
+    _liveStartupWatchdogTimer?.cancel();
+    _liveStartupWatchdogTimer = null;
     final controller = _betterController;
     _betterController = null;
+    final localCtrl = _localFallbackController;
+    _localFallbackController = null;
+    _usingLocalFallback = false;
     _initialized = false;
     _positionTimer?.cancel();
     _positionTimer = null;
+    if (localCtrl != null) {
+      try {
+        localCtrl.pause();
+        localCtrl.dispose();
+      } catch (_) {}
+    }
     if (controller == null) return;
     try {
       controller.setVolume(0.0);
@@ -552,10 +1040,53 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (_) {}
   }
 
+  Future<bool> _startLocalNativeFallback(
+    String cleanLocalPath,
+    int? savedPosition,
+    int loadGeneration,
+  ) async {
+    try {
+      final file = File(cleanLocalPath);
+      if (!file.existsSync() || file.lengthSync() <= 0) return false;
+      final ctrl = VideoPlayerController.file(file);
+      await ctrl.initialize();
+      if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) {
+        await ctrl.dispose();
+        return false;
+      }
+      await ctrl.setLooping(false);
+      await ctrl.setVolume(_volume);
+      final dur = ctrl.value.duration;
+      if (savedPosition != null && savedPosition > 0) {
+        final pos = Duration(seconds: savedPosition);
+        if (dur == Duration.zero || pos < dur) {
+          await ctrl.seekTo(pos);
+        }
+      }
+      await ctrl.play();
+      if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
+        setState(() {
+          _localFallbackController = ctrl;
+          _usingLocalFallback = true;
+          _initialized = true;
+          _isBuffering = false;
+          _hasError = false;
+          _errorMessage = null;
+          _totalDuration = dur;
+        });
+        _startSeekTracker();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Local native fallback error: $e');
+      return false;
+    }
+  }
+
   void _initializeController({bool isRetry = false, int? generation}) async {
     final loadGeneration = generation ?? _channelSwitchGuard.begin();
     int? savedPosition;
-    if (_stream.type != 'live') {
+    if (_stream.type != 'live' && _stream.type != 'stalker') {
       try {
         final prefs = await SharedPreferences.getInstance();
         savedPosition = prefs.getInt('vod_pos_${_stream.streamId}');
@@ -563,7 +1094,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         debugPrint("Error loading saved position: ${redactDiagnostic(e)}");
       }
     }
-    await _loadSubSettings();
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     if (!isRetry) {
       _initialized = false;
@@ -597,14 +1127,20 @@ class _PlayerScreenState extends State<PlayerScreen>
       debugPrint("Could not log play_channel event: $e");
     }
 
+    bool isOfflineMedia = _stream.type == 'file' ||
+        _stream.url.startsWith('/') ||
+        _stream.url.startsWith('file://');
     final provider = Provider.of<IPTVProvider>(context, listen: false);
-    final candidates = _playbackCandidates(_stream.url);
-    final candidateIndex = isRetry && candidates.isNotEmpty
-        ? _retryCount % candidates.length
-        : 0;
-    String urlStr = candidates.isEmpty
-        ? stripFfmpegPrefix(_stream.url)
-        : candidates[candidateIndex];
+    String urlStr = _stream.url;
+    if (!isOfflineMedia) {
+      final candidates = _playbackCandidates(_stream.url);
+      final candidateIndex = isRetry && candidates.isNotEmpty
+          ? _retryCount % candidates.length
+          : 0;
+      urlStr = candidates.isEmpty
+          ? stripFfmpegPrefix(_stream.url)
+          : candidates[candidateIndex];
+    }
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
       orElse: () => UserPlaylist(id: '', name: '', type: ''),
@@ -617,7 +1153,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             (_stream.type == "movie" || _stream.type == "series"));
     final bool isDirectStalkerPlayback = isDirectStalkerPlaybackUrl(urlStr);
 
-    if (isStalkerContent && !isDirectStalkerPlayback) {
+    if (!isOfflineMedia && isStalkerContent && !isDirectStalkerPlayback) {
       try {
         final host =
             (activePlaylist.host ?? '').replaceFirst(RegExp(r'/+$'), '');
@@ -640,7 +1176,9 @@ class _PlayerScreenState extends State<PlayerScreen>
           "X-User-Agent": "Model: MAG250; Link: WiFi; Conn: WiFi"
         };
 
-        final res = await http.get(linkUrl, headers: reqHeaders);
+        final res = await http
+            .get(linkUrl, headers: reqHeaders)
+            .timeout(const Duration(seconds: 12));
         if (res.statusCode == 200) {
           final data = json.decode(res.body);
           if (data['js'] != null && data['js']['cmd'] != null) {
@@ -654,20 +1192,16 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     String finalUrl = urlStr;
-    if (isHlsPlaybackUrl(finalUrl)) {
-      final malformedFallback = await _malformedHlsTsFallback(finalUrl);
-      if (malformedFallback != null && malformedFallback.isNotEmpty) {
-        finalUrl = malformedFallback;
-        urlStr = finalUrl;
-      }
-    }
+    // Skip pre-fetch HTTP delay; pass stream URL directly to ExoPlayer for instant playback
     final sourceDescriptor = classifyPlaybackUrl(finalUrl);
     final isIptvMediaCandidate = _stream.type == 'live' ||
         _stream.type == 'movie' ||
         _stream.type == 'series' ||
         _stream.type == 'channel' ||
         _stream.type.startsWith('stalker_');
-    if (!sourceDescriptor.isDirectMedia && isIptvMediaCandidate) {
+    if (isOfflineMedia) {
+      // Offline local file playback
+    } else if (!sourceDescriptor.isDirectMedia && isIptvMediaCandidate) {
       // Xtream/Stalker VOD endpoints often omit the extension and return the
       // media MIME type only after the request. Keep these URLs in ExoPlayer
       // instead of incorrectly treating them as HTML pages.
@@ -800,38 +1334,87 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
     _disposeActiveController();
 
+    final bool isLocalFile = _stream.type == 'file' ||
+        finalUrl.startsWith('/') ||
+        finalUrl.startsWith('file://');
+    String cleanLocalPath = finalUrl.replaceFirst(RegExp(r'^file://'), '');
+    if (isLocalFile) {
+      File localFile = File(cleanLocalPath);
+      if (!localFile.existsSync() || localFile.lengthSync() <= 0) {
+        if (mounted) {
+          setState(() {
+            _initialized = false;
+            _isBuffering = false;
+            _hasError = true;
+            _errorMessage = 'ملف الفيديو غير مكتمل أو غير موجود على الجهاز.';
+          });
+        }
+        return;
+      }
+      _activePlaybackUrl = cleanLocalPath;
+      _activePlaybackHeaders = const {};
+    } else {
+      // Resolve HTTPS <-> HTTP cross-protocol 302 redirects for VOD/Series/Live before ExoPlayer
+      if (finalUrl.contains('/movie/') ||
+          finalUrl.contains('/series/') ||
+          finalUrl.contains('x.gamerdz1517.com') ||
+          finalUrl.contains('marveliptv.life')) {
+        finalUrl = await resolveCrossProtocolRedirectForPlayback(
+          finalUrl,
+          headers,
+        );
+        if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
+      }
+      _activePlaybackUrl = finalUrl;
+      _activePlaybackHeaders = Map<String, String>.from(headers);
+    }
+
+    final bool isLiveChan =
+        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
+    final bool isXtreamLiveEndpoint = RegExp(
+          r'/live/[^/]+/[^/]+/\d+',
+          caseSensitive: false,
+        ).hasMatch(finalUrl) ||
+        finalUrl.toLowerCase().contains('x.gamerdz1517.com/live/');
     BetterPlayerVideoFormat? format;
-    if (isHlsPlaybackUrl(finalUrl)) {
+    if (isLocalFile || isXtreamLiveEndpoint) {
+      format = null;
+    } else if (isProgressiveTsUrl(finalUrl) ||
+        (isLiveChan && isLikelyLiveTransportStreamUrl(finalUrl))) {
+      format = null;
+    } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
-    } else if (isProgressiveTsUrl(finalUrl)) {
-      // Leave formatHint unset for progressive TS. ExoPlayer can infer MPEG-TS
-      // from the .ts URL/content type; forcing `other` bypasses that inference.
-      format = null;
-    } else if (_stream.type == 'live' &&
-        isLikelyLiveTransportStreamUrl(finalUrl)) {
-      // Some IPTV servers expose raw MPEG-TS at an extensionless URL.
+    } else {
       format = null;
     }
-
-    bool isAsms = format == BetterPlayerVideoFormat.hls ||
-        format == BetterPlayerVideoFormat.dash;
-
+    bool isAsms = !isLocalFile &&
+        (format == BetterPlayerVideoFormat.hls ||
+            format == BetterPlayerVideoFormat.dash);
     final BetterPlayerDataSource dataSource = BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      finalUrl,
-      liveStream: _stream.type == 'live' || _stream.type == 'stalker',
+      isLocalFile
+          ? BetterPlayerDataSourceType.file
+          : BetterPlayerDataSourceType.network,
+      isLocalFile ? cleanLocalPath : finalUrl,
+      liveStream: isLiveChan,
       videoFormat: format,
-      videoExtension: (isProgressiveTsUrl(finalUrl) ||
-              ((_stream.type == 'live' || _stream.type == 'stalker') &&
-                  isLikelyLiveTransportStreamUrl(finalUrl)))
-          ? 'ts'
-          : null,
-      headers: headers,
+      videoExtension: isLocalFile
+          ? null
+          : ((isProgressiveTsUrl(finalUrl) ||
+                  (isLiveChan && isLikelyLiveTransportStreamUrl(finalUrl)))
+              ? 'ts'
+              : null),
+      headers: isLocalFile ? null : headers,
       useAsmsTracks: isAsms,
-      useAsmsSubtitles: isAsms,
-      useAsmsAudioTracks: isAsms,
+      useAsmsSubtitles: !isLocalFile,
+      useAsmsAudioTracks: !isLocalFile,
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 1200,
+        maxBufferMs: 8000,
+        bufferForPlaybackMs: 300,
+        bufferForPlaybackAfterRebufferMs: 800,
+      ),
       drmConfiguration:
           _isDrm && _stream.clearKeys != null && _stream.clearKeys!.isNotEmpty
               ? BetterPlayerDrmConfiguration(
@@ -846,16 +1429,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         autoPlay: true,
         looping: false,
         fit: _currentBoxFit,
-        subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
-          fontSize: _subSizeVal,
-          fontColor: _subColorVal,
-          backgroundColor: _subBgColorVal,
-          outlineColor: Colors.black,
-          outlineSize: 2.0,
-          fontFamily: _subFontVal,
-          bottomPadding: 48.0,
-          leftPadding: 16.0,
-          rightPadding: 16.0,
+        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
+          fontSize: 0.0,
+          fontColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
+          outlineColor: Colors.transparent,
+          outlineSize: 0.0,
         ),
         controlsConfiguration: const BetterPlayerControlsConfiguration(
           showControls: false,
@@ -869,8 +1448,23 @@ class _PlayerScreenState extends State<PlayerScreen>
       betterPlayerDataSource: dataSource,
     );
 
+    // Watchdog for Live TV: only switch candidate if stream genuinely hangs > 9.5s
+    _liveStartupWatchdogTimer?.cancel();
+    if (isLiveChan && _retryCount < 3) {
+      _liveStartupWatchdogTimer = Timer(const Duration(milliseconds: 9500), () {
+        if (mounted &&
+            _channelSwitchGuard.isCurrent(loadGeneration) &&
+            !_initialized &&
+            !_hasError) {
+          _retryCount += 1;
+          _initializeController(isRetry: true, generation: loadGeneration);
+        }
+      });
+    }
+
     newBetterController.addEventsListener((BetterPlayerEvent event) {
       if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
+        _liveStartupWatchdogTimer?.cancel();
         if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) {
           try {
             newBetterController.setVolume(0.0);
@@ -889,8 +1483,10 @@ class _PlayerScreenState extends State<PlayerScreen>
               } catch (_) {}
               _betterController!.dispose();
             }
+            _betterPlayerKey = GlobalKey();
             _betterController = newBetterController;
             _initialized = true;
+            _isBuffering = false;
             _retryCount = 0;
             if (_betterController!.videoPlayerController != null) {
               _totalDuration =
@@ -922,7 +1518,6 @@ class _PlayerScreenState extends State<PlayerScreen>
               }
             }
             _betterController!.play();
-            unawaited(_prepareXtreamSubtitles(newBetterController, headers));
             _startSeekTracker();
           });
         }
@@ -938,8 +1533,21 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
       } else if (event.betterPlayerEventType ==
           BetterPlayerEventType.exception) {
+        _liveStartupWatchdogTimer?.cancel();
         final errorMessage = event.parameters?["message"] ?? "Playback failure";
         debugPrint("BetterPlayer exception: ${redactDiagnostic(errorMessage)}");
+        if (isLocalFile) {
+          unawaited(
+            _startLocalNativeFallback(
+              cleanLocalPath,
+              savedPosition,
+              loadGeneration,
+            ).then((ok) {
+              if (!ok) _handlePlaybackError(errorMessage, loadGeneration);
+            }),
+          );
+          return;
+        }
         _handlePlaybackError(errorMessage, loadGeneration);
       }
     });
@@ -952,10 +1560,17 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted) return;
     _reconnectTimer?.cancel();
     if (_isLiveStream) {
-      // Live is continuous: keep the player screen alive and reconnect in-place.
-      // The source may rotate tokens/segments temporarily; do not show the VOD
-      // failure screen or navigate away while the retry loop is active.
       _retryCount += 1;
+      if (_retryCount >= 4) {
+        _initOfflineVideo();
+        setState(() {
+          _initialized = false;
+          _isBuffering = false;
+          _hasError = true;
+          _errorMessage = "هذه القناة معطلة أو متوقفة من المصدر حالياً";
+        });
+        return;
+      }
       final delay = _liveRetryDelay();
       setState(() {
         _initialized = false;
@@ -990,107 +1605,25 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _startSeekTracker() {
     _positionTimer?.cancel();
-    // البث المباشر لا يحتاج إعادة بناء صفحة المشغّل مرتين في الثانية.
-    if (_stream.type == 'live') return;
-    _positionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final value = _betterController?.videoPlayerController?.value;
-      if (mounted &&
-          value != null &&
-          value.initialized &&
-          value.position != _currentPosition) {
-        setState(() => _currentPosition = value.position);
-      }
-    });
-  }
-
-  @override
-  void _startAiSubtitleTimer() {
-    _aiSubtitleTimer?.cancel();
-    _aiSubtitleTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_selectedAiLang.isEmpty) {
-        if (_aiSubtitleText.isNotEmpty) {
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 220), (timer) {
+      if (!mounted) return;
+      if (_usingLocalFallback && _localFallbackController != null) {
+        final val = _localFallbackController!.value;
+        if (val.isInitialized && val.position != _currentPosition) {
           setState(() {
-            _aiSubtitleText = "";
+            _currentPosition = val.position;
+            if (val.duration > Duration.zero) {
+              _totalDuration = val.duration;
+            }
           });
         }
         return;
       }
-
-      double currentSecs = 0.0;
-      if (_betterController != null &&
-          _betterController!.videoPlayerController != null) {
-        currentSecs = _betterController!
-            .videoPlayerController!.value.position.inSeconds
-            .toDouble();
-      }
-
-      final int secs = currentSecs.toInt() % 120;
-
-      // VOD mapping
-      final Map<int, Map<String, String>> vodSubs = {
-        0: {
-          'ar': 'مرحباً بكم في هذا البث',
-          'en': 'Welcome to this stream',
-          'fr': 'Bienvenue sur ce flux'
-        },
-        10: {
-          'ar': 'نحن نتابع الأحداث معاً',
-          'en': 'We are following the events together',
-          'fr': 'Nous suivons les événements ensemble'
-        },
-        30: {
-          'ar': 'ابقوا معنا للمزيد',
-          'en': 'Stay tuned for more',
-          'fr': 'Restez avec nous pour plus'
-        },
-        60: {
-          'ar': 'تغطية مستمرة على مدار الساعة',
-          'en': 'Continuous coverage around the clock',
-          'fr': 'Couverture continue 24h/24'
-        },
-      };
-
-      // Live mapping
-      final Map<int, Map<String, String>> liveSubs = {
-        0: {
-          'ar': 'بث مباشر - تغطية حصرية',
-          'en': 'Live Stream - Exclusive Coverage',
-          'fr': 'En direct - Couverture exclusive'
-        },
-        15: {
-          'ar': 'نقل حي للأحداث',
-          'en': 'Live broadcast of events',
-          'fr': 'Diffusion en direct des événements'
-        },
-        45: {
-          'ar': 'تغطية عاجلة',
-          'en': 'Breaking coverage',
-          'fr': 'Couverture urgente'
-        },
-      };
-
-      bool isVod =
-          _betterController?.videoPlayerController?.value.duration != null &&
-              _betterController!.videoPlayerController!.value.duration! >
-                  Duration.zero;
-
-      final mapToUse = isVod ? vodSubs : liveSubs;
-      int activeKey = 0;
-
-      final keys = mapToUse.keys.toList()..sort();
-      for (int k in keys) {
-        if (secs >= k) {
-          activeKey = k;
-        } else {
-          break;
-        }
-      }
-
-      String text = mapToUse[activeKey]?[_selectedAiLang] ?? '';
-      if (_aiSubtitleText != text) {
-        setState(() {
-          _aiSubtitleText = text;
-        });
+      final value = _betterController?.videoPlayerController?.value;
+      if (value != null &&
+          value.initialized &&
+          value.position != _currentPosition) {
+        setState(() => _currentPosition = value.position);
       }
     });
   }
@@ -1124,6 +1657,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    final offlineCtrl = _offlineVideoController;
+    _offlineVideoController = null;
+    offlineCtrl?.dispose();
     if (_stream.type != 'live' && _currentPosition > Duration.zero) {
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt('vod_pos_${_stream.streamId}', _currentPosition.inSeconds);
@@ -1134,8 +1670,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     _gyroSubscription?.cancel();
     _positionTimer?.cancel();
     _hideHUDTimer?.cancel();
-    _aiSubtitleTimer?.cancel();
     _reconnectTimer?.cancel();
+    _liveStartupWatchdogTimer?.cancel();
+    _recordingTimer?.cancel();
+    try {
+      _activeRecordingSink?.close();
+    } catch (_) {}
+    try {
+      _activeRecordingClient?.close(force: true);
+    } catch (_) {}
     _zoomIndicatorTimer?.cancel();
     _lockToggleTimer?.cancel();
     _sleepTimer?.cancel();
@@ -1169,7 +1712,6 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _resetHideHUDTimer() {
     _hideHUDTimer?.cancel();
-    _aiSubtitleTimer?.cancel();
     if (_showHUD) {
       _hideHUDTimer = Timer(const Duration(seconds: 4), () {
         if (mounted) {
@@ -1375,150 +1917,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
       );
     }
-  }
-
-  void _showSubtitlesSelector() {
-    if (_betterController == null || !_initialized) return;
-
-    showDialog(
-        context: context,
-        builder: (BuildContext bContext) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: StatefulBuilder(builder: (context, setModalState) {
-              final List<BetterPlayerSubtitlesSource> rawSubtitles =
-                  _betterController!.betterPlayerSubtitlesSourceList;
-              final selectedSub =
-                  _betterController!.betterPlayerSubtitlesSource;
-
-              // Filter and sort Arabic to top
-              List<BetterPlayerSubtitlesSource> validSubtitles = rawSubtitles
-                  .where((s) => s.type != BetterPlayerSubtitlesSourceType.none)
-                  .toList();
-              validSubtitles.sort((a, b) {
-                final aName = (a.name ?? "").toLowerCase();
-                final bName = (b.name ?? "").toLowerCase();
-                final aLang = "";
-                final bLang = "";
-
-                bool aIsAr = aName.contains("ar") ||
-                    aLang.contains("ar") ||
-                    aName.contains("عرب");
-                bool bIsAr = bName.contains("ar") ||
-                    bLang.contains("ar") ||
-                    bName.contains("عرب");
-
-                if (aIsAr && !bIsAr) return -1;
-                if (!aIsAr && bIsAr) return 1;
-                return aName.compareTo(bName);
-              });
-
-              return Directionality(
-                textDirection: TextDirection.rtl,
-                child: Container(
-                  width: 500,
-                  constraints: const BoxConstraints(maxHeight: 500),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E20),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.subtitles_rounded,
-                                color: Colors.amberAccent),
-                            const SizedBox(width: 8),
-                            const Text("الترجمة",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold)),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close,
-                                  color: Colors.white54),
-                              onPressed: () => Navigator.pop(bContext),
-                            )
-                          ],
-                        ),
-                      ),
-                      const Divider(color: Colors.white12, height: 1),
-                      Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          children: [
-                            ListTile(
-                              title: const Text("إيقاف الترجمة",
-                                  style: TextStyle(color: Colors.white)),
-                              trailing: (selectedSub == null ||
-                                      selectedSub.type ==
-                                          BetterPlayerSubtitlesSourceType.none)
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.amberAccent)
-                                  : null,
-                              onTap: () {
-                                _betterController!.setupSubtitleSource(
-                                    BetterPlayerSubtitlesSource(
-                                        type: BetterPlayerSubtitlesSourceType
-                                            .none));
-                                setModalState(() {});
-                                Navigator.pop(bContext);
-                              },
-                            ),
-                            if (validSubtitles.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                child: Text("الترجمات المدمجة",
-                                    style: TextStyle(
-                                        color: Colors.white54, fontSize: 12)),
-                              ),
-                              ...validSubtitles.map((sub) {
-                                final isSelected = selectedSub == sub;
-                                final name = sub.name ?? "ترجمة (غير معروف)";
-                                return ListTile(
-                                  title: Text(name,
-                                      style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.amberAccent
-                                              : Colors.white)),
-                                  trailing: isSelected
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.amberAccent)
-                                      : null,
-                                  onTap: () {
-                                    _betterController!.setupSubtitleSource(sub);
-                                    setModalState(() {});
-                                    Navigator.pop(bContext);
-                                  },
-                                );
-                              }).toList(),
-                            ],
-                            if (validSubtitles.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(
-                                  'لا توجد ترجمة مدمجة لهذا البث من خادم Xtream.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: Colors.white60, fontSize: 13),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          );
-        });
   }
 
   void _showSleepTimerSelector() {
@@ -2001,6 +2399,19 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget build(BuildContext context) {
     final provider = Provider.of<IPTVProvider>(context);
 
+    if (provider.snifferDetected || provider.isBlackScreenBlocked) {
+      try {
+        _betterController?.pause();
+        _betterController?.clearCache();
+      } catch (_) {}
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox.expand(
+          child: ColoredBox(color: Colors.black),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: WillPopScope(
@@ -2162,11 +2573,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                   final screenWidth = MediaQuery.of(context).size.width;
                   if (details.globalPosition.dx < screenWidth / 2) {
                     // Seek backward 10s
-                    if (_betterController != null && _initialized) {
+                    if (_initialized) {
                       final pos =
                           _currentPosition - const Duration(seconds: 10);
-                      _betterController!
-                          .seekTo(pos < Duration.zero ? Duration.zero : pos);
+                      final target = pos < Duration.zero ? Duration.zero : pos;
+                      if (_usingLocalFallback &&
+                          _localFallbackController != null) {
+                        _localFallbackController!.seekTo(target);
+                      } else {
+                        _betterController?.seekTo(target);
+                      }
                       setState(() {
                         _swipeToastIcon = Icons.replay_10_rounded;
                         _swipeToastText = "رجوع 10 ثواني";
@@ -2174,11 +2590,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                     }
                   } else {
                     // Seek forward 10s
-                    if (_betterController != null && _initialized) {
+                    if (_initialized) {
                       final pos =
                           _currentPosition + const Duration(seconds: 10);
-                      _betterController!
-                          .seekTo(pos > _totalDuration ? _totalDuration : pos);
+                      final target =
+                          pos > _totalDuration ? _totalDuration : pos;
+                      if (_usingLocalFallback &&
+                          _localFallbackController != null) {
+                        _localFallbackController!.seekTo(target);
+                      } else {
+                        _betterController?.seekTo(target);
+                      }
                       setState(() {
                         _swipeToastIcon = Icons.forward_10_rounded;
                         _swipeToastText = "تقديم 10 ثواني";
@@ -2193,38 +2615,78 @@ class _PlayerScreenState extends State<PlayerScreen>
                       });
                   });
                 },
-                child: Container(
-                  color: Colors.black,
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: Center(
-                    child: _hasError
-                        ? _buildErrorScreen(provider)
-                        : _isWebFallback && _webController != null
-                            ? SizedBox.expand(
-                                child:
-                                    WebViewWidget(controller: _webController!),
-                              )
-                            : _initialized && _betterController != null
-                                ? SizedBox.expand(
-                                    child: (_totalDuration.inSeconds == 0 ||
-                                                _stream.type == 'live') &&
-                                            _liveImageFilter !=
-                                                LiveImageFilter.none
-                                        ? ColorFiltered(
-                                            colorFilter: ColorFilter.matrix(
-                                              liveImageFilterMatrix(
-                                                  _liveImageFilter),
+                child: RepaintBoundary(
+                  key: _videoCaptureBoundaryKey,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(
+                        color: Colors.black,
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Center(
+                          child: _hasError
+                              ? _buildErrorScreen(provider)
+                              : _isWebFallback && _webController != null
+                                  ? SizedBox.expand(
+                                      child: WebViewWidget(
+                                          controller: _webController!),
+                                    )
+                                  : _initialized &&
+                                          _usingLocalFallback &&
+                                          _localFallbackController != null &&
+                                          _localFallbackController!
+                                              .value.isInitialized
+                                      ? SizedBox.expand(
+                                          child: FittedBox(
+                                            fit: _currentBoxFit,
+                                            child: SizedBox(
+                                              width: _localFallbackController!
+                                                          .value.size.width >
+                                                      0
+                                                  ? _localFallbackController!
+                                                      .value.size.width
+                                                  : 1280,
+                                              height: _localFallbackController!
+                                                          .value.size.height >
+                                                      0
+                                                  ? _localFallbackController!
+                                                      .value.size.height
+                                                  : 720,
+                                              child: VideoPlayer(
+                                                  _localFallbackController!),
                                             ),
-                                            child: BetterPlayer(
-                                                key: _betterPlayerKey,
-                                                controller: _betterController!),
-                                          )
-                                        : BetterPlayer(
-                                            key: _betterPlayerKey,
-                                            controller: _betterController!),
-                                  )
-                                : _buildPlayerLoading(),
+                                          ),
+                                        )
+                                      : _initialized && _betterController != null
+                                          ? SizedBox.expand(
+                                              child: (_totalDuration
+                                                                  .inSeconds ==
+                                                              0 ||
+                                                          _stream.type ==
+                                                              'live') &&
+                                                      _liveImageFilter !=
+                                                          LiveImageFilter.none
+                                                  ? ColorFiltered(
+                                                      colorFilter:
+                                                          ColorFilter.matrix(
+                                                        liveImageFilterMatrix(
+                                                            _liveImageFilter),
+                                                      ),
+                                                      child: BetterPlayer(
+                                                          key: _betterPlayerKey,
+                                                          controller:
+                                                              _betterController!),
+                                                    )
+                                                  : BetterPlayer(
+                                                      key: _betterPlayerKey,
+                                                      controller:
+                                                          _betterController!),
+                                            )
+                                          : _buildPlayerLoading(),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -2239,6 +2701,55 @@ class _PlayerScreenState extends State<PlayerScreen>
                 IgnorePointer(
                   child: Container(
                     color: Colors.black.withOpacity(_brightnessFactor),
+                  ),
+                ),
+
+              // 2.4 Active Video Recording Indicator Badge (always visible while recording)
+              if (_isRecordingClip)
+                Positioned(
+                  top: 38,
+                  left: 48,
+                  child: GestureDetector(
+                    onTap: _toggleVideoRecording,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.5)),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Colors.redAccent,
+                              blurRadius: 12,
+                              offset: Offset(0, 2))
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 9,
+                            height: 9,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'REC ${_formatRecSeconds(_recordingSeconds)} • إيقاف وحفظ',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'Cairo',
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
 
@@ -2447,88 +2958,186 @@ class _PlayerScreenState extends State<PlayerScreen>
       fit: StackFit.expand,
       children: [
         Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
-        Container(color: Colors.black.withOpacity(0.10)),
+        Container(color: Colors.black.withOpacity(0.12)),
+        const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFA855F7),
+            strokeWidth: 3,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildErrorScreen(IPTVProvider provider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-      color: const Color(0xFF0C0C0E),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Colors.orangeAccent, size: 55),
-          const SizedBox(height: 12),
-          Text(
-            _stream.type == 'movie'
-                ? "تعذر تشغيل الفيلم حالياً."
-                : _stream.type == 'series'
-                    ? "تعذر تشغيل الحلقة حالياً."
-                    : "تعذر تشغيل القناة حالياً.",
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "قد يكون المصدر مشغولاً أو انتهت جلسة الاشتراك. حاول مرة أخرى.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!.length > 140
-                  ? _errorMessage!.substring(0, 140)
-                  : _errorMessage!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.orangeAccent, fontSize: 11),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                ),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("إعادة المحاولة / RETRY"),
-                onPressed: () {
-                  setState(() {
-                    _retryCount = 0;
-                    _hasError = false;
-                    _errorMessage = null;
-                    _initialized = false;
-                  });
-                  _initializeController();
-                },
+    if (_offlineVideoController == null ||
+        !_offlineVideoController!.value.isInitialized) {
+      _initOfflineVideo();
+    }
+    final isLive = _stream.type == 'live' || _stream.type == 'stalker';
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (_offlineVideoController != null &&
+            _offlineVideoController!.value.isInitialized)
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _offlineVideoController!.value.size.width,
+                height: _offlineVideoController!.value.size.height,
+                child: VideoPlayer(_offlineVideoController!),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                  side: const BorderSide(color: Colors.white38),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-                icon: const Icon(Icons.arrow_back, size: 18),
-                label: const Text("الخروج"),
-                onPressed: () => Navigator.pop(context),
-              )
-            ],
+            ),
           )
-        ],
-      ),
+        else
+          Container(color: const Color(0xFF07070D)),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.72),
+                Colors.black.withOpacity(0.45),
+                Colors.black.withOpacity(0.88),
+              ],
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.redAccent, width: 2),
+                    ),
+                    child: const Icon(Icons.tv_off_rounded,
+                        color: Colors.redAccent, size: 44),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _stream.name.isNotEmpty ? _stream.name : 'القناة المطلوبة',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B0715),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                    ),
+                    child: Text(
+                      isLive
+                          ? 'القناة معطلة أو متوقفة من المصدر حالياً'
+                          : 'المحتوى غير متاح حالياً من السيرفر',
+                      style: const TextStyle(
+                        color: Color(0xFFFCA5A5),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'تعذر استلام البث بعد عدة محاولات. يمكنك التبديل بين صيغ البث أو الانتقال لقناة أخرى.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFA855F7),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 11),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('إعادة المحاولة',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          setState(() {
+                            _retryCount = 0;
+                            _hasError = false;
+                            _errorMessage = null;
+                            _initialized = false;
+                          });
+                          _initializeController();
+                        },
+                      ),
+                      if (isLive)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E293B),
+                            foregroundColor: const Color(0xFF38BDF8),
+                            side: const BorderSide(color: Color(0xFF38BDF8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 11),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: Text(
+                            provider.streamFormat == 'm3u8'
+                                ? 'تجربة بصيغة TS'
+                                : 'تجربة بصيغة M3U8',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () async {
+                            final nextFormat =
+                                provider.streamFormat == 'm3u8' ? 'ts' : 'm3u8';
+                            await provider.setStreamFormat(nextFormat);
+                            setState(() {
+                              _retryCount = 0;
+                              _hasError = false;
+                              _errorMessage = null;
+                              _initialized = false;
+                            });
+                            _initializeController();
+                          },
+                        ),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 11),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('رجوع للقائمة'),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2700,12 +3309,60 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                       // مجموعة الأزرار نفسها ضمن مسار أفقي ثابت يمنع التداخل.
                       SizedBox(
-                        width: 348,
+                        width: 320,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Screenshot Photo Capture Button
+                              IconButton(
+                                icon: Icon(
+                                  _isTakingScreenshot
+                                      ? Icons.hourglass_top_rounded
+                                      : Icons.camera_alt_rounded,
+                                  color: const Color(0xFF38BDF8),
+                                  size: 23,
+                                ),
+                                tooltip: "تصوير لقطة شاشة",
+                                onPressed: () {
+                                  _resetHideHUDTimer();
+                                  _captureScreenshot();
+                                },
+                              ),
+                              // Video Recording Capture Button
+                              IconButton(
+                                icon: Icon(
+                                  _isRecordingClip
+                                      ? Icons.stop_circle_rounded
+                                      : Icons.videocam_rounded,
+                                  color: _isRecordingClip
+                                      ? Colors.redAccent
+                                      : const Color(0xFFF43F5E),
+                                  size: 25,
+                                ),
+                                tooltip: _isRecordingClip
+                                    ? "إيقاف وحفظ تسجيل الفيديو (${_formatRecSeconds(_recordingSeconds)})"
+                                    : "تسجيل مقطع فيديو",
+                                onPressed: () {
+                                  _resetHideHUDTimer();
+                                  _toggleVideoRecording();
+                                },
+                              ),
+                              // Captured Media Gallery Button
+                              if (_capturedMediaFiles.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.photo_library_rounded,
+                                    color: Color(0xFF22C55E),
+                                    size: 22,
+                                  ),
+                                  tooltip: "معرض اللقطات والتسجيلات",
+                                  onPressed: () {
+                                    _resetHideHUDTimer();
+                                    _showCapturesGalleryModal();
+                                  },
+                                ),
                               IconButton(
                                 icon: Icon(
                                   provider.favorites.contains(_stream.streamId)
@@ -2749,8 +3406,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   },
                                 ),
 
-                              // Sidebar Search & Category
-
                               // Sleep Timer button
                               IconButton(
                                 icon: Icon(Icons.timer_rounded,
@@ -2784,15 +3439,43 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   _resetHideHUDTimer();
                                 },
                               ),
-                              // Subtitles Menu button
-                              IconButton(
-                                icon: const Icon(Icons.subtitles_rounded,
-                                    color: Color(0xFFA855F7), size: 24),
-                                tooltip: "الترجمة",
-                                onPressed: () {
-                                  _showSubtitlesSelector();
+                              // Stream Format Toggle (TS / M3U8)
+                              GestureDetector(
+                                onTap: () async {
+                                  final current = provider.streamFormat;
+                                  final next = current == 'm3u8' ? 'ts' : 'm3u8';
+                                  await provider.setStreamFormat(next);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text('تم التحويل لصيغة ${next.toUpperCase()}'),
+                                      duration: const Duration(seconds: 1),
+                                    ));
+                                    setState(() {
+                                      _retryCount = 0;
+                                      _initialized = false;
+                                      _hasError = false;
+                                    });
+                                    _initializeController(isRetry: true);
+                                  }
                                   _resetHideHUDTimer();
                                 },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2E1065),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFA855F7), width: 1.0),
+                                  ),
+                                  child: Text(
+                                    provider.streamFormat.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Color(0xFFE9D5FF),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
                               ),
                               // Picture in Picture
                               IconButton(
@@ -2856,11 +3539,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                           icon: const Icon(Icons.replay_10_rounded,
                               color: Colors.white, size: 24),
                           onTap: () {
-                            if (_betterController != null && _initialized) {
+                            if (_initialized) {
                               final pos = _currentPosition -
                                   const Duration(seconds: 10);
-                              _betterController!.seekTo(
-                                  pos < Duration.zero ? Duration.zero : pos);
+                              final target =
+                                  pos < Duration.zero ? Duration.zero : pos;
+                              if (_usingLocalFallback &&
+                                  _localFallbackController != null) {
+                                _localFallbackController!.seekTo(target);
+                              } else {
+                                _betterController?.seekTo(target);
+                              }
                             }
                             _resetHideHUDTimer();
                           },
@@ -2872,21 +3561,28 @@ class _PlayerScreenState extends State<PlayerScreen>
                         child: InkWell(
                           borderRadius: BorderRadius.circular(50),
                           onTap: () {
-                            if (_betterController != null && _initialized) {
+                            if (_initialized) {
                               setState(() {
-                                _betterController!.isPlaying() == true
-                                    ? _betterController!.pause()
-                                    : _betterController!.play();
+                                if (_usingLocalFallback &&
+                                    _localFallbackController != null) {
+                                  _localFallbackController!.value.isPlaying
+                                      ? _localFallbackController!.pause()
+                                      : _localFallbackController!.play();
+                                } else if (_betterController != null) {
+                                  _betterController!.isPlaying() == true
+                                      ? _betterController!.pause()
+                                      : _betterController!.play();
+                                }
                               });
                             }
                             _resetHideHUDTimer();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFA855F7),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFA855F7),
                               shape: BoxShape.circle,
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
                                     color: Colors.black45,
                                     blurRadius: 10,
@@ -2894,7 +3590,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                               ],
                             ),
                             child: Icon(
-                              (_betterController?.isPlaying() ?? false)
+                              (_usingLocalFallback
+                                      ? (_localFallbackController
+                                              ?.value.isPlaying ??
+                                          false)
+                                      : (_betterController?.isPlaying() ??
+                                          false))
                                   ? Icons.pause_rounded
                                   : Icons.play_arrow_rounded,
                               color: Colors.white,
@@ -2909,11 +3610,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                           icon: const Icon(Icons.forward_10_rounded,
                               color: Colors.white, size: 24),
                           onTap: () {
-                            if (_betterController != null && _initialized) {
+                            if (_initialized) {
                               final pos = _currentPosition +
                                   const Duration(seconds: 10);
-                              _betterController!.seekTo(
-                                  pos > _totalDuration ? _totalDuration : pos);
+                              final target =
+                                  pos > _totalDuration ? _totalDuration : pos;
+                              if (_usingLocalFallback &&
+                                  _localFallbackController != null) {
+                                _localFallbackController!.seekTo(target);
+                              } else {
+                                _betterController?.seekTo(target);
+                              }
                             }
                             _resetHideHUDTimer();
                           },
@@ -2988,8 +3695,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                                               : 1.0),
                                   onChanged: (val) {
                                     _resetHideHUDTimer();
-                                    _betterController?.seekTo(
-                                        Duration(seconds: val.toInt()));
+                                    final target =
+                                        Duration(seconds: val.toInt());
+                                    if (_usingLocalFallback &&
+                                        _localFallbackController != null) {
+                                      _localFallbackController!.seekTo(target);
+                                    } else {
+                                      _betterController?.seekTo(target);
+                                    }
                                   },
                                 ),
                               ),
@@ -3022,7 +3735,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                             ),
                             const SizedBox(width: 8),
                             const Text(
-                              "بث مباشر",
+                              "بث مباشر فائق السرعة",
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -3034,7 +3747,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                       const SizedBox(height: 12),
 
-                      // Bottom Actions (Volume, Aspect Ratio, Subtitles, Quality, Lock)
+                      // Bottom Actions (Volume, Photo, Video Rec, Subtitles, Aspect Ratio, Quality, Lock)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -3076,7 +3789,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 },
                               ),
                               SizedBox(
-                                width: 80,
+                                width: 70,
                                 child: SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
                                     activeTrackColor: const Color(0xFFA855F7),
@@ -3101,111 +3814,179 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ),
 
                           // Right side controls
-                          Row(
-                            children: [
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 8),
-                                ),
-                                icon: const Icon(Icons.high_quality_rounded,
-                                    size: 18, color: Color(0xFFA855F7)),
-                                label: const Text('جودة',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _showQualitySelector();
-                                  _resetHideHUDTimer();
-                                },
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.camera_alt_rounded,
+                                        size: 17, color: Color(0xFF38BDF8)),
+                                    label: const Text('صورة',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _resetHideHUDTimer();
+                                      _captureScreenshot();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: _isRecordingClip
+                                          ? const Color(0xFF991B1B)
+                                          : const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: Icon(
+                                        _isRecordingClip
+                                            ? Icons.stop_circle_rounded
+                                            : Icons.videocam_rounded,
+                                        size: 18,
+                                        color: _isRecordingClip
+                                            ? Colors.white
+                                            : const Color(0xFFF43F5E)),
+                                    label: Text(
+                                        _isRecordingClip
+                                            ? _formatRecSeconds(
+                                                _recordingSeconds)
+                                            : 'فيديو',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _resetHideHUDTimer();
+                                      _toggleVideoRecording();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.high_quality_rounded,
+                                        size: 18, color: Color(0xFFA855F7)),
+                                    label: const Text('جودة',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _showQualitySelector();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    icon: const Icon(
+                                        Icons.picture_in_picture_alt_rounded,
+                                        size: 18,
+                                        color: Color(0xFFA855F7)),
+                                    label: const Text('PiP',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _togglePictureInPicture();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 6),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF211B2E),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
+                                    ),
+                                    icon: const Icon(Icons.aspect_ratio_rounded,
+                                        size: 18, color: Color(0xFFA855F7)),
+                                    label: Text(_aspectRatioLabel,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      _cycleBoxFit();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    style: IconButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF211B2E),
+                                        shape: const CircleBorder()),
+                                    icon: Icon(
+                                      _rotationMode == RotationMode.smartAuto
+                                          ? Icons.screen_rotation_rounded
+                                          : (_rotationMode ==
+                                                  RotationMode.landscapeOnly
+                                              ? Icons.crop_landscape_rounded
+                                              : Icons.crop_portrait_rounded),
+                                      color: _rotationMode ==
+                                              RotationMode.smartAuto
+                                          ? const Color(0xFFA855F7)
+                                          : Colors.white,
+                                      size: 20,
+                                    ),
+                                    tooltip: "ملء الشاشة",
+                                    onPressed: () {
+                                      _toggleSmartRotation();
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    style: IconButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF211B2E),
+                                        shape: const CircleBorder()),
+                                    icon: const Icon(Icons.list_rounded,
+                                        color: Color(0xFFA855F7), size: 20),
+                                    tooltip: "قائمة القنوات",
+                                    onPressed: () {
+                                      setState(() {
+                                        _showSidebar = !_showSidebar;
+                                      });
+                                      _resetHideHUDTimer();
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 8),
-                                ),
-                                icon: const Icon(
-                                    Icons.picture_in_picture_alt_rounded,
-                                    size: 18,
-                                    color: Color(0xFFA855F7)),
-                                label: const Text('PiP',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _togglePictureInPicture();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF211B2E),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                ),
-                                icon: const Icon(Icons.aspect_ratio_rounded,
-                                    size: 18, color: Color(0xFFA855F7)),
-                                label: Text(_aspectRatioLabel,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  _cycleBoxFit();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                style: IconButton.styleFrom(
-                                    backgroundColor: const Color(0xFF211B2E),
-                                    shape: const CircleBorder()),
-                                icon: Icon(
-                                  _rotationMode == RotationMode.smartAuto
-                                      ? Icons.screen_rotation_rounded
-                                      : (_rotationMode ==
-                                              RotationMode.landscapeOnly
-                                          ? Icons.crop_landscape_rounded
-                                          : Icons.crop_portrait_rounded),
-                                  color: _rotationMode == RotationMode.smartAuto
-                                      ? const Color(0xFFA855F7)
-                                      : Colors.white,
-                                  size: 20,
-                                ),
-                                tooltip: "ملء الشاشة",
-                                onPressed: () {
-                                  _toggleSmartRotation();
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                style: IconButton.styleFrom(
-                                    backgroundColor: const Color(0xFF211B2E),
-                                    shape: const CircleBorder()),
-                                icon: const Icon(Icons.list_rounded,
-                                    color: Color(0xFFA855F7), size: 20),
-                                tooltip: "قائمة القنوات",
-                                onPressed: () {
-                                  setState(() {
-                                    _showSidebar = !_showSidebar;
-                                  });
-                                  _resetHideHUDTimer();
-                                },
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -3243,6 +4024,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _buildSidebarListItem(PlaylistItem item, IPTVProvider provider) {
     final isSelected = item.streamId == _stream.streamId;
+    final isLocked = provider.isChannelLocked(item.streamId);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
@@ -3254,15 +4036,26 @@ class _PlayerScreenState extends State<PlayerScreen>
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        title: Text(
-          item.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: isSelected ? Colors.blueAccent : Colors.white70,
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.blueAccent : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isLocked)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(Icons.lock_rounded, size: 12, color: Color(0xFFA855F7)),
+              ),
+          ],
         ),
         subtitle: Text(
           item.categoryName,
@@ -3592,16 +4385,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                   onTap: () {
                     Navigator.pop(context);
                     _showQualitySelector();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.subtitles_rounded,
-                      color: Colors.amberAccent),
-                  title: const Text("الترجمة",
-                      style: TextStyle(color: Colors.white)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSubtitlesSelector();
                   },
                 ),
                 ListTile(

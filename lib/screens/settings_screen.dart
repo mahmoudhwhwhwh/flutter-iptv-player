@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -35,16 +37,15 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _subSize = "متوسط";
-  String _subFont = 'Cairo';
-  String _subColor = "أبيض";
-  String _subBgColor = "شفاف";
-  String _subLang = "تلقائي";
   String _appOrientation = "تلقائي";
   bool _remoteControlEnabled = true;
   bool _mouseControlEnabled = true;
   bool _tvBoxFocusEnabled = true;
   String _performanceProfile = "medium";
+  bool _blurEpisodeCovers = false;
+  bool _autoPlayNextEpisode = true;
+  bool _autoResumePlayback = true;
+  bool _showVirtualKeyboard = true;
 
   @override
   void initState() {
@@ -55,17 +56,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _subSize = prefs.getString('sub_size') ?? "متوسط";
-      _subFont = prefs.getString('sub_font') ?? 'Cairo';
-      _subColor = prefs.getString('sub_color') ?? "أبيض";
-      _subBgColor = prefs.getString('sub_bg_color') ?? "شفاف";
-      _subLang = prefs.getString('sub_lang') ?? "تلقائي";
       _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
       _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
       _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
       _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
       _performanceProfile =
           prefs.getString('device_performance_profile') ?? "medium";
+      _blurEpisodeCovers = prefs.getBool('blur_episode_covers') ?? false;
+      _autoPlayNextEpisode = prefs.getBool('auto_play_next_episode') ?? true;
+      _autoResumePlayback = prefs.getBool('auto_resume_playback') ?? true;
+      _showVirtualKeyboard = prefs.getBool('show_virtual_keyboard') ?? true;
     });
   }
 
@@ -74,8 +74,205 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool(key, value);
   }
 
+  Widget _buildFormatChip(
+      IPTVProvider provider, String formatKey, String label, String sub) {
+    final isSelected = provider.streamFormat == formatKey;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          provider.setStreamFormat(formatKey);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تم تفعيل صيغة $label للبث المباشر'),
+            duration: const Duration(seconds: 1),
+          ));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? _SettingsPalette.purple.withOpacity(0.3)
+                : Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? _SettingsPalette.purpleBright
+                  : _SettingsPalette.divider,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                sub,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected
+                      ? _SettingsPalette.cyan
+                      : _SettingsPalette.textMuted,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveStringSetting(String key, String value) async {
     await context.read<IPTVProvider>().setPlayerStringPreference(key, value);
+  }
+
+  void _showLanguageSelectionDialog(BuildContext context, IPTVProvider provider) {
+    final languages = [
+      {'code': 'ar', 'name': 'العربية', 'flag': '🇸🇦'},
+      {'code': 'en', 'name': 'English', 'flag': '🇺🇸'},
+      {'code': 'ku', 'name': 'کوردی (Kurdish)', 'flag': '☀️'},
+      {'code': 'tr', 'name': 'Türkçe (Turkish)', 'flag': '🇹🇷'},
+      {'code': 'fr', 'name': 'Français (French)', 'flag': '🇫🇷'},
+      {'code': 'es', 'name': 'Español (Spanish)', 'flag': '🇪🇸'},
+      {'code': 'de', 'name': 'Deutsch (German)', 'flag': '🇩🇪'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.language_rounded, color: Color(0xFFA855F7)),
+            SizedBox(width: 8),
+            Text('اختر لغة التطبيق', style: TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: languages.length,
+            itemBuilder: (context, i) {
+              final lang = languages[i];
+              final isSelected = provider.appLanguage.toLowerCase().contains(lang['code']!) ||
+                  provider.appLanguage == lang['name'];
+              return ListTile(
+                leading: Text(lang['flag']!, style: const TextStyle(fontSize: 22)),
+                title: Text(lang['name']!, style: const TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+                trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2DD4BF)) : null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.setAppLanguage(lang['name']!);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMaskedSubscriptionPicker(BuildContext context, IPTVProvider provider) {
+    final playlists = provider.savedPlaylists;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            Icon(Icons.swap_horiz_rounded, color: Color(0xFF2DD4BF)),
+            SizedBox(width: 8),
+            Text('الاشتراكات المتاحة', style: TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 17)),
+          ],
+        ),
+        content: playlists.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text('لا توجد اشتراكات إضافية محفوظة. اضغط على "إضافة اشتراك جديد" لإضافة سيرفر آخر.',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(color: Colors.white70, fontFamily: 'Cairo', fontSize: 13)),
+              )
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: playlists.length,
+                  separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                  itemBuilder: (context, i) {
+                    final pl = playlists[i];
+                    final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
+                    final displayName = 'اشتراك ${i + 1} (VIP)';
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      leading: Icon(
+                        isActive ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
+                        color: isActive ? const Color(0xFF2DD4BF) : const Color(0xFFA855F7),
+                        size: 24,
+                      ),
+                      title: Text(displayName,
+                          style: const TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: Text(
+                        isActive ? 'مفعّل ونشط حالياً 🟢' : 'اشتراك محفوظ مشفّر 🔒',
+                        style: TextStyle(
+                            color: isActive ? const Color(0xFF2DD4BF) : Colors.white54,
+                            fontFamily: 'Cairo',
+                            fontSize: 11),
+                      ),
+                      onTap: isActive
+                          ? null
+                          : () async {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('جارِ التبديل إلى الاشتراك المختار...', style: TextStyle(fontFamily: 'Cairo')),
+                                ),
+                              );
+                              final ok = await provider.switchSubscription(pl.id);
+                              if (context.mounted && ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم تبديل الاشتراك بنجاح ✅', style: TextStyle(fontFamily: 'Cairo')),
+                                  ),
+                                );
+                              }
+                            },
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            child: const Text('إغلاق', style: TextStyle(color: Colors.white60, fontFamily: 'Cairo')),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+            label: const Text('إضافة جديد', style: TextStyle(color: Colors.white, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFA855F7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showAddSubscriptionDialog(provider);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -116,13 +313,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _buildProfileCard(provider),
                       const SizedBox(height: 14),
-                      _buildDropdownItem(
-                        title: 'لغة الواجهة',
-                        value: provider.appLanguage,
-                        items: const ['العربية', 'English'],
-                        onChanged: (value) {
-                          if (value != null) provider.setAppLanguage(value);
-                        },
+                      _buildActionButtonSettingCard(
+                        title: 'لغة التطبيق',
+                        description: 'اللغة الحالية: ${provider.appLanguage} (اضغط للتغيير إلى العربية، الإنجليزية، الكردية، التركية، الفرنسية، الإسبانية، الألمانية)',
+                        actionLabel: 'تغيير اللغة',
+                        icon: Icons.language_rounded,
+                        onTap: () => _showLanguageSelectionDialog(context, provider),
                       ),
                       const SizedBox(height: 12),
                       _buildDropdownItem(
@@ -169,14 +365,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) =>
-                    _buildSavedSubscriptionCodesCard(provider),
+                    _buildActionButtonSettingCard(
+                  title: 'تحديث قائمة القنوات والمحتوى',
+                  description: 'إعادة مزامنة القنوات والأفلام والمسلسلات فوراً من السيرفر وتحديث المحتوى.',
+                  actionLabel: 'تحديث الآن',
+                  icon: Icons.sync_rounded,
+                  onTap: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('جارِ تحديث قائمة القنوات...', style: TextStyle(fontFamily: 'Cairo')),
+                      ),
+                    );
+                    await provider.refreshCurrentPlaylist();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم تحديث القنوات والمحتوى بنجاح ✅', style: TextStyle(fontFamily: 'Cairo')),
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) =>
-                    _buildPerformanceProfilesCard(provider),
+                    _buildActionButtonSettingCard(
+                  title: 'إضافة اشتراك جديد',
+                  description:
+                      'إضافة اشتراك كود تفعيل أو سيرفر Xtream جديد والتبديل بين عدة اشتراكات بسهولة.',
+                  actionLabel: 'إضافة اشتراك',
+                  icon: Icons.add_circle_outline_rounded,
+                  onTap: () => _showAddSubscriptionDialog(provider),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Consumer<IPTVProvider>(
+                builder: (context, provider, child) =>
+                    _buildActionButtonSettingCard(
+                  title: 'تبديل الاشتراك',
+                  description:
+                      'التبديل الفوري بين الاشتراكات المضافة في التطبيق بدون كشف البيانات.',
+                  actionLabel: 'تبديل',
+                  icon: Icons.swap_horiz_rounded,
+                  onTap: () => _showMaskedSubscriptionPicker(context, provider),
+                ),
               ),
               const SizedBox(height: 24),
+              const SizedBox(height: 24),
+              _buildSectionHeader("إعدادات التشغيل", ""),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تشويش صور الحلقات',
+                description: 'إخفاء أغلفة الحلقات لتجنب حرق الأحداث (الخادم 1)',
+                value: _blurEpisodeCovers,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _blurEpisodeCovers = val);
+                  _saveSetting('blur_episode_covers', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'تشغيل الحلقة التالية تلقائياً',
+                description: 'شغل الحلقة التالية تلقائياً عند انتهاء الحالية',
+                value: _autoPlayNextEpisode,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _autoPlayNextEpisode = val);
+                  _saveSetting('auto_play_next_episode', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'استئناف تلقائي',
+                description: 'استكمل التشغيل من آخر موضع مشاهدة',
+                value: _autoResumePlayback,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _autoResumePlayback = val);
+                  _saveSetting('auto_resume_playback', val);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSettingItem(
+                title: 'لوحة المفاتيح الافتراضية',
+                description: 'إظهار لوحة مفاتيح على الشاشة عند البحث على التلفاز',
+                value: _showVirtualKeyboard,
+                activeColor: _SettingsPalette.danger,
+                onChanged: (val) {
+                  setState(() => _showVirtualKeyboard = val);
+                  _saveSetting('show_virtual_keyboard', val);
+                },
+              ),
               _buildSectionHeader("إعدادات المشغّل الأساسية", ""),
               const SizedBox(height: 12),
               Consumer<IPTVProvider>(
@@ -188,95 +469,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   activeColor: _SettingsPalette.cyan,
                   onChanged: provider.setLiteMode,
                 ),
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "حجم خط الترجمة",
-                value: _subSize,
-                items: const ["صغير", "متوسط", "كبير", "ضخم"],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subSize = val);
-                    _saveStringSetting('sub_size', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "خط الترجمة",
-                value: _subFont,
-                items: const ['Cairo', 'Arial', 'Tahoma', 'Roboto'],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subFont = val);
-                    _saveStringSetting('sub_font', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لون الترجمة",
-                value: _subColor,
-                items: const [
-                  "أبيض",
-                  "أصفر",
-                  "أزرق سماوي",
-                  "أخضر",
-                  "أحمر",
-                  "أزرق",
-                  "وردي",
-                  "برتقالي",
-                  "بنفسجي",
-                  "أسود",
-                  "رمادي"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subColor = val);
-                    _saveStringSetting('sub_color', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لون خلفية الترجمة",
-                value: _subBgColor,
-                items: const [
-                  "شفاف",
-                  "أسود",
-                  "رمادي داكن",
-                  "أحمر داكن",
-                  "أزرق داكن",
-                  "أخضر داكن",
-                  "أرجواني داكن",
-                  "أبيض"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subBgColor = val);
-                    _saveStringSetting('sub_bg_color', val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDropdownItem(
-                title: "لغة الترجمة المفضلة",
-                value: _subLang,
-                items: const [
-                  "تلقائي",
-                  "Arabic",
-                  "English",
-                  "French",
-                  "Spanish",
-                  "Turkish",
-                  "Persian"
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _subLang = val);
-                    _saveStringSetting('sub_lang', val);
-                  }
-                },
               ),
               const SizedBox(height: 12),
               _buildOrientationSettingCard(),
@@ -342,23 +534,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Consumer<IPTVProvider>(
                 builder: (context, provider, child) {
-                  return _buildDropdownItem(
-                    title: "تصفية القنوات (البث المباشر)",
-                    value: provider.channelFilter,
-                    items: const [
-                      "الكل",
-                      "القنوات العربية فقط",
-                      "القنوات الأجنبية فقط",
-                      "قنوات الرياضة فقط",
-                      "القنوات الرياضية العربية فقط",
-                      "القنوات الإخبارية فقط",
-                      "قنوات Alwan فقط"
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        provider.setChannelFilter(val);
-                      }
-                    },
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _SettingsPalette.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _SettingsPalette.divider),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Icon(Icons.tune_rounded,
+                                color: _SettingsPalette.purpleBright, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              "صيغة ومحرك تدفق القنوات (Stream Format)",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          "التبديل بين صيغ البث لتشغيل القنوات المتوقفة وحل بطء الاستجابة في سيرفرات Xtream:",
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(
+                              color: _SettingsPalette.textMuted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            _buildFormatChip(provider, "m3u8", "M3U8 (HLS)",
+                                "استقرار وسرعة"),
+                            const SizedBox(width: 8),
+                            _buildFormatChip(
+                                provider, "ts", "TS (MPEG)", "الصيغة القياسية"),
+                            const SizedBox(width: 8),
+                            _buildFormatChip(
+                                provider, "mpd", "MPD (DASH)", "بث رقمي"),
+                          ],
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -462,6 +684,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 await showPinDialog(context, provider);
                             if (correct) {
                               _showCategoryLockDialog(context, provider);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionButtonSettingCard(
+                          title: "إدارة القنوات المقفلة (قفل القنوات)",
+                          description:
+                              "تحديد قنوات بث مباشر معينة لقفلها برمز الأمان ومنع فتحها إلا بإدخال الرمز.",
+                          actionLabel: "تحديد القنوات",
+                          icon: Icons.lock_person_rounded,
+                          onTap: () async {
+                            bool correct =
+                                await showPinDialog(context, provider);
+                            if (correct) {
+                              _showChannelLockDialog(context, provider);
                             }
                           },
                         ),
@@ -803,6 +1040,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSavedSubscriptionCodesCard(IPTVProvider provider) {
     final codes = provider.savedSubscriptionCodes;
+    final playlists = provider.savedPlaylists;
+    final hasSubscriptions = codes.isNotEmpty || playlists.isNotEmpty;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -850,7 +1090,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'احفظ أكثر من كود وبدّل بينها فوراً بدون فقدان البيانات',
+                      'احفظ بيانات Xtream أو الأكواد وبدّل بينها فوراً بدون انتظار التحميل',
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: _SettingsPalette.textMuted,
@@ -861,7 +1101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () => _showAddSavedCodeDialog(provider),
+                onPressed: () => _showAddSubscriptionDialog(provider),
                 icon: const Icon(Icons.add_rounded,
                     size: 18, color: Colors.black),
                 label: const Text(
@@ -883,7 +1123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          if (codes.isEmpty)
+          if (!hasSubscriptions)
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -899,32 +1139,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: _SettingsPalette.textMuted, size: 18),
                   SizedBox(width: 8),
                   Text(
-                    'لا توجد اشتراكات محفوظة بعد. انقر على إضافة لحفظ كود جديد.',
+                    'لا توجد اشتراكات محفوظة بعد. انقر على إضافة لحفظ اشتراك جديد.',
                     style: TextStyle(
                         color: _SettingsPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             )
-          else
-            ...codes.map((saved) {
-              final isActive =
-                  saved.code == provider.activationCode && provider.isLoggedIn;
-              final title = saved.label.isEmpty ? saved.code : saved.label;
-              final statusText = saved.status == 'checking'
-                  ? 'جاري التحقق...'
-                  : saved.status == 'invalid'
-                      ? 'غير صالح'
-                      : isActive
-                          ? 'الاشتراك النشط حالياً ✅'
-                          : saved.status == 'active'
-                              ? 'صالح وجاهز للتشغيل'
-                              : 'محفوظ';
-              final statusColor = saved.status == 'invalid'
-                  ? _SettingsPalette.danger
-                  : isActive
-                      ? _SettingsPalette.cyan
-                      : _SettingsPalette.textMuted;
+          else ...[
+            ...playlists.map((pl) {
+              final isActive = pl.id == provider.activePlaylistId && provider.isLoggedIn;
+              final isXtream = pl.type.toLowerCase() == 'xtream';
+              final subTitle = isXtream
+                  ? 'سيرفر Xtream: ${pl.username ?? ""}'
+                  : (pl.id.startsWith('subscription_')
+                      ? 'كود: ${pl.id.replaceFirst("subscription_", "")}'
+                      : 'قائمة IPTV');
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -955,7 +1185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Icon(
                         isActive
                             ? Icons.check_circle_rounded
-                            : Icons.confirmation_number_outlined,
+                            : (isXtream ? Icons.dns_rounded : Icons.live_tv_rounded),
                         color:
                             isActive ? _SettingsPalette.cyan : Colors.white70,
                         size: 20,
@@ -969,44 +1199,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Row(
                             textDirection: TextDirection.rtl,
                             children: [
-                              Text(
-                                title,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  pl.name.isNotEmpty ? pl.name : 'اشتراك بدون اسم',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                              if (saved.label.isNotEmpty &&
-                                  saved.label != saved.code) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black38,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    saved.code,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontFamily: 'monospace',
-                                      fontSize: 11,
-                                    ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isXtream
+                                      ? const Color(0xFF381E72)
+                                      : const Color(0xFF1E3A5F),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isXtream ? 'XTREAM' : 'CODE',
+                                  style: TextStyle(
+                                    color: isXtream
+                                        ? const Color(0xFFD8B4FE)
+                                        : const Color(0xFF93C5FD),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            statusText,
-                            style: TextStyle(
-                              color: statusColor,
+                            subTitle,
+                            style: const TextStyle(
+                              color: _SettingsPalette.textMuted,
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -1017,8 +1250,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ElevatedButton(
                         onPressed: provider.isLoading
                             ? null
-                            : () =>
-                                provider.switchToSavedSubscription(saved.code),
+                            : () => _handleSwitch(provider, pl.id, pl.name),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _SettingsPalette.purpleBright,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('تبديل',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _SettingsPalette.cyan.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'نشط الآن',
+                          style: TextStyle(
+                            color: _SettingsPalette.cyan,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    PopupMenuButton<String>(
+                      color: _SettingsPalette.surfaceElevated,
+                      icon: const Icon(Icons.more_vert_rounded,
+                          color: Colors.white54, size: 20),
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          provider.removeSavedPlaylist(pl.id);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text('حذف الاشتراك',
+                              style: TextStyle(color: Colors.redAccent)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            ...codes
+                .where((c) => !playlists.any((p) => p.id == 'subscription_${c.code}'))
+                .map((saved) {
+              final isActive =
+                  saved.code == provider.activationCode && provider.isLoggedIn;
+              final title = saved.label.isEmpty ? saved.code : saved.label;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? _SettingsPalette.cyan.withOpacity(0.09)
+                      : _SettingsPalette.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isActive
+                        ? _SettingsPalette.cyan
+                        : _SettingsPalette.divider,
+                    width: isActive ? 1.5 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? _SettingsPalette.cyan.withOpacity(0.2)
+                            : Colors.white.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isActive
+                            ? Icons.check_circle_rounded
+                            : Icons.key_rounded,
+                        color:
+                            isActive ? _SettingsPalette.cyan : Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'كود: ${saved.code}',
+                            style: const TextStyle(
+                              color: _SettingsPalette.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (!isActive)
+                      ElevatedButton(
+                        onPressed: provider.isLoading
+                            ? null
+                            : () => _handleSwitch(provider, saved.code, title),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _SettingsPalette.purpleBright,
                           padding: const EdgeInsets.symmetric(
@@ -1076,61 +1432,249 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               );
             }),
+          ],
         ],
       ),
     );
   }
 
-  Future<void> _showAddSavedCodeDialog(IPTVProvider provider) async {
-    final codeController = TextEditingController();
-    final labelController = TextEditingController();
-    final form = await showDialog<List<String>>(
+  Future<void> _handleSwitch(IPTVProvider provider, String id, String name) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('جاري التبديل إلى $name...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    final success = await provider.switchSubscription(id);
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم تفعيل $name بنجاح'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.lastError ?? 'تعذر التبديل إلى هذا الاشتراك'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showAddSubscriptionDialog(IPTVProvider provider) async {
+    int selectedTab = 0;
+    final codeCtrl = TextEditingController();
+    final codeLabelCtrl = TextEditingController();
+    final hostCtrl = TextEditingController();
+    final userCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    final xtreamNameCtrl = TextEditingController();
+
+    await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _SettingsPalette.surfaceElevated,
-        title: const Text('إضافة كود اشتراك',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: codeController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'الكود',
-                    labelStyle: TextStyle(color: Colors.white70))),
-            TextField(
-                controller: labelController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'اسم اختياري',
-                    labelStyle: TextStyle(color: Colors.white70))),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: _SettingsPalette.surfaceElevated,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            textDirection: TextDirection.rtl,
+            children: [
+              Icon(Icons.add_circle_outline_rounded,
+                  color: _SettingsPalette.cyan, size: 24),
+              SizedBox(width: 8),
+              Text('إضافة اشتراك جديد',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: _SettingsPalette.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _SettingsPalette.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() => selectedTab = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedTab == 0
+                                  ? _SettingsPalette.purple
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('كود التفعيل',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() => selectedTab = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedTab == 1
+                                  ? _SettingsPalette.purple
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('Xtream IPTV',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (selectedTab == 0) ...[
+                  TextField(
+                    controller: codeCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'كود الاشتراك',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'مثال: 2027',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: codeLabelCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم اختياري',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'مثال: اشتراكي الأساسي',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                ] else ...[
+                  TextField(
+                    controller: hostCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'رابط السيرفر (Host)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'http://example.com:8080',
+                      hintStyle: TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: userCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم المستخدم (Username)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passCtrl,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'كلمة المرور (Password)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: xtreamNameCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الاشتراك (اختياري)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.white60)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                if (selectedTab == 0) {
+                  final code = codeCtrl.text.trim();
+                  if (code.isEmpty) return;
+                  final success = await provider.addSavedSubscriptionCode(
+                    code,
+                    label: codeLabelCtrl.text.trim(),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(success
+                          ? 'تم حفظ وتفعيل الكود بنجاح'
+                          : (provider.lastError ?? 'تعذر تفعيل الكود')),
+                    ));
+                  }
+                } else {
+                  final host = hostCtrl.text.trim();
+                  final user = userCtrl.text.trim();
+                  final pass = passCtrl.text.trim();
+                  if (host.isEmpty || user.isEmpty || pass.isEmpty) return;
+                  final success = await provider.loginWithXtream(
+                    host: host,
+                    username: user,
+                    password: pass,
+                    name: xtreamNameCtrl.text.trim(),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(success
+                          ? 'تم حفظ وتفعيل اشتراك Xtream بنجاح'
+                          : (provider.lastError ?? 'تعذر الاتصال بسيرفر Xtream')),
+                    ));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _SettingsPalette.purple,
+              ),
+              child: const Text('حفظ وتفعيل',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(
-                  dialogContext, [codeController.text, labelController.text]),
-              child: const Text('تحقق وحفظ')),
-        ],
       ),
     );
-    codeController.dispose();
-    labelController.dispose();
-    if (form == null || !mounted) return;
-    final success =
-        await provider.addSavedSubscriptionCode(form[0], label: form[1]);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success
-            ? 'تم حفظ الكود وتفعيله'
-            : (provider.lastError ?? 'تعذر التحقق من الكود'))));
-  }
 
+    codeCtrl.dispose();
+    codeLabelCtrl.dispose();
+    hostCtrl.dispose();
+    userCtrl.dispose();
+    passCtrl.dispose();
+    xtreamNameCtrl.dispose();
+  }
   Future<void> _showRenameSavedCodeDialog(
       IPTVProvider provider, String code, String currentLabel) async {
     final controller =
@@ -1914,6 +2458,314 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontFamily: 'Cairo',
                           fontWeight: FontWeight.bold),
                     ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _clearAppCache(
+      BuildContext context, IPTVProvider provider) async {
+    try {
+      final cacheDir = await getTemporaryDirectory();
+      int filesDeleted = 0;
+      if (cacheDir.existsSync()) {
+        final list = cacheDir.listSync(recursive: true);
+        for (final item in list) {
+          try {
+            if (item is File) {
+              await item.delete();
+              filesDeleted++;
+            }
+          } catch (_) {}
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تنظيف الذاكرة المؤقتة بنجاح ($filesDeleted ملف تم تنظيفه)'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تنظيف ملفات الكاش بنجاح')),
+        );
+      }
+    }
+  }
+
+  Future<void> _runSpeedTest(
+      BuildContext context, IPTVProvider provider) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: Color(0xFF1E1E24),
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: Color(0xFFA855F7)),
+              SizedBox(width: 16),
+              Text("جاري فحص سرعة واستجابة السيرفر...",
+                  style: TextStyle(color: Colors.white, fontFamily: 'Cairo')),
+            ],
+          ),
+        ),
+      ),
+    );
+    final stopwatch = Stopwatch()..start();
+    String host = "";
+    try {
+      final matching = provider.savedPlaylists.where(
+        (p) => p.id == provider.activePlaylistId,
+      );
+      if (matching.isNotEmpty) {
+        host = (matching.first.host ?? '').trim();
+      }
+      if (host.isEmpty) {
+        host = 'https://iptv-subscription-api.tvkora56.workers.dev';
+      }
+      await http.get(Uri.parse(host)).timeout(const Duration(seconds: 4));
+      stopwatch.stop();
+    } catch (_) {
+      stopwatch.stop();
+    }
+    if (context.mounted) {
+      Navigator.pop(context);
+      final ms = stopwatch.elapsedMilliseconds;
+      final quality =
+          ms < 250 ? "ممتاز وسريع جداً ⚡" : (ms < 600 ? "جيد ومستقر" : "متوسط");
+      showDialog(
+        context: context,
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E1E24),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            title: const Text("نتيجة فحص سرعة السيرفر",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Cairo',
+                    fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("زمن الاستجابة (Ping): $ms ms",
+                    style: const TextStyle(
+                        color: Color(0xFF38BDF8),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text("حالة الاتصال: $quality",
+                    style: const TextStyle(color: Colors.white, fontSize: 14)),
+                const SizedBox(height: 8),
+                Text("المضيف: ${host.isNotEmpty ? host : 'سيرفر الاشتراك'}",
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("إغلاق",
+                    style: TextStyle(
+                        color: Color(0xFFA855F7),
+                        fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showChannelLockDialog(BuildContext context, IPTVProvider provider) {
+    String searchQuery = "";
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final allChannels = provider.streams
+                .where((s) => s.type == 'live' || s.type == 'stalker')
+                .toList();
+            final filteredChannels = allChannels.where((c) {
+              if (searchQuery.trim().isEmpty) return true;
+              return c.name
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase().trim());
+            }).toList();
+
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                backgroundColor: _SettingsPalette.surfaceElevated,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_person_rounded,
+                            color: _SettingsPalette.purple, size: 24),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "قفل القنوات برمز الأمان",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Cairo',
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _SettingsPalette.purple.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "المقفلة: ${provider.lockedChannels.length}",
+                            style: const TextStyle(
+                                color: _SettingsPalette.purpleBright,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: "بحث عن قناة لقفلها...",
+                        hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.4), fontSize: 12),
+                        prefixIcon: const Icon(Icons.search,
+                            color: Colors.white38, size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.04),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() => searchQuery = val);
+                      },
+                    ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 420,
+                  height: 380,
+                  child: filteredChannels.isEmpty
+                      ? Center(
+                          child: Text(
+                            "لا توجد قنوات مطابقة",
+                            style: TextStyle(
+                                color: _SettingsPalette.textMuted
+                                    .withOpacity(0.65),
+                                fontFamily: 'Cairo',
+                                fontSize: 13),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: filteredChannels.length,
+                          itemBuilder: (context, idx) {
+                            final channel = filteredChannels[idx];
+                            final isLocked = provider.lockedChannels
+                                .contains(channel.streamId);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              decoration: BoxDecoration(
+                                color: isLocked
+                                    ? _SettingsPalette.purple.withOpacity(0.12)
+                                    : Colors.white.withOpacity(0.02),
+                                borderRadius: BorderRadius.circular(8),
+                                border: isLocked
+                                    ? Border.all(
+                                        color: _SettingsPalette.purple
+                                            .withOpacity(0.4))
+                                    : null,
+                              ),
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 2),
+                                leading: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                      color: Colors.white10,
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: channel.streamIcon.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          child: CachedNetworkImage(
+                                            imageUrl: channel.streamIcon,
+                                            fit: BoxFit.cover,
+                                            errorWidget: (_, __, ___) =>
+                                                const Icon(Icons.tv_rounded,
+                                                    size: 16,
+                                                    color: Colors.white30),
+                                          ),
+                                        )
+                                      : const Icon(Icons.tv_rounded,
+                                          size: 16, color: Colors.white30),
+                                ),
+                                title: Text(
+                                  channel.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Cairo',
+                                      fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  channel.categoryName,
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                      color: Colors.white38, fontSize: 10),
+                                ),
+                                trailing: Switch(
+                                  value: isLocked,
+                                  activeColor: _SettingsPalette.purple,
+                                  onChanged: (val) async {
+                                    await provider
+                                        .toggleChannelLock(channel.streamId);
+                                    setDialogState(() {});
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text("إغلاق",
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontFamily: 'Cairo',
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

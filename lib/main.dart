@@ -9,11 +9,15 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'providers/iptv_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/player_screen.dart';
+import 'screens/sports_news_screen.dart';
+import 'screens/matches_screen.dart';
+import 'services/app_translations.dart';
 import 'models/playlist_item.dart';
 import 'services/stalker_series.dart';
 import 'services/performance_metrics.dart';
@@ -125,19 +129,16 @@ class LiveFootballApp extends StatelessWidget {
               child: Consumer<IPTVProvider>(
                 builder: (context, provider, _) {
                   if (provider.snifferDetected ||
-                      provider.isVersionBlocked ||
-                      !provider.isSecured) {
-                    String message = "";
-                    if (provider.snifferDetected) {
-                      message =
-                          "🚨 تم اكتشاف برنامج التقاط حزم أو بيئة تشغيل غير آمنة!";
-                    } else if (!provider.isSecured) {
-                      message = provider.securityMessage.isNotEmpty
-                          ? provider.securityMessage
-                          : "🚨 تم كشف تلاعب بأمان التطبيق أو استخدام بيئة هندسة عكسية!";
-                    } else if (provider.isVersionBlocked) {
-                      message = provider.remoteBlockMessage;
-                    }
+                      provider.isBlackScreenBlocked) {
+                    // شاشة سوداء كاملة صامتة بدون أي نصوص أو تفاصيل لمنع الهندسة العكسية واقتناص الحزم
+                    return const Scaffold(
+                      backgroundColor: Colors.black,
+                      body: SizedBox.expand(
+                        child: ColoredBox(color: Colors.black),
+                      ),
+                    );
+                  }
+                  if (provider.isVersionBlocked) {
                     return Scaffold(
                       backgroundColor: Colors.black,
                       body: Center(
@@ -146,11 +147,11 @@ class LiveFootballApp extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: PremiumPalette.violet, size: 80),
+                              const Icon(Icons.system_update_rounded,
+                                  color: Colors.red, size: 80),
                               const SizedBox(height: 20),
                               Text(
-                                message,
+                                provider.remoteBlockMessage,
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -248,9 +249,9 @@ class StartupGate extends StatefulWidget {
 }
 
 class _StartupGateState extends State<StartupGate> {
+  VideoPlayerController? _controller;
   bool _showIntro = false;
   bool _isFinishing = false;
-  Timer? _introTimer;
 
   @override
   void initState() {
@@ -259,75 +260,134 @@ class _StartupGateState extends State<StartupGate> {
   }
 
   Future<void> _prepareIntro() async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadySeen = prefs.getBool('loading_screen_seen_v2_2_97') ?? false;
-    if (alreadySeen || !mounted) return;
-    await prefs.setBool('loading_screen_seen_v2_2_97', true);
-    setState(() => _showIntro = true);
-    _introTimer = Timer(const Duration(milliseconds: 2600), _finishIntro);
+    final controller = VideoPlayerController.asset('assets/intro_premium.mp4');
+    try {
+      await controller.initialize();
+      controller.addListener(_onVideoTick);
+      await controller.play();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _controller = controller;
+        _showIntro = true;
+      });
+    } catch (_) {
+      await controller.dispose();
+    }
+  }
+
+  void _onVideoTick() {
+    final value = _controller?.value;
+    if (value == null || !value.isInitialized) return;
+    if (!value.isPlaying && value.position >= value.duration - const Duration(milliseconds: 200)) {
+      _finishIntro();
+    }
   }
 
   Future<void> _finishIntro() async {
     if (_isFinishing) return;
     _isFinishing = true;
-    _introTimer?.cancel();
     final isLiteMode =
         Provider.of<IPTVProvider>(context, listen: false).liteMode;
     final transitionDuration = startupIntroTransitionDuration(isLiteMode);
     if (mounted) setState(() {});
     await Future<void>.delayed(transitionDuration);
+
+    final controller = _controller;
+    _controller = null;
     if (mounted) setState(() => _showIntro = false);
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      await controller.dispose();
+    }
   }
 
   @override
   void dispose() {
-    _introTimer?.cancel();
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeListener(_onVideoTick);
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  Widget _buildIntroView() {
+  Widget _buildIntroView(VideoPlayerController controller) {
     return Scaffold(
       backgroundColor: const Color(0xFF070610),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/loading_screen.png', fit: BoxFit.cover),
+          FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: controller.value.size.width > 0 ? controller.value.size.width : 1920,
+              height: controller.value.size.height > 0 ? controller.value.size.height : 1080,
+              child: VideoPlayer(controller),
+            ),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.24)],
+                colors: [
+                  Colors.black.withOpacity(0.15),
+                  const Color(0xFF070610).withOpacity(0.88),
+                ],
               ),
             ),
           ),
-          Center(
-            child: SizedBox(
-              width: 78,
-              height: 78,
-              child: CircularProgressIndicator(
-                strokeWidth: 7,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFF00D9FF)),
-                backgroundColor: Colors.white.withOpacity(0.16),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 44, 24, 26),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Image.asset(
+                      'assets/live_stream_pro_logo.png',
+                      width: 210,
+                      height: 210,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'أهلاً بك في\nLIVE STREAM PRO',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      height: 1.25,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'تجربة مشاهدة فاخرة، سريعة، ومصممة لعشاق الرياضة',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+                  const SizedBox(height: 28),
+                  OutlinedButton(
+                    onPressed: _isFinishing ? null : _finishIntro,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('تخطي المقدمة'),
+                  ),
+                ],
               ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 34,
-            child: OutlinedButton(
-              onPressed: _isFinishing ? null : _finishIntro,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white54),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text('تخطي التحميل'),
             ),
           ),
         ],
@@ -337,7 +397,8 @@ class _StartupGateState extends State<StartupGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_showIntro) return widget.child;
+    if (!_showIntro || _controller == null) return widget.child;
+    final controller = _controller!;
     final isLiteMode =
         Provider.of<IPTVProvider>(context, listen: false).liteMode;
     return Stack(
@@ -348,7 +409,7 @@ class _StartupGateState extends State<StartupGate> {
           opacity: _isFinishing ? 0 : 1,
           duration: startupIntroTransitionDuration(isLiteMode),
           curve: Curves.easeOutCubic,
-          child: _buildIntroView(),
+          child: _buildIntroView(controller),
         ),
       ],
     );
@@ -368,7 +429,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _codeController = TextEditingController();
+  final TextEditingController _xtreamHostController = TextEditingController();
+  final TextEditingController _xtreamUserController = TextEditingController();
+  final TextEditingController _xtreamPassController = TextEditingController();
+  final TextEditingController _xtreamNameController = TextEditingController();
+  bool _isXtreamMode = false;
   bool _obscureCode = true;
+  bool _obscureXtreamPass = true;
 
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
@@ -380,6 +447,10 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _codeController.dispose();
+    _xtreamHostController.dispose();
+    _xtreamUserController.dispose();
+    _xtreamPassController.dispose();
+    _xtreamNameController.dispose();
     super.dispose();
   }
 
@@ -454,103 +525,201 @@ class _LoginScreenState extends State<LoginScreen>
                             style: const TextStyle(
                                 color: Colors.redAccent, fontSize: 13)),
                       ),
-                    TextField(
-                      controller: _codeController,
-                      obscureText: _obscureCode,
-                      style: TextStyle(
-                          color: Colors.white, fontSize: isMobile ? 18 : 20),
-                      decoration: InputDecoration(
-                        hintText: "أدخل كود الاشتراك",
-                        hintStyle: const TextStyle(
-                            color: Color(0xFF74747E), fontSize: 18),
-                        prefixIcon: const Icon(Icons.key_rounded,
-                            color: Color(0xFFD1D1D5), size: 30),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                              _obscureCode
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: const Color(0xFFD1D1D5),
-                              size: 30),
-                          onPressed: () =>
-                              setState(() => _obscureCode = !_obscureCode),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF15151B),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 22, vertical: 23),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFA855F7), width: 1.5)),
+                    // 1. Selector Tab (Code vs Xtream)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 22),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF15151B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF2A2A38)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isXtreamMode = false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !_isXtreamMode ? const Color(0xFFA855F7) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "كود التفعيل",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: !_isXtreamMode ? FontWeight.bold : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isXtreamMode = true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _isXtreamMode ? const Color(0xFFA855F7) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "سيرفر Xtream",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: _isXtreamMode ? FontWeight.bold : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (provider.savedSubscriptionCodes.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'الأكواد المحفوظة',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+
+                    // 2. Input Fields based on mode
+                    if (!_isXtreamMode) ...[
+                      TextField(
+                        controller: _codeController,
+                        obscureText: _obscureCode,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 18 : 20),
+                        decoration: InputDecoration(
+                          hintText: "أدخل كود الاشتراك",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 18),
+                          prefixIcon: const Icon(Icons.key_rounded,
+                              color: Color(0xFFD1D1D5), size: 30),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                                _obscureCode
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFFD1D1D5),
+                                size: 30),
+                            onPressed: () =>
+                                setState(() => _obscureCode = !_obscureCode),
                           ),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 22, vertical: 23),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFA855F7), width: 1.5)),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: provider.savedSubscriptionCodes.map((saved) {
-                          final title =
-                              saved.label.isEmpty ? saved.code : saved.label;
-                          final isActive =
-                              saved.code == provider.activationCode;
-                          return ActionChip(
-                            avatar: Icon(
-                              isActive
-                                  ? Icons.check_circle_rounded
-                                  : Icons.key_rounded,
-                              size: 17,
-                              color: isActive
-                                  ? const Color(0xFF5EEAD4)
-                                  : const Color(0xFFD8B4FE),
-                            ),
-                            label: Text(title),
-                            labelStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700),
-                            backgroundColor: isActive
-                                ? const Color(0xFF163B3B)
-                                : const Color(0xFF171321),
-                            side: BorderSide(
-                                color: isActive
-                                    ? const Color(0xFF2DD4BF)
-                                    : const Color(0xFF493568)),
-                            onPressed: provider.isLoading
-                                ? null
-                                : () async {
-                                    _codeController.text = saved.code;
-                                    final success = await provider
-                                        .switchToSavedSubscription(saved.code);
-                                    if (success && mounted)
-                                      FocusScope.of(context).unfocus();
-                                  },
-                          );
-                        }).toList(),
+
+                    ] else ...[
+                      TextField(
+                        controller: _xtreamHostController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "رابط السيرفر: http://domain.com:8080",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.dns_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamUserController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "اسم المستخدم (Username)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.person_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamPassController,
+                        obscureText: _obscureXtreamPass,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "كلمة المرور (Password)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                                _obscureXtreamPass
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFFD1D1D5),
+                                size: 24),
+                            onPressed: () => setState(
+                                () => _obscureXtreamPass = !_obscureXtreamPass),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _xtreamNameController,
+                        style: TextStyle(
+                            color: Colors.white, fontSize: isMobile ? 15 : 17),
+                        decoration: InputDecoration(
+                          hintText: "اسم الاشتراك (اختياري)",
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF74747E), fontSize: 14),
+                          prefixIcon: const Icon(Icons.label_outline_rounded,
+                              color: Color(0xFFD1D1D5), size: 24),
+                          filled: true,
+                          fillColor: const Color(0xFF15151B),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none),
+                        ),
                       ),
                     ],
+
+                    // 3. Saved Subscriptions Chips (Both Xtream and Codes)
+                    // 4. Submit Login Button
                     const SizedBox(height: 28),
                     SizedBox(
-                      height: isMobile ? 68 : 74,
+                      height: isMobile ? 60 : 66,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
@@ -563,9 +732,23 @@ class _LoginScreenState extends State<LoginScreen>
                           onPressed: provider.isLoading
                               ? null
                               : () async {
-                                  final success = await provider
-                                      .loginWithCode(_codeController.text);
-                                  if (success) FocusScope.of(context).unfocus();
+                                  if (!_isXtreamMode) {
+                                    final success = await provider
+                                        .loginWithCode(_codeController.text);
+                                    if (success && mounted) {
+                                      FocusScope.of(context).unfocus();
+                                    }
+                                  } else {
+                                    final success = await provider.loginWithXtream(
+                                      host: _xtreamHostController.text,
+                                      username: _xtreamUserController.text,
+                                      password: _xtreamPassController.text,
+                                      name: _xtreamNameController.text,
+                                    );
+                                    if (success && mounted) {
+                                      FocusScope.of(context).unfocus();
+                                    }
+                                  }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
@@ -582,10 +765,13 @@ class _LoginScreenState extends State<LoginScreen>
                                   height: 25,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2.5))
-                              : const Text("تسجيل الدخول",
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.w500)),
+                              : Text(
+                                  !_isXtreamMode
+                                      ? "تسجيل الدخول"
+                                      : "دخول وحفظ اشتراك Xtream",
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -827,10 +1013,208 @@ class _MainDashboardState extends State<MainDashboard> {
     });
   }
 
+  void _showSubscriptionPicker(BuildContext context, IPTVProvider provider) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF13131A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        final playlists = provider.savedPlaylists;
+        final codes = provider.savedSubscriptionCodes;
+        final hasAny = playlists.isNotEmpty || codes.isNotEmpty;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    const Icon(Icons.swap_horiz_rounded,
+                        color: Color(0xFF2DD4BF), size: 24),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'التبديل بين الاشتراكات',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(sheetCtx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SettingsScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.add_rounded,
+                          size: 18, color: Color(0xFFA855F7)),
+                      label: const Text(
+                        'إضافة جديد',
+                        style: TextStyle(
+                            color: Color(0xFFA855F7),
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (!hasAny)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'لا توجد اشتراكات محفوظة. اضغط على إضافة جديد لإدخال بيانات اشتراكك.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white60, fontSize: 13),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        ...playlists.map((pl) {
+                          final isActive = pl.id == provider.activePlaylistId &&
+                              provider.isLoggedIn;
+                          final isXtream = pl.type.toLowerCase() == 'xtream';
+                          final subTitle = isXtream
+                              ? 'سيرفر Xtream: ${pl.username ?? ""}'
+                              : (pl.id.startsWith('subscription_')
+                                  ? 'كود: ${pl.id.replaceFirst("subscription_", "")}'
+                                  : 'قائمة IPTV');
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFF132B2B)
+                                  : const Color(0xFF1C1C26),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isActive
+                                    ? const Color(0xFF2DD4BF)
+                                    : const Color(0xFF2E2E3E),
+                                width: isActive ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                isActive
+                                    ? Icons.check_circle_rounded
+                                    : (isXtream
+                                        ? Icons.dns_rounded
+                                        : Icons.live_tv_rounded),
+                                color: isActive
+                                    ? const Color(0xFF2DD4BF)
+                                    : Colors.white60,
+                              ),
+                              title: Text(
+                                pl.name.isNotEmpty ? pl.name : 'اشتراك',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15),
+                              ),
+                              subtitle: Text(
+                                subTitle,
+                                style: const TextStyle(
+                                    color: Colors.white54, fontSize: 12),
+                              ),
+                              trailing: isActive
+                                  ? const Text(
+                                      'النشط حالياً ✅',
+                                      style: TextStyle(
+                                          color: Color(0xFF2DD4BF),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12),
+                                    )
+                                  : ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(sheetCtx);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text(
+                                              'جاري التبديل إلى ${pl.name}...'),
+                                          duration: const Duration(seconds: 2),
+                                        ));
+                                        final success = await provider
+                                            .switchSubscription(pl.id);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(success
+                                                ? 'تم تفعيل ${pl.name} بنجاح'
+                                                : (provider.lastError ??
+                                                    'تعذر التبديل')),
+                                            backgroundColor: success
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ));
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFFA855F7),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                      child: const Text('تبديل',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void updateIndex(int i) {
-    if (i > 0) {
-      String t = ["", "live", "movie", "series", "favorites"][i];
-      Provider.of<IPTVProvider>(context, listen: false).setTab(t);
+    final prov = Provider.of<IPTVProvider>(context, listen: false);
+    if (i == 1) {
+      prov.setTab("live");
+    } else if (i == 2) {
+      prov.setTab("movie");
+    } else if (i == 3) {
+      prov.setTab("series");
+    } else if (i == 4) {
+      prov.setTab("favorites");
+    } else if (i == 6) {
+      // Sports News screen
+    } else if (i == 7) {
+      // Matches screen
     }
     setState(() => _selectedIndex = i);
   }
@@ -843,14 +1227,17 @@ class _MainDashboardState extends State<MainDashboard> {
     final colorScheme = Theme.of(context).colorScheme;
     final showMoviesSeries = provider.showMoviesSeries;
 
+    final langCode = provider.appLanguageCode;
     final List<Map<String, dynamic>> tabs = [
-      {"icon": Icons.home_rounded, "label": "الرئيسية", "index": 0},
-      {"icon": Icons.live_tv_rounded, "label": "مباشر", "index": 1},
+      {"icon": Icons.home_rounded, "label": AppTranslations.get('home', langCode), "index": 0},
+      {"icon": Icons.live_tv_rounded, "label": AppTranslations.get('live', langCode), "index": 1},
+      {"icon": Icons.sports_soccer_rounded, "label": AppTranslations.get('matches', langCode), "index": 7},
+      {"icon": Icons.newspaper_rounded, "label": "الأخبار الرياضية", "index": 6},
       if (showMoviesSeries)
-        {"icon": Icons.movie_filter_rounded, "label": "أفلام", "index": 2},
+        {"icon": Icons.movie_filter_rounded, "label": AppTranslations.get('movies', langCode), "index": 2},
       if (showMoviesSeries)
-        {"icon": Icons.video_library_rounded, "label": "مسلسلات", "index": 3},
-      {"icon": Icons.favorite_rounded, "label": "مفضلة", "index": 4},
+        {"icon": Icons.video_library_rounded, "label": AppTranslations.get('series', langCode), "index": 3},
+      {"icon": Icons.favorite_rounded, "label": AppTranslations.get('favorites', langCode), "index": 4},
     ];
 
     int localIndex = tabs.indexWhere((t) => t['index'] == _selectedIndex);
@@ -910,6 +1297,12 @@ class _MainDashboardState extends State<MainDashboard> {
                   Icon(Icons.star_rounded, color: Color(0xFFFFC857), size: 19),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: "تبديل الاشتراك",
+              icon: const Icon(Icons.swap_horiz_rounded,
+                  color: Color(0xFF2DD4BF), size: 30),
+              onPressed: () => _showSubscriptionPicker(context, provider),
             ),
             IconButton(
               tooltip: "بحث",
@@ -1072,8 +1465,31 @@ class _MainDashboardState extends State<MainDashboard> {
                   icon: Icons.video_library_rounded,
                   label: "المسلسلات",
                   index: 3),
+            entry(icon: Icons.sports_soccer_rounded, label: AppTranslations.get('matches', provider.appLanguageCode), index: 7),
+            entry(icon: Icons.newspaper_rounded, label: "الأخبار الرياضية", index: 6),
             entry(icon: Icons.favorite_rounded, label: "المفضلة", index: 4),
             const Divider(color: Color(0xFF2C2D38), height: 34),
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+              leading: const Icon(Icons.swap_horiz_rounded,
+                  color: Color(0xFF2DD4BF), size: 31),
+              title: const Text("تبديل الاشتراك",
+                  style: TextStyle(
+                      color: Color(0xFF2DD4BF),
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700)),
+              subtitle: Text(
+                provider.subscriptionType.isNotEmpty
+                    ? provider.subscriptionType
+                    : 'الاشتراكات المحفوظة',
+                style: const TextStyle(color: Color(0xFF8E8E9F), fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showSubscriptionPicker(context, provider);
+              },
+            ),
             ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
@@ -1158,6 +1574,10 @@ class _MainDashboardState extends State<MainDashboard> {
             title: "المسلسلات", tab: "series", isSeries: true);
       case 4:
         return const FavoritesScreen();
+      case 6:
+        return const SportsNewsScreen();
+      case 7:
+        return const MatchesScreen();
       default:
         return const HomeTab();
     }
@@ -1184,6 +1604,8 @@ class ModernSidebar extends StatelessWidget {
     final List<Map<String, dynamic>> items = [
       {"icon": Icons.home_rounded, "index": 0},
       {"icon": Icons.live_tv_rounded, "index": 1},
+      {"icon": Icons.sports_soccer_rounded, "index": 7},
+      {"icon": Icons.newspaper_rounded, "index": 6},
       if (showMoviesSeries) {"icon": Icons.movie_filter_rounded, "index": 2},
       if (showMoviesSeries) {"icon": Icons.video_library_rounded, "index": 3},
       {"icon": Icons.favorite_rounded, "index": 4},
@@ -1412,53 +1834,67 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   String _globalSearchQuery = "";
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _news = const [];
+  List<Map<String, dynamic>> _news = buildCuratedShowcaseNewsItems();
   List<Map<String, dynamic>> _matches = const [];
 
   @override
   void initState() {
     super.initState();
-    unawaited(_loadNewsAndMatches());
+    unawaited(_loadSportsNews());
+    unawaited(_loadMatches());
   }
 
-  Future<void> _loadNewsAndMatches() async {
+  Future<void> _loadSportsNews() async {
+    final showcaseUrls = await fetchSportsShowcaseUrls();
+    final showcaseNews = buildCuratedShowcaseNewsItems(showcaseUrls);
+    final apiNews = <Map<String, dynamic>>[];
+    try {
+      final response = await http
+          .get(Uri.parse(
+              'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false'))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) apiNews.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _news = <Map<String, dynamic>>[
+          ...showcaseNews,
+          ...apiNews,
+        ];
+      });
+    }
+  }
+
+  Future<void> _loadMatches() async {
     try {
       final today = DateTime.now();
       final date =
           '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final responses = await Future.wait([
-        http.get(Uri.parse(
-            'https://sportfeeds.gemini.media/yallakoraapi/NewsList?pageIndex=1&pageSize=14&otherSportsNews=false')),
-        http.get(Uri.parse(
-            'https://api-ar.ysscores.com/api/matches/matches_date_get/$date/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180')),
-      ]).timeout(const Duration(seconds: 20));
-      final nextNews = <Map<String, dynamic>>[];
-      if (responses[0].statusCode == 200) {
-        final decoded = json.decode(responses[0].body);
-        if (decoded is List) {
-          for (final item in decoded) {
-            if (item is Map) nextNews.add(Map<String, dynamic>.from(item));
-          }
-        }
-      }
-      final nextMatches = <Map<String, dynamic>>[];
-      if (responses[1].statusCode == 200) {
-        final decoded = json.decode(responses[1].body);
+      final response = await http
+          .get(Uri.parse(
+              'https://api-ar.ysscores.com/api/matches/matches_date_get/$date/%5B%2299376%22,%22408340%22%5D/%5B%5D/%5B%228633%22%5D/D/180'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
         final data = decoded is Map ? decoded['data'] : null;
+        final nextMatches = <Map<String, dynamic>>[];
         if (data is List) {
           for (final item in data) {
             if (item is Map) nextMatches.add(Map<String, dynamic>.from(item));
           }
         }
+        if (mounted && nextMatches.isNotEmpty) {
+          setState(() => _matches = nextMatches);
+        }
       }
-      if (!mounted) return;
-      setState(() {
-        _news = nextNews;
-        _matches = nextMatches;
-      });
-    } catch (_) {
-      // Hide the sections on network failure; never show fabricated data.
-    }
+    } catch (_) {}
   }
 
   @override
@@ -1493,6 +1929,8 @@ class _HomeTabState extends State<HomeTab> {
                   isMobile ? 14 : 24, 18, isMobile ? 14 : 24, 0),
               child: _buildQuickAccessRow(context),
             ),
+            _buildNewsSection(context, isMobile),
+            if (_matches.isNotEmpty) _buildMatchesSection(context, isMobile),
             _buildReferenceSection(
               context: context,
               provider: provider,
@@ -1525,8 +1963,6 @@ class _HomeTabState extends State<HomeTab> {
                 cardWidth: isMobile ? 118 : 152,
                 cardHeight: isMobile ? 174 : 226,
               ),
-            if (_news.isNotEmpty) _buildNewsSection(context, isMobile),
-            if (_matches.isNotEmpty) _buildMatchesSection(context, isMobile),
           ],
         ),
       ),
@@ -1534,10 +1970,54 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildNewsSection(BuildContext context, bool isMobile) {
+    if (_news.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 28, left: 16, right: 16),
+        child: Column(
+          children: [
+            Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                const Expanded(
+                  child: Text('الأخبار الرياضية',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
+                ),
+                TextButton(
+                  onPressed: () => context
+                      .findAncestorStateOfType<_MainDashboardState>()
+                      ?.updateIndex(6),
+                  child: Text('عرض الكل',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: isMobile ? 140 : 160,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFA855F7),
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return _buildInfoRowSection(
       context,
-      title: 'آخر الأخبار',
-      height: isMobile ? 176 : 202,
+      title: 'الأخبار الرياضية',
+      onViewAll: () => context
+          .findAncestorStateOfType<_MainDashboardState>()
+          ?.updateIndex(6),
+      height: isMobile ? 196 : 220,
       children: _news.take(14).map((item) {
         final picture = item['Picture'] is Map
             ? Map<String, dynamic>.from(item['Picture'])
@@ -1545,8 +2025,13 @@ class _HomeTabState extends State<HomeTab> {
         return _NewsCard(
           title: (item['Title'] ?? 'خبر رياضي').toString(),
           date: (item['Date'] ?? '').toString(),
-          imageUrl:
-              (picture['SmallPath'] ?? picture['MeduimPath'] ?? '').toString(),
+          badge: (item['TourName'] ?? item['CategoryName'] ?? '').toString(),
+          imageUrl: (picture['MeduimPath'] ??
+                  picture['BigPath'] ??
+                  picture['SmallPath'] ??
+                  '')
+              .toString(),
+          onTap: () => showSportsNewsDetailSheet(context, item),
         );
       }).toList(),
     );
@@ -1556,6 +2041,9 @@ class _HomeTabState extends State<HomeTab> {
     return _buildInfoRowSection(
       context,
       title: 'جدول المباريات',
+      onViewAll: () => context
+          .findAncestorStateOfType<_MainDashboardState>()
+          ?.updateIndex(7),
       height: isMobile ? 166 : 190,
       children: _matches.take(14).map((item) {
         final home = item['home_team'] is Map
@@ -1584,6 +2072,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget _buildInfoRowSection(BuildContext context,
       {required String title,
       required double height,
+      VoidCallback? onViewAll,
       required List<Widget> children}) {
     if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -1592,13 +2081,26 @@ class _HomeTabState extends State<HomeTab> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800)),
+            child: Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
+                ),
+                if (onViewAll != null)
+                  TextButton(
+                    onPressed: onViewAll,
+                    child: Text('عرض الكل',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600)),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -1629,18 +2131,24 @@ class _HomeTabState extends State<HomeTab> {
         icon: Icons.live_tv_rounded,
         index: 1
       ),
+      (
+        english: 'NEWS',
+        arabic: 'الأخبار الرياضية',
+        icon: Icons.newspaper_rounded,
+        index: 6
+      ),
+      (
+        english: 'MATCHES',
+        arabic: 'المباريات',
+        icon: Icons.sports_soccer_rounded,
+        index: 7
+      ),
       (english: 'MOVIES', arabic: 'أفلام', icon: Icons.movie_rounded, index: 2),
       (
         english: 'SERIES',
         arabic: 'مسلسلات',
         icon: Icons.video_library_rounded,
         index: 3
-      ),
-      (
-        english: 'FAVOURITES',
-        arabic: 'المفضلة',
-        icon: Icons.favorite_rounded,
-        index: 4
       ),
     ];
 
@@ -1760,45 +2268,96 @@ class _HomeTabState extends State<HomeTab> {
 class _NewsCard extends StatelessWidget {
   final String title;
   final String date;
+  final String badge;
   final String imageUrl;
+  final VoidCallback? onTap;
 
-  const _NewsCard(
-      {required this.title, required this.date, required this.imageUrl});
+  const _NewsCard({
+    required this.title,
+    required this.date,
+    this.badge = '',
+    required this.imageUrl,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return SizedBox(
-      width: 250,
+      width: 265,
       child: Card(
         color: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: accent.withOpacity(0.22)),
+        ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: imageUrl.isEmpty
-                  ? const ColoredBox(color: Color(0xFF211C42))
-                  : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Text(title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
-            ),
-            if (date.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                child: Text(date.replaceFirst('T', ' '),
-                    maxLines: 1,
-                    textAlign: TextAlign.right,
-                    style:
-                        const TextStyle(color: Colors.white54, fontSize: 10)),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    imageUrl.isEmpty
+                        ? const ColoredBox(color: Color(0xFF211C42))
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) =>
+                                const ColoredBox(color: Color(0xFF211C42)),
+                          ),
+                    if (badge.isNotEmpty)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badge,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFFFC857),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                child: Text(title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700)),
+              ),
+              if (date.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                  child: Text(date.replaceFirst('T', ' '),
+                      maxLines: 1,
+                      textAlign: TextAlign.right,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 10)),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1908,53 +2467,25 @@ class _BannerSliderWidgetState extends State<BannerSliderWidget> {
   Timer? _timer;
 
   // الروابط الجديدة
-  List<String> _banners = [];
-  bool _isLoadingBanners = true;
+  List<String> _banners = List<String>.from(kDefaultSportsShowcaseUrls);
+  bool _isLoadingBanners = false;
 
   Future<void> _fetchBanners() async {
+    _startTimer();
     try {
-      final url = Uri.parse(
-          "https://iptv-subscription-api.tvkora56.workers.dev/v1/config?t=${DateTime.now().millisecondsSinceEpoch}");
-      final res = await http.get(url);
-      if (res.statusCode == 200) {
-        final decoded = json.decode(res.body);
-        final raw = decoded is Map ? decoded['slider'] : decoded;
-        final List<dynamic> data = raw is List ? raw : const <dynamic>[];
-        var banners = data
-            .map((e) {
-              if (e is Map) {
-                return (e['image_url'] ?? e['image'] ?? e['url'] ?? '')
-                    .toString()
-                    .trim();
-              }
-              return e.toString().trim();
-            })
-            .where((url) => url.isNotEmpty)
-            .toList();
-        if (banners.isEmpty) {
-          final legacy = await http.get(Uri.parse(
-              'https://raw.githubusercontent.com/mahmoudhwhwhwh/live-stream-premium/main/app_Slider.json'));
-          if (legacy.statusCode == 200) {
-            final legacyData = json.decode(legacy.body);
-            if (legacyData is List) {
-              banners = legacyData
-                  .map((e) => e.toString().trim())
-                  .where((url) => url.isNotEmpty)
-                  .toList();
-            }
-          }
-        }
-        if (!mounted) return;
+      final showcaseUrls = await fetchSportsShowcaseUrls();
+      if (!mounted) return;
+      if (showcaseUrls.isNotEmpty) {
         setState(() {
-          _banners = banners;
+          _banners = showcaseUrls;
           _isLoadingBanners = false;
         });
         _startTimer();
-      } else {
+      }
+    } catch (_) {
+      if (mounted) {
         setState(() => _isLoadingBanners = false);
       }
-    } catch (e) {
-      setState(() => _isLoadingBanners = false);
     }
   }
 
@@ -2228,7 +2759,7 @@ class StreamsListScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: provider.isFetchingData
+            child: (provider.isFetchingData && streams.isEmpty)
                 ? Center(child: CircularProgressIndicator(color: accent))
                 : GridView.builder(
                     padding: EdgeInsets.fromLTRB(
@@ -2513,6 +3044,29 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     };
   }
 
+  String get _seriesCacheKey => 'series_cache_${widget.series.streamId}';
+
+  Future<void> _saveSeriesCache(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_seriesCacheKey, jsonEncode(data));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> _loadOfflineSeriesFallback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_seriesCacheKey);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> _fetchSeriesInfo() async {
     try {
       final s = widget.series;
@@ -2522,6 +3076,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           .replaceFirst('series_', '');
       if (s.type == 'stalker_series') {
         final data = await _fetchStalkerSeriesInfo(rawId, provider);
+        await _saveSeriesCache(data);
         if (mounted) {
           setState(() {
             _seriesData = data;
@@ -2594,21 +3149,32 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         cover,
       );
 
+      final resultData = <String, dynamic>{
+        'info': data['info'] is Map
+            ? Map<String, dynamic>.from(data['info'])
+            : <String, dynamic>{},
+        'seasons': parsedSeasons,
+        'episodes': parsedEpisodes,
+      };
+      await _saveSeriesCache(resultData);
+
       if (mounted) {
         setState(() {
-          _seriesData = {
-            'info': data['info'] is Map
-                ? Map<String, dynamic>.from(data['info'])
-                : <String, dynamic>{},
-            'seasons': parsedSeasons,
-            'episodes': parsedEpisodes,
-          };
+          _seriesData = resultData;
           _isLoading = false;
         });
       }
       return;
     } catch (e) {
       debugPrint('Error fetching series info: $e');
+      final fallback = await _loadOfflineSeriesFallback();
+      if (fallback != null && mounted) {
+        setState(() {
+          _seriesData = fallback;
+          _isLoading = false;
+        });
+        return;
+      }
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -2666,6 +3232,56 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     } catch (e) {}
     final epId =
         ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty) return;
+    var epUrl = _resolveEpisodeStreamUrl(ep, host: host, user: user, pass: pass);
+    final epDisplayTitle =
+        "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}";
+    if (epUrl.isEmpty) return;
+    final stream = PlaylistItem(
+      streamId: epId.toString(),
+      name: epDisplayTitle,
+      url: epUrl,
+      type: "series",
+      streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
+      categoryId: "",
+      categoryName: "مسلسلات",
+    );
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+  }
+
+  String _resolveEpisodeStreamUrl(
+    dynamic ep, {
+    String? host,
+    String? user,
+    String? pass,
+  }) {
+    final provider = Provider.of<IPTVProvider>(context, listen: false);
+    String resolvedHost = host ?? '';
+    String resolvedUser = user ?? '';
+    String resolvedPass = pass ?? '';
+    if (resolvedHost.isEmpty) {
+      try {
+        final uri = Uri.parse(widget.series.url);
+        final segments = uri.pathSegments;
+        final seriesIndex = segments.indexOf('series');
+        if (seriesIndex >= 0 && segments.length >= seriesIndex + 4) {
+          final baseSegments = segments.take(seriesIndex).toList();
+          resolvedHost = Uri(
+            scheme: uri.scheme,
+            host: uri.host,
+            port: uri.hasPort ? uri.port : null,
+            path: baseSegments.isEmpty ? '' : '/${baseSegments.join('/')}',
+          ).toString().replaceFirst(RegExp(r'/$'), '');
+          resolvedUser = Uri.decodeComponent(segments[seriesIndex + 1]);
+          resolvedPass = Uri.decodeComponent(segments[seriesIndex + 2]);
+        }
+      } catch (_) {}
+    }
+
+    final epId =
+        ep['id'] ?? ep['episode_id'] ?? ep['stream_id'] ?? ep['media_id'];
+    if (epId == null || epId.toString().isEmpty) return '';
     final info = ep['info'] is Map
         ? Map<String, dynamic>.from(ep['info'])
         : <String, dynamic>{};
@@ -2682,7 +3298,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final directUrl = directCandidates
         .map((value) => value?.toString().trim() ?? '')
         .firstWhere((value) => value.isNotEmpty, orElse: () => '');
-    if (epId == null || epId.toString().isEmpty) return;
     final rawExt = ep['container_extension'] ??
         ep['extension'] ??
         info['container_extension'] ??
@@ -2708,22 +3323,11 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
         }
       }
     }
-    if (epUrl.isEmpty && host.isNotEmpty) {
+    if (epUrl.isEmpty && resolvedHost.isNotEmpty) {
       epUrl =
-          "$host/series/${Uri.encodeComponent(user)}/${Uri.encodeComponent(pass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
+          "$resolvedHost/series/${Uri.encodeComponent(resolvedUser)}/${Uri.encodeComponent(resolvedPass)}/$epId.${ext.isEmpty ? 'mp4' : ext}";
     }
-    if (epUrl.isEmpty) return;
-    final stream = PlaylistItem(
-      streamId: epId.toString(),
-      name: "${widget.series.name} - ${ep['title'] ?? ep['name'] ?? 'الحلقة'}",
-      url: epUrl,
-      type: "series",
-      streamIcon: ep['info']?['movie_image'] ?? widget.series.streamIcon,
-      categoryId: "",
-      categoryName: "مسلسلات",
-    );
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+    return epUrl;
   }
 
   @override
@@ -3100,6 +3704,12 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                                     ],
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: Color(0xFFA855F7),
+                                  size: 26,
+                                ),
                               ],
                             ),
                           ),
@@ -3125,12 +3735,14 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 class ScaleOnFocus extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool autofocus;
 
   const ScaleOnFocus({
     super.key,
     required this.child,
     required this.onTap,
+    this.onLongPress,
     this.autofocus = false,
   });
 
@@ -3174,6 +3786,7 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
       canRequestFocus: tvBoxFocusEnabled,
       autofocus: widget.autofocus && tvBoxFocusEnabled,
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       onFocusChange: _setFocus,
       onHover: (isHovering) {
         if (isHovering && _focusNode.canRequestFocus) _focusNode.requestFocus();
@@ -3206,6 +3819,90 @@ class _ScaleOnFocusState extends State<ScaleOnFocus> {
   }
 }
 
+void _showStreamQuickMenu(
+  BuildContext context,
+  IPTVProvider provider,
+  dynamic stream,
+  String streamId,
+  String name,
+  bool isFav,
+  bool isLocked,
+) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF1E1E24),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(
+                  isLocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                  color: const Color(0xFFA855F7),
+                ),
+                title: Text(
+                  isLocked ? "إلغاء قفل القناة" : "قفل القناة برمز الأمان",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  if (provider.isParentalEnabled) {
+                    final ok = await showPinDialog(context, provider);
+                    if (!ok) return;
+                  }
+                  await provider.toggleChannelLock(streamId);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isLocked ? "تم إلغاء قفل القناة" : "تم قفل القناة برمز الأمان",
+                          style: const TextStyle(fontFamily: 'Cairo'),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: Colors.redAccent,
+                ),
+                title: Text(
+                  isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.toggleFavorite(streamId);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 // Beautiful Movie/Stream Card (Compact)
 Widget buildStreamCardLocal(
     BuildContext context, IPTVProvider provider, dynamic stream,
@@ -3236,10 +3933,19 @@ Widget buildStreamCardLocal(
             MaterialPageRoute(
                 builder: (_) => SeriesDetailsScreen(series: stream)));
       } else {
-        provider.selectStream(stream);
-        provider.addToRecentlyPlayed(stream);
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => PlayerScreen(stream: stream)));
+        provider.selectStream(stream, notify: false);
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 110),
+            reverseTransitionDuration: const Duration(milliseconds: 90),
+            pageBuilder: (_, __, ___) => PlayerScreen(stream: stream),
+            transitionsBuilder: (_, animation, __, child) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+          ),
+        );
       }
     },
     child: ClipRRect(

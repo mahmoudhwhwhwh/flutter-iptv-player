@@ -29,6 +29,17 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   late int _screenCount;
   List<PlaylistItem?> _streams = [];
   Timer? _screenOnTimer;
+  int? _fullscreenSlotIndex;
+
+  void _toggleFullscreen(int index) {
+    setState(() {
+      if (_fullscreenSlotIndex == index) {
+        _fullscreenSlotIndex = null;
+      } else {
+        _fullscreenSlotIndex = index;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -135,9 +146,30 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                         shadows: [Shadow(blurRadius: 4, color: Colors.black)]),
                     onPressed: () {
                       setState(() {
+                        if (_fullscreenSlotIndex == index) {
+                          _fullscreenSlotIndex = null;
+                        }
                         _streams[index] = null;
                       });
                     },
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: IconButton(
+                    style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withOpacity(0.65)),
+                    icon: Icon(
+                        _fullscreenSlotIndex == index
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 24),
+                    tooltip: _fullscreenSlotIndex == index
+                        ? 'تصغير للشبكة'
+                        : 'ملء الشاشة',
+                    onPressed: () => _toggleFullscreen(index),
                   ),
                 ),
                 Positioned(
@@ -165,6 +197,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
   }
 
   Widget _buildLayout() {
+    if (_fullscreenSlotIndex != null && _fullscreenSlotIndex! < _streams.length) {
+      return _buildSlot(_fullscreenSlotIndex!);
+    }
     switch (widget.layoutType) {
       case MultiScreenType.grid2x2:
         return Column(
@@ -391,12 +426,7 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
-      _controller?.pause();
-    }
+    // Keep streams running uninterrupted in background and multi-screen mode
   }
 
   @override
@@ -415,80 +445,23 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
     _controller?.dispose();
     _controller = null;
 
-    double subSizeVal = 16.0;
-    Color subColorVal = Colors.white;
-    Color subBgColorVal = Colors.transparent;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String sSize = prefs.getString('sub_size') ?? "متوسط";
-      String sCol = prefs.getString('sub_color') ?? "أبيض";
-      String sBg = prefs.getString('sub_bg_color') ?? "شفاف";
-
-      if (sSize == "صغير")
-        subSizeVal = 12.0;
-      else if (sSize == "متوسط")
-        subSizeVal = 16.0;
-      else if (sSize == "كبير")
-        subSizeVal = 22.0;
-      else if (sSize == "ضخم")
-        subSizeVal = 28.0;
-      else
-        subSizeVal = 16.0;
-
-      if (sCol == "أصفر")
-        subColorVal = Colors.yellow;
-      else if (sCol == "أزرق سماوي")
-        subColorVal = Colors.cyanAccent;
-      else if (sCol == "أخضر")
-        subColorVal = Colors.greenAccent;
-      else if (sCol == "أحمر")
-        subColorVal = Colors.redAccent;
-      else if (sCol == "أزرق")
-        subColorVal = Colors.blueAccent;
-      else if (sCol == "وردي")
-        subColorVal = Colors.pinkAccent;
-      else
-        subColorVal = Colors.white;
-
-      if (sBg == "أسود")
-        subBgColorVal = Colors.black87;
-      else if (sBg == "رمادي داكن")
-        subBgColorVal = Colors.black54;
-      else if (sBg == "أحمر داكن")
-        subBgColorVal = Colors.red[900]!.withOpacity(0.8);
-      else if (sBg == "أزرق داكن")
-        subBgColorVal = Colors.blue[900]!.withOpacity(0.8);
-      else if (sBg == "أخضر داكن")
-        subBgColorVal = Colors.green[900]!.withOpacity(0.8);
-      else if (sBg == "أرجواني داكن")
-        subBgColorVal = Colors.purple[900]!.withOpacity(0.8);
-      else
-        subBgColorVal = Colors.transparent;
-    } catch (e) {
-        debugPrint("Error loading subtitle settings in multi-player: ${redactDiagnostic(e)}");
-    }
-
     BetterPlayerConfiguration betterPlayerConfiguration =
-        BetterPlayerConfiguration(
+        const BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,
       looping: false,
-      subtitlesConfiguration: BetterPlayerSubtitlesConfiguration(
-        fontSize: subSizeVal,
-        fontColor: subColorVal,
-        backgroundColor: subBgColorVal,
-        outlineColor: Colors.black,
-        outlineSize: 2.0,
-        fontFamily: "Arial",
-      ),
-      controlsConfiguration: const BetterPlayerControlsConfiguration(
+      handleLifecycle: false,
+      autoDispose: false,
+      controlsConfiguration: BetterPlayerControlsConfiguration(
         showControls: false,
       ),
     );
 
-    String finalUrl = stripFfmpegPrefix(widget.stream.url);
+    String finalUrl = repairKnownDeadStreamUrl(
+      widget.stream.url,
+      streamName: widget.stream.name,
+    );
     final provider = Provider.of<IPTVProvider>(context, listen: false);
     final activePlaylist = provider.savedPlaylists.firstWhere(
       (p) => p.id == provider.activePlaylistId,
@@ -571,6 +544,10 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
           headers["Cookie"] = "mac=$mac";
         }
       } catch (e) {}
+    } else if (finalUrl.toLowerCase().contains('/live/') &&
+        (widget.stream.customUserAgent == null ||
+            widget.stream.customUserAgent!.isEmpty)) {
+      headers['User-Agent'] = 'IPTVSmartersPro';
     }
 
     final bool isMpdStream = finalUrl.toLowerCase().contains('.mpd');
@@ -589,17 +566,32 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       }
     }
 
+    if (finalUrl.contains('/movie/') ||
+        finalUrl.contains('/series/') ||
+        finalUrl.contains('x.gamerdz1517.com') ||
+        finalUrl.contains('marveliptv.life')) {
+      finalUrl = await resolveCrossProtocolRedirectForPlayback(
+        finalUrl,
+        headers,
+      );
+      if (!mounted) return;
+    }
+
+    final bool isXtreamLiveEndpoint = RegExp(
+          r'/live/[^/]+/[^/]+/\d+',
+          caseSensitive: false,
+        ).hasMatch(finalUrl) ||
+        finalUrl.toLowerCase().contains('x.gamerdz1517.com/live/');
     BetterPlayerVideoFormat? format;
-    if (isHlsPlaybackUrl(finalUrl)) {
+    if (isXtreamLiveEndpoint || isProgressiveTsUrl(finalUrl)) {
+      format = null;
+    } else if (isHlsPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.hls;
     } else if (isDashPlaybackUrl(finalUrl)) {
       format = BetterPlayerVideoFormat.dash;
-    } else if (isProgressiveTsUrl(finalUrl)) {
-      // Let ExoPlayer infer progressive MPEG-TS from the URL/content type.
-      format = null;
     }
 
-    bool isAsms = format == BetterPlayerVideoFormat.hls ||
+    final bool isAsms = format == BetterPlayerVideoFormat.hls ||
         format == BetterPlayerVideoFormat.dash;
 
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
@@ -610,8 +602,14 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
       videoExtension: isProgressiveTsUrl(finalUrl) ? 'ts' : null,
       headers: headers,
       useAsmsTracks: isAsms,
-      useAsmsSubtitles: isAsms,
-      useAsmsAudioTracks: isAsms,
+      useAsmsSubtitles: true,
+      useAsmsAudioTracks: true,
+      bufferingConfiguration: const BetterPlayerBufferingConfiguration(
+        minBufferMs: 1200,
+        maxBufferMs: 8000,
+        bufferForPlaybackMs: 300,
+        bufferForPlaybackAfterRebufferMs: 800,
+      ),
       drmConfiguration:
           widget.stream.clearKeys != null && widget.stream.clearKeys!.isNotEmpty
               ? BetterPlayerDrmConfiguration(
@@ -620,8 +618,16 @@ class _MultiPlayerSlotState extends State<_MultiPlayerSlot>
                 )
               : null,
     );
-
     _controller = BetterPlayerController(betterPlayerConfiguration);
+    _controller!.addEventsListener((event) {
+      if (event.betterPlayerEventType == BetterPlayerEventType.exception) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && _controller != null) {
+            _controller!.retryDataSource();
+          }
+        });
+      }
+    });
     _controller!.setupDataSource(dataSource);
 
     if (mounted) {

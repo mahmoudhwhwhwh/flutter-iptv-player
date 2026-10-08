@@ -18,8 +18,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Prevent screenshots and screen recording of subscription credentials
-        // and playback. This has no meaningful APK-size impact.
+        // Prevent screenshots, screen recording, and external capture
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -27,15 +26,51 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun checkSnifferOrProxy(): Boolean {
-        // فحص وجود برامج اقتناص الروابط الشهيرة أو بروكسي محلي
+        // فحص وجود برامج اقتناص الروابط الشهيرة والهندسة العكسية
         val knownPackages = arrayOf(
-            "app.greyshirts.sslcapture",
+            // Reqable & Reqable MAGIC proxy
+            "com.reqable.android",
+            "com.reqable.android.international",
+            "com.reqable.magic",
+            "com.reqable.android.magic",
+            // Http Canary (Blue, Yellow, Black, Pro, Premium)
             "com.guoshi.httpcanary",
             "com.guoshi.httpcanary.premium",
+            "com.guoshi.httpcanary.pro",
+            "com.guoshi.httpcanary.blue",
+            "com.guoshi.httpcanary.yellow",
+            "com.guoshi.httpcanary.black",
+            "com.canary.blue",
+            "com.canary.yellow",
+            "com.canary.black",
+            // PCAPdroid & PCAPdroid MITM addon
+            "com.emanuelef.remote_capture",
+            "com.emanuelef.remote_capture.mitm",
+            "com.emanuelef.remote_capture.debug",
+            "it.emanuelef.remote_capture",
+            // Other Sniffers & Proxies
+            "app.greyshirts.sslcapture",
             "com.charles.proxy",
+            "com.charlesproxy.android",
             "com.packetcapture",
-            "com.minhui.networkcapture"
+            "com.sandro.packetcapture",
+            "org.sandrop.packetcapture",
+            "com.minhui.networkcapture",
+            "com.evozi.networksniffer",
+            "tech.httptoolkit.android",
+            "tech.httptoolkit.android.v1",
+            "com.vproxy.app",
+            "org.proxydroid",
+            // Reverse Engineering & Modding Tools
+            "bin.mt.plus",
+            "com.gmail.heagoo.apkeditor",
+            "com.gmail.heagoo.apkeditor.pro",
+            "com.dimonvideo.luckypatcher",
+            "com.chelpus.lackypatch",
+            "de.robv.android.xposed.installer",
+            "org.meowcat.edxposed.manager"
         )
+
         for (pkg in knownPackages) {
             try {
                 packageManager.getPackageInfo(pkg, 0)
@@ -44,14 +79,62 @@ class MainActivity : FlutterActivity() {
                 // Not found
             }
         }
+
+        // فحص إعدادات البروكسي للنظام (System Proxy Check)
+        val httpProxy = System.getProperty("http.proxyHost")
+        if (!httpProxy.isNullOrBlank() && httpProxy != "0.0.0.0" && httpProxy != "localhost") return true
+        val httpsProxy = System.getProperty("https.proxyHost")
+        if (!httpsProxy.isNullOrBlank() && httpsProxy != "0.0.0.0" && httpsProxy != "localhost") return true
+        try {
+            val globalProxy = android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.HTTP_PROXY)
+            if (!globalProxy.isNullOrBlank() && globalProxy != ":0" && globalProxy.contains(":")) return true
+        } catch (_: Exception) {}
+
         return false
     }
 
     private fun checkVpnActive(): Boolean {
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                return true
+            }
+        } catch (_: Exception) {}
+        return false
+    }
+
+    private fun checkFrida(): Boolean {
+        try {
+            val fridaPaths = arrayOf(
+                "/data/local/tmp/frida-server",
+                "/data/local/tmp/re.frida.server",
+                "/data/local/tmp/frida64",
+                "/data/local/tmp/frida32",
+                "/data/local/tmp/frida-gadget.so"
+            )
+            for (p in fridaPaths) {
+                if (File(p).exists()) return true
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val mapsFile = File("/proc/self/maps")
+            if (mapsFile.exists()) {
+                val content = mapsFile.readText()
+                if (content.contains("frida-server", ignoreCase = true) ||
+                    content.contains("frida-agent", ignoreCase = true) ||
+                    content.contains("frida-gadget", ignoreCase = true) ||
+                    content.contains("libfrida", ignoreCase = true) ||
+                    content.contains("xposed.installer", ignoreCase = true) ||
+                    content.contains("edxposed", ignoreCase = true)) {
+                    return true
+                }
+            }
+        } catch (_: Exception) {}
+
+        return false
     }
 
     private fun checkSignature(): Boolean {
@@ -60,6 +143,7 @@ class MainActivity : FlutterActivity() {
             .replace(" ", "")
             .lowercase()
         if (expected.isBlank() || expected == "unset") return false
+
         return try {
             val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -67,12 +151,14 @@ class MainActivity : FlutterActivity() {
                 @Suppress("DEPRECATION")
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
             }
+
             val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners?.toList().orEmpty()
             } else {
                 @Suppress("DEPRECATION")
                 packageInfo.signatures?.toList().orEmpty()
             }
+
             signatures.any { signature ->
                 val digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                 digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } == expected
@@ -95,7 +181,8 @@ class MainActivity : FlutterActivity() {
             "/data/local/su"
         )
         for (path in paths) {
-            if (File(path).exists()) return true
+            val f = File(path)
+            if (f.exists() && f.canExecute()) return true
         }
         return false
     }
@@ -110,11 +197,10 @@ class MainActivity : FlutterActivity() {
                     val rooted = checkRoot()
                     val debugger = Debug.isDebuggerConnected()
                     val signatureValid = checkSignature()
+                    val frida = checkFrida()
 
-                    // CI/Play signing can legitimately differ from the local
-                    // development certificate. Report the result for telemetry,
-                    // but do not block an otherwise clean production install.
-                    val shouldBlock = sniffer || debugger || rooted
+                    // Strict black screen trigger: ONLY when malicious sniffer/proxy, debugger, or frida injection is detected
+                    val shouldBlock = sniffer || debugger || frida
 
                     result.success(
                         mapOf(
@@ -123,7 +209,7 @@ class MainActivity : FlutterActivity() {
                             "vpnActive" to vpn,
                             "proxyActive" to sniffer,
                             "debuggerDetected" to debugger,
-                            "compromisedDevice" to rooted,
+                            "compromisedDevice" to frida,
                             "signatureValid" to signatureValid
                         )
                     )

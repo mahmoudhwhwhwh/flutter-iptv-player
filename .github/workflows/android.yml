@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  APK_NAME: LIVE_STREAM_PREMIUM.apk
+  APK_NAME: LIVE_STREAM_PRO.apk
 
 jobs:
   build:
@@ -61,9 +61,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
-          name: Release ${{ env.TAG_VERSION }}
+          name: "Live Stream Pro - ${{ env.TAG_VERSION }} 🚀"
           files: ${{ env.APK_NAME }}
           generate_release_notes: true
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK to GitHub Actions Artifacts
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: Live-Stream-Pro-${{ env.TAG_VERSION }}-APK
+          path: ${{ env.APK_NAME }}
+          retention-days: 14

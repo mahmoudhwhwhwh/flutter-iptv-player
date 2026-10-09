@@ -1352,6 +1352,15 @@ class IPTVProvider with ChangeNotifier {
 
     HttpOverrides.global = MyHttpOverrides("");
     bool cacheLoadedOnInit = false;
+    if (_isLoggedIn &&
+        _savedPlaylists.isEmpty &&
+        _activationCode.trim().isNotEmpty &&
+        _isSecured) {
+      final restoredFromCode = await loginWithCode(_activationCode);
+      if (restoredFromCode) {
+        cacheLoadedOnInit = _allStreams.isNotEmpty;
+      }
+    }
     if (_isLoggedIn && _savedPlaylists.isNotEmpty && _isSecured) {
       final preferredId = _activePlaylistId ??
           (_activationCode.isNotEmpty

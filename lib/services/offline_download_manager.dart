@@ -175,14 +175,14 @@ class OfflineDownloadManager extends ChangeNotifier {
   Future<OfflineDownloadItem?> add({
     required String title,
     required String url,
-    required String subscriptionScope,
+    required String? subscriptionScope,
     String? advertisedExtension,
   }) async {
     await initialize();
     final extension = _supportedExtension(url, advertisedExtension);
     if (extension == null) return null;
     final cleanUrl = url.split('|').first;
-    final id = _stableId(subscriptionScope, cleanUrl);
+    final id = _stableId(subscriptionScope ?? 'default', cleanUrl);
     final existing = _items[id];
     if (existing != null) {
       if (existing.isComplete || existing.isRunning) return existing;

@@ -116,7 +116,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                       if (progress != null) ...[
                         const SizedBox(height: 8),
                         LinearProgressIndicator(
-                          value: progress.clamp(0.0, 1.0),
+                          value: progress.clamp(0.0, 1.0).toDouble(),
                           backgroundColor: Colors.white12,
                           color: const Color(0xFFA855F7),
                         ),

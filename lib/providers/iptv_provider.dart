@@ -395,7 +395,7 @@ class IPTVProvider with ChangeNotifier {
 
   int _playerSettingsVersion = 0;
   int get playerSettingsVersion => _playerSettingsVersion;
-  bool _tvBoxFocusEnabled = true;
+  bool _tvBoxFocusEnabled = false;
   bool get tvBoxFocusEnabled => _tvBoxFocusEnabled;
 
   Future<void> setTvBoxFocusEnabled(bool value) async {
@@ -419,7 +419,7 @@ class IPTVProvider with ChangeNotifier {
   String _securityMessage = "";
   String get securityMessage => _securityMessage;
 
-  bool _blockAdultContent = true;
+  bool _blockAdultContent = false;
   bool get blockAdultContent => _blockAdultContent;
 
   void setBlockAdultContent(bool value) async {
@@ -462,7 +462,7 @@ class IPTVProvider with ChangeNotifier {
   int _activationDurationHours = -1;
   String _subscriptionType = "";
 
-  bool _showMoviesSeries = true;
+  bool _showMoviesSeries = false;
   bool get showMoviesSeries => _showMoviesSeries;
 
   String _channelFilter =
@@ -601,11 +601,11 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 254;
+  static const int APP_VERSION_CODE = 255;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
-  String _currentVersionStr = "2.2.2";
-  int _currentVersionCode = 303;
+  String _currentVersionStr = "2.5.5";
+  int _currentVersionCode = 255;
 
   bool _isVersionBlocked = false;
   String _remoteBlockMessage =
@@ -1214,6 +1214,28 @@ class IPTVProvider with ChangeNotifier {
     checkSecurity();
 
     final prefs = await SharedPreferences.getInstance();
+    const settingsDefaultsMigrationKey = 'settings_opt_in_defaults_applied_v255';
+    if (prefs.getBool(settingsDefaultsMigrationKey) != true) {
+      // One-time opt-in defaults for this upgrade. Subscription and playlist
+      // data are left untouched; users may enable each feature in Settings.
+      for (final key in const [
+        'remote_control_enabled',
+        'mouse_control_enabled',
+        'tv_box_focus_enabled',
+        'blur_episode_covers',
+        'auto_play_next_episode',
+        'auto_resume_playback',
+        'show_virtual_keyboard',
+        'filter_show_movies_series',
+        'block_adult_content',
+        'lite_mode',
+      ]) {
+        await prefs.setBool(key, false);
+      }
+      await prefs.setBool('lite_mode_user_set', true);
+      await prefs.setBool('lite_mode_auto_notice_shown', true);
+      await prefs.setBool(settingsDefaultsMigrationKey, true);
+    }
     _liteModeUserSet = prefs.getBool('lite_mode_user_set') ?? false;
     if (_liteModeUserSet) {
       _liteMode = prefs.getBool('lite_mode') ?? false;
@@ -1229,7 +1251,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       _currentVersionStr = packageInfo.version;
-      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 212;
+      _currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 255;
       final nameClean = packageInfo.appName.toLowerCase().replaceAll(' ', '');
       if (!nameClean.contains("livefootball") &&
           !nameClean.contains("livestrempro")) {
@@ -1248,10 +1270,9 @@ class IPTVProvider with ChangeNotifier {
     unawaited(_refreshRemoteConfig());
 
     _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-    // إعادة تفعيل أقسام الأفلام والمسلسلات بعد الإصدارات القديمة التي كانت تخفيها.
-    // يمكن للمستخدم تعطيلها لاحقاً من الإعدادات إذا أراد.
-    _showMoviesSeries = true;
-    await prefs.setBool('filter_show_movies_series', true);
+    // Keep optional content sections user-controlled; do not override saved
+    // preferences on every startup. Fresh installs start with them disabled.
+    _showMoviesSeries = prefs.getBool('filter_show_movies_series') ?? false;
     _streamFormat = prefs.getString('stream_format_v252') ?? 'ts';
     _channelFilter = "الكل";
     _parentalPin = prefs.getString('parental_pin') ?? "";
@@ -1337,13 +1358,13 @@ class IPTVProvider with ChangeNotifier {
     // Preserve playlists and avoid wiping saved accounts
     await _persistSavedPlaylists();
     _savedSubscriptionCodes = [];
-    _blockAdultContent = prefs.getBool('block_adult_content') ?? true;
+    _blockAdultContent = prefs.getBool('block_adult_content') ?? false;
     _appLanguage = prefs.getString('app_language') ?? 'العربية';
     _premiumTheme = prefs.getString('premium_theme') ?? 'البنفسجي الملكي';
     _profileName = prefs.getString('profile_name') ?? 'Premium User';
     _profileLogo = prefs.getString('profile_logo') ?? 'play';
     _profileImagePath = prefs.getString('profile_image_path') ?? '';
-    _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
+    _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? false;
 
     // تشغيل فحوصات الأمان النشطة ضد الهندسة العكسية
     await runActiveSecurityChecks();

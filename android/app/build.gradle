@@ -22,9 +22,13 @@ if (signingPropertiesFile.exists()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
 }
 
-def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: '4F:FF:9E:B7:13:97:0A:6D:75:72:CD:83:88:00:8A:84:81:29:BB:F8:A7:FF:BB:4C:84:BB:A4:BD:3F:02:6A:36'
+def expectedCertificateSha256 = System.getenv('EXPECTED_CERT_SHA256') ?: '80:07:86:FB:C6:AF:3F:59:EB:E2:6E:0E:53:23:5E:29:43:4B:E8:6C:06:AD:E7:1B:E4:D5:A8:11:85:07:55:10'
 
 def hasReleaseSigning = signingProperties['storeFile'] && signingProperties['storePassword'] && signingProperties['keyAlias'] && signingProperties['keyPassword']
+def requestsReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (requestsReleaseBuild && !hasReleaseSigning) {
+    throw new GradleException('Release signing is not configured. Refusing to sign a production APK with the temporary Android debug key.')
+}
 
 android {
     namespace "com.mahmoud.iptv"
@@ -76,7 +80,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             debuggable false

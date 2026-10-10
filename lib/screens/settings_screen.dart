@@ -38,14 +38,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _appOrientation = "تلقائي";
-  bool _remoteControlEnabled = true;
-  bool _mouseControlEnabled = true;
-  bool _tvBoxFocusEnabled = true;
+  bool _remoteControlEnabled = false;
+  bool _mouseControlEnabled = false;
+  bool _tvBoxFocusEnabled = false;
   String _performanceProfile = "medium";
   bool _blurEpisodeCovers = false;
-  bool _autoPlayNextEpisode = true;
-  bool _autoResumePlayback = true;
-  bool _showVirtualKeyboard = true;
+  bool _autoPlayNextEpisode = false;
+  bool _autoResumePlayback = false;
+  bool _showVirtualKeyboard = false;
 
   @override
   void initState() {
@@ -55,17 +55,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _appOrientation = prefs.getString('app_orientation') ?? "تلقائي";
-      _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? true;
-      _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? true;
-      _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? true;
+      _remoteControlEnabled = prefs.getBool('remote_control_enabled') ?? false;
+      _mouseControlEnabled = prefs.getBool('mouse_control_enabled') ?? false;
+      _tvBoxFocusEnabled = prefs.getBool('tv_box_focus_enabled') ?? false;
       _performanceProfile =
           prefs.getString('device_performance_profile') ?? "medium";
       _blurEpisodeCovers = prefs.getBool('blur_episode_covers') ?? false;
-      _autoPlayNextEpisode = prefs.getBool('auto_play_next_episode') ?? true;
-      _autoResumePlayback = prefs.getBool('auto_resume_playback') ?? true;
-      _showVirtualKeyboard = prefs.getBool('show_virtual_keyboard') ?? true;
+      _autoPlayNextEpisode = prefs.getBool('auto_play_next_episode') ?? false;
+      _autoResumePlayback = prefs.getBool('auto_resume_playback') ?? false;
+      _showVirtualKeyboard = prefs.getBool('show_virtual_keyboard') ?? false;
     });
   }
 

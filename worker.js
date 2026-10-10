@@ -130,8 +130,8 @@ export default {
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         const clientBuild = parseInt(url.searchParams.get("app_build")) || 0;
         if (clientBuild < 254) {
-          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
-            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
+          return respond({ ok: false, code: "APP_DISABLED", min_version_code: 255,
+            latest_version: "v2.5.4", message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة." }, 426);
         }
         return respond({
           app_name: "LIVE STREAM PRO",
@@ -142,14 +142,14 @@ export default {
           // Credentials are delivered only after a successful device-bound login.
           servers: [],
           blocking: {
-            min_version_code: 254,
+            min_version_code: 255,
             blocked_version_codes: [],
-            block_message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار."
+            block_message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة."
           },
           update: {
             latest_version: "v2.5.4",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "نسخة جديدة متاحة (v2.5.4). يرجى التحديث الآن."
+            update_message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة."
           }
         });
       }
@@ -160,9 +160,9 @@ export default {
 
       if (url.pathname === "/v1/custom/menu" || url.pathname === "/v1/custom_channels" || url.pathname === "/v1/channels") {
         const clientBuild = parseInt(url.searchParams.get("app_build")) || 0;
-        if (clientBuild < 254) {
-          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
-            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
+        if (clientBuild < 255) {
+          return respond({ ok: false, code: "APP_DISABLED", min_version_code: 255,
+            latest_version: "v2.5.4", message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة." }, 426);
         }
         const requestedCode = (url.searchParams.get("code") || "2027").trim();
         const sourceKey = requestedCode === "2026"
@@ -198,9 +198,9 @@ export default {
           code = url.searchParams.get("code")?.trim() || "";
           deviceId = url.searchParams.get("device_id")?.trim() || url.searchParams.get("mac")?.trim() || "";
         }
-        if (appBuild < 254) {
-          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
-            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
+        if (appBuild < 255) {
+          return respond({ ok: false, code: "APP_DISABLED", min_version_code: 255,
+            latest_version: "v2.5.4", message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة." }, 426);
         }
         if (!code) return respond({ ok: false, message: "رمز الدخول مطلوب" }, 401);
         if (code.length > 128 || deviceId.length > 256) {

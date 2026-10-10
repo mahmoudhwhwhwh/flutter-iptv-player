@@ -152,6 +152,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   BetterPlayerController? _betterController;
+  Function(BetterPlayerEvent)? _betterPlayerEventListener;
   VideoPlayerController? _loadingVideoController;
   VideoPlayerController? _offlineVideoController;
 
@@ -287,8 +288,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   String? _activeRecordingFilePath;
   final List<String> _capturedMediaFiles = [];
 
-  bool get _isLiveStream =>
-      _stream.type == 'live' || _stream.type == 'stalker';
+  bool get _isLiveStream => _stream.type == 'live' || _stream.type == 'stalker';
 
   Duration _liveRetryDelay() {
     return const Duration(milliseconds: 250);
@@ -333,6 +333,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         candidates.add(normalized);
       }
     }
+
     String preferredFormat = 'ts';
     try {
       if (mounted) {
@@ -492,7 +493,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     try {
       final boundaryContext = _videoCaptureBoundaryKey.currentContext;
       if (boundaryContext == null) {
-        _showOnScreenToast('انتظر لحظة حتى يجهز المشغل للتصوير', Icons.camera_alt_rounded);
+        _showOnScreenToast(
+            'انتظر لحظة حتى يجهز المشغل للتصوير', Icons.camera_alt_rounded);
         return;
       }
       final boundary =
@@ -521,7 +523,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       setState(() {
         _capturedMediaFiles.insert(0, file.path);
       });
-      _showOnScreenToast('تم حفظ لقطة الشاشة بنجاح 📸', Icons.check_circle_rounded);
+      _showOnScreenToast(
+          'تم حفظ لقطة الشاشة بنجاح 📸', Icons.check_circle_rounded);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -564,7 +567,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (e) {
       debugPrint('Screenshot capture error: $e');
       if (mounted) {
-        _showOnScreenToast('تعذر التقاط الصورة حالياً', Icons.error_outline_rounded);
+        _showOnScreenToast(
+            'تعذر التقاط الصورة حالياً', Icons.error_outline_rounded);
       }
     } finally {
       if (mounted) {
@@ -584,7 +588,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     final sourceUrl =
         _activePlaybackUrl.isNotEmpty ? _activePlaybackUrl : _stream.url.trim();
     if (sourceUrl.isEmpty) {
-      _showOnScreenToast('لا يوجد بث نشط لتسجيله حالياً', Icons.videocam_off_rounded);
+      _showOnScreenToast(
+          'لا يوجد بث نشط لتسجيله حالياً', Icons.videocam_off_rounded);
       return;
     }
 
@@ -594,7 +599,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         .trim()
         .replaceAll(RegExp(r'\s+'), '_');
     final stamp = DateTime.now().millisecondsSinceEpoch;
-    final isLocalSource = sourceUrl.startsWith('/') || sourceUrl.startsWith('file://');
+    final isLocalSource =
+        sourceUrl.startsWith('/') || sourceUrl.startsWith('file://');
     final ext = isLocalSource
         ? (sourceUrl.endsWith('.mkv') ? 'mkv' : 'mp4')
         : (sourceUrl.toLowerCase().contains('.mp4') ? 'mp4' : 'ts');
@@ -618,7 +624,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     });
 
-    _showOnScreenToast('بدأ تسجيل الفيديو 🔴 اضغط مرة أخرى للإيقاف والحفظ', Icons.fiber_manual_record_rounded);
+    _showOnScreenToast('بدأ تسجيل الفيديو 🔴 اضغط مرة أخرى للإيقاف والحفظ',
+        Icons.fiber_manual_record_rounded);
     unawaited(_runStreamClipRecorder(sourceUrl, outPath));
   }
 
@@ -635,7 +642,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         final srcFile = File(sourceUrl.replaceFirst(RegExp(r'^file://'), ''));
         if (srcFile.existsSync()) {
           final totalLen = srcFile.lengthSync();
-          final durSec = _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : 1;
+          final durSec =
+              _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : 1;
           final startOffset = ((_currentPosition.inSeconds / durSec) * totalLen)
               .round()
               .clamp(0, totalLen > 0 ? totalLen - 1 : 0);
@@ -659,7 +667,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activeRecordingClient = client;
 
       final headers = <String, String>{
-        'User-Agent': _activePlaybackHeaders['User-Agent'] ?? 'VLC/3.0.20 LibVLC/3.0.20',
+        'User-Agent':
+            _activePlaybackHeaders['User-Agent'] ?? 'VLC/3.0.20 LibVLC/3.0.20',
         'Accept': '*/*',
         'Connection': 'keep-alive',
         ..._activePlaybackHeaders,
@@ -678,7 +687,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         final uri = Uri.tryParse(candidate);
         if (uri == null) continue;
 
-        final req = await client.getUrl(uri).timeout(const Duration(seconds: 10));
+        final req =
+            await client.getUrl(uri).timeout(const Duration(seconds: 10));
         headers.forEach((k, v) {
           if (v.isNotEmpty) req.headers.set(k, v);
         });
@@ -701,7 +711,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           if (_recordedBytes > 0) break;
         } else {
           // Read initial playlist text
-          final firstBytes = await resp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+          final firstBytes =
+              await resp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
           String playlistText = utf8.decode(firstBytes, allowMalformed: true);
           Uri playlistUri = uri;
 
@@ -719,13 +730,17 @@ class _PlayerScreenState extends State<PlayerScreen>
 
           final seenSegments = <String>{};
           while (_isRecordingClip && !_recordingStopRequested) {
-            final plReq = await client.getUrl(playlistUri).timeout(const Duration(seconds: 8));
+            final plReq = await client
+                .getUrl(playlistUri)
+                .timeout(const Duration(seconds: 8));
             headers.forEach((k, v) {
               if (v.isNotEmpty) plReq.headers.set(k, v);
             });
-            final plResp = await plReq.close().timeout(const Duration(seconds: 8));
+            final plResp =
+                await plReq.close().timeout(const Duration(seconds: 8));
             if (plResp.statusCode == 200) {
-              final plBytes = await plResp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
+              final plBytes =
+                  await plResp.fold<List<int>>(<int>[], (p, e) => p..addAll(e));
               final text = utf8.decode(plBytes, allowMalformed: true);
               final segUrls = <Uri>[];
               for (final rawLine in text.split(RegExp(r'\r?\n'))) {
@@ -739,11 +754,14 @@ class _PlayerScreenState extends State<PlayerScreen>
               for (final segUri in segUrls) {
                 if (!_isRecordingClip || _recordingStopRequested) break;
                 try {
-                  final segReq = await client.getUrl(segUri).timeout(const Duration(seconds: 8));
+                  final segReq = await client
+                      .getUrl(segUri)
+                      .timeout(const Duration(seconds: 8));
                   headers.forEach((k, v) {
                     if (v.isNotEmpty) segReq.headers.set(k, v);
                   });
-                  final segResp = await segReq.close().timeout(const Duration(seconds: 8));
+                  final segResp =
+                      await segReq.close().timeout(const Duration(seconds: 8));
                   if (segResp.statusCode >= 200 && segResp.statusCode < 300) {
                     await for (final chunk in segResp) {
                       if (!_isRecordingClip || _recordingStopRequested) break;
@@ -1018,6 +1036,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     _liveStartupWatchdogTimer = null;
     final controller = _betterController;
     _betterController = null;
+    final eventListener = _betterPlayerEventListener;
+    _betterPlayerEventListener = null;
     final localCtrl = _localFallbackController;
     _localFallbackController = null;
     _usingLocalFallback = false;
@@ -1031,6 +1051,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       } catch (_) {}
     }
     if (controller == null) return;
+    if (eventListener != null) {
+      try {
+        controller.removeEventsListener(eventListener);
+      } catch (_) {}
+    }
     try {
       controller.setVolume(0.0);
       controller.pause();
@@ -1083,8 +1108,16 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  void _initializeController({bool isRetry = false, int? generation}) async {
+  void _initializeController({
+    bool isRetry = false,
+    int? generation,
+    bool reuseCurrentController = false,
+  }) async {
     final loadGeneration = generation ?? _channelSwitchGuard.begin();
+    final canKeepCurrentControllerMounted = reuseCurrentController &&
+        _initialized &&
+        _betterController != null &&
+        !_usingLocalFallback;
     int? savedPosition;
     if (_stream.type != 'live' && _stream.type != 'stalker') {
       try {
@@ -1095,13 +1128,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
     }
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
-    if (!isRetry) {
+    if (!isRetry && !canKeepCurrentControllerMounted) {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
     } else if (mounted) {
       setState(() {
-        _initialized = false;
+        if (!canKeepCurrentControllerMounted) _initialized = false;
         _hasError = false;
         _errorMessage = null;
         _isBuffering = true;
@@ -1211,6 +1244,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           sourceDescriptor.kind == PlaybackSourceKind.youtubePage ||
               sourceDescriptor.kind == PlaybackSourceKind.webPage;
       if (isWebSource && sourceDescriptor.normalizedUrl.isNotEmpty) {
+        _disposeActiveController();
         _webController = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setNavigationDelegate(NavigationDelegate(
@@ -1236,6 +1270,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
         return;
       }
+      _disposeActiveController();
       if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
         setState(() {
           _initialized = false;
@@ -1332,11 +1367,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) return;
-    _disposeActiveController();
-
     final bool isLocalFile = _stream.type == 'file' ||
         finalUrl.startsWith('/') ||
         finalUrl.startsWith('file://');
+    final bool isLiveChan =
+        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
+    final bool canReusePlayer = canKeepCurrentControllerMounted &&
+        !isLocalFile &&
+        _betterController != null;
+    if (!canReusePlayer) _disposeActiveController();
     String cleanLocalPath = finalUrl.replaceFirst(RegExp(r'^file://'), '');
     if (isLocalFile) {
       File localFile = File(cleanLocalPath);
@@ -1355,10 +1394,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activePlaybackHeaders = const {};
     } else {
       // Resolve HTTPS <-> HTTP cross-protocol 302 redirects for VOD/Series/Live before ExoPlayer
-      if (finalUrl.contains('/movie/') ||
-          finalUrl.contains('/series/') ||
-          finalUrl.contains('x.gamerdz1517.com') ||
-          finalUrl.contains('marveliptv.life')) {
+      final lowerFinalUrl = finalUrl.toLowerCase();
+      if (!isLiveChan &&
+          (lowerFinalUrl.contains('/movie/') ||
+              lowerFinalUrl.contains('/series/') ||
+              lowerFinalUrl.contains('x.gamerdz1517.com') ||
+              lowerFinalUrl.contains('marveliptv.life'))) {
         finalUrl = await resolveCrossProtocolRedirectForPlayback(
           finalUrl,
           headers,
@@ -1369,8 +1410,6 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activePlaybackHeaders = Map<String, String>.from(headers);
     }
 
-    final bool isLiveChan =
-        !isLocalFile && (_stream.type == 'live' || _stream.type == 'stalker');
     final bool isXtreamLiveEndpoint = RegExp(
           r'/live/[^/]+/[^/]+/\d+',
           caseSensitive: false,
@@ -1424,29 +1463,35 @@ class _PlayerScreenState extends State<PlayerScreen>
               : null,
     );
 
-    BetterPlayerController newBetterController = BetterPlayerController(
-      BetterPlayerConfiguration(
-        autoPlay: true,
-        looping: false,
-        fit: _currentBoxFit,
-        subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
-          fontSize: 0.0,
-          fontColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          outlineColor: Colors.transparent,
-          outlineSize: 0.0,
-        ),
-        controlsConfiguration: const BetterPlayerControlsConfiguration(
-          showControls: false,
-          showControlsOnInitialize: false,
-        ),
-        handleLifecycle: false,
-        allowedScreenSleep: false,
-        autoDetectFullscreenDeviceOrientation: true,
-        autoDetectFullscreenAspectRatio: true,
+    final playerConfiguration = BetterPlayerConfiguration(
+      autoPlay: true,
+      looping: false,
+      fit: _currentBoxFit,
+      subtitlesConfiguration: const BetterPlayerSubtitlesConfiguration(
+        fontSize: 0.0,
+        fontColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
+        outlineColor: Colors.transparent,
+        outlineSize: 0.0,
       ),
-      betterPlayerDataSource: dataSource,
+      controlsConfiguration: const BetterPlayerControlsConfiguration(
+        showControls: false,
+        showControlsOnInitialize: false,
+      ),
+      handleLifecycle: false,
+      allowedScreenSleep: false,
+      autoDetectFullscreenDeviceOrientation: true,
+      autoDetectFullscreenAspectRatio: true,
     );
+    final BetterPlayerController newBetterController = canReusePlayer
+        ? _betterController!
+        : BetterPlayerController(playerConfiguration);
+    final previousEventListener = _betterPlayerEventListener;
+    if (previousEventListener != null) {
+      try {
+        newBetterController.removeEventsListener(previousEventListener);
+      } catch (_) {}
+    }
 
     // Watchdog for Live TV: only switch candidate if stream genuinely hangs > 9.5s
     _liveStartupWatchdogTimer?.cancel();
@@ -1462,15 +1507,17 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
     }
 
-    newBetterController.addEventsListener((BetterPlayerEvent event) {
+    void handleBetterPlayerEvent(BetterPlayerEvent event) {
       if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
         _liveStartupWatchdogTimer?.cancel();
         if (!mounted || !_channelSwitchGuard.isCurrent(loadGeneration)) {
-          try {
-            newBetterController.setVolume(0.0);
-            newBetterController.pause();
-          } catch (_) {}
-          newBetterController.dispose();
+          if (!canReusePlayer) {
+            try {
+              newBetterController.setVolume(0.0);
+              newBetterController.pause();
+            } catch (_) {}
+            newBetterController.dispose();
+          }
           return;
         }
         if (mounted && _channelSwitchGuard.isCurrent(loadGeneration)) {
@@ -1483,7 +1530,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               } catch (_) {}
               _betterController!.dispose();
             }
-            _betterPlayerKey = GlobalKey();
+            if (!canReusePlayer) _betterPlayerKey = GlobalKey();
             _betterController = newBetterController;
             _initialized = true;
             _isBuffering = false;
@@ -1550,7 +1597,15 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
         _handlePlaybackError(errorMessage, loadGeneration);
       }
-    });
+    }
+
+    newBetterController.addEventsListener(handleBetterPlayerEvent);
+    _betterPlayerEventListener = handleBetterPlayerEvent;
+    try {
+      await newBetterController.setupDataSource(dataSource);
+    } catch (error) {
+      _handlePlaybackError(error, loadGeneration);
+    }
   }
 
   void _handlePlaybackError(dynamic error, int generation) {
@@ -1739,19 +1794,32 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _zapStream(IPTVProvider provider, PlaylistItem targetStream) {
     final generation = _channelSwitchGuard.begin();
+    final bool reuseLivePlayer =
+        (targetStream.type == 'live' || targetStream.type == 'stalker') &&
+            _initialized &&
+            _betterController != null &&
+            !_usingLocalFallback;
     provider.selectStream(targetStream);
     _reconnectTimer?.cancel();
 
-    _disposeActiveController();
+    if (reuseLivePlayer) {
+      _betterController!.pause();
+    } else {
+      _disposeActiveController();
+    }
 
     setState(() {
       _stream = targetStream;
-      _initialized = false;
+      if (!reuseLivePlayer) _initialized = false;
       _hasError = false;
+      _isBuffering = true;
       _selectedVirtualBitrate = null; // Reset virtual quality ceiling
       _retryCount = 0; // reset counter on manual switch
     });
-    _initializeController(generation: generation);
+    _initializeController(
+      generation: generation,
+      reuseCurrentController: reuseLivePlayer,
+    );
   }
 
   void _zapNextPrev(IPTVProvider provider, bool next) {
@@ -2658,7 +2726,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                                             ),
                                           ),
                                         )
-                                      : _initialized && _betterController != null
+                                      : _initialized &&
+                                              _betterController != null
                                           ? SizedBox.expand(
                                               child: (_totalDuration
                                                                   .inSeconds ==
@@ -3035,11 +3104,13 @@ class _PlayerScreenState extends State<PlayerScreen>
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B0715),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                      border:
+                          Border.all(color: Colors.redAccent.withOpacity(0.6)),
                     ),
                     child: Text(
                       isLive
@@ -3056,7 +3127,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                   const Text(
                     'تعذر استلام البث بعد عدة محاولات. يمكنك التبديل بين صيغ البث أو الانتقال لقناة أخرى.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
+                    style: TextStyle(
+                        color: Colors.white70, fontSize: 13, height: 1.3),
                   ),
                   const SizedBox(height: 20),
                   Wrap(
@@ -3443,11 +3515,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                               GestureDetector(
                                 onTap: () async {
                                   final current = provider.streamFormat;
-                                  final next = current == 'm3u8' ? 'ts' : 'm3u8';
+                                  final next =
+                                      current == 'm3u8' ? 'ts' : 'm3u8';
                                   await provider.setStreamFormat(next);
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                      content: Text('تم التحويل لصيغة ${next.toUpperCase()}'),
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text(
+                                          'تم التحويل لصيغة ${next.toUpperCase()}'),
                                       duration: const Duration(seconds: 1),
                                     ));
                                     setState(() {
@@ -3460,12 +3535,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   _resetHideHUDTimer();
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 3),
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 4),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF2E1065),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFA855F7), width: 1.0),
+                                    border: Border.all(
+                                        color: const Color(0xFFA855F7),
+                                        width: 1.0),
                                   ),
                                   child: Text(
                                     provider.streamFormat.toUpperCase(),
@@ -4053,7 +4132,8 @@ class _PlayerScreenState extends State<PlayerScreen>
             if (isLocked)
               const Padding(
                 padding: EdgeInsets.only(right: 4),
-                child: Icon(Icons.lock_rounded, size: 12, color: Color(0xFFA855F7)),
+                child: Icon(Icons.lock_rounded,
+                    size: 12, color: Color(0xFFA855F7)),
               ),
           ],
         ),

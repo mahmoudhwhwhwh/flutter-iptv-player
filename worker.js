@@ -129,7 +129,7 @@ export default {
 
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
         const clientBuild = parseInt(url.searchParams.get("app_build")) || 0;
-        if (clientBuild < 254) {
+        if (clientBuild < 255) {
           return respond({ ok: false, code: "APP_DISABLED", min_version_code: 255,
             latest_version: "v2.5.4", message: "تم إيقاف جميع إصدارات التطبيق حتى 2.5.4. الخدمة غير متاحة." }, 426);
         }

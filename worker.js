@@ -128,32 +128,42 @@ export default {
       ];
 
       if (url.pathname === "/config" || url.pathname === "/v1/config") {
+        const clientBuild = parseInt(url.searchParams.get("app_build")) || 0;
+        if (clientBuild < 254) {
+          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
+            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
+        }
         return respond({
           app_name: "LIVE STREAM PRO",
-          app_version: "2.2.95",
+          app_version: "2.5.4",
           disable_vpn_check: false,
           disable_sniffer_check: false,
           slider: sliderImages,
           // Credentials are delivered only after a successful device-bound login.
           servers: [],
           blocking: {
-            min_version_code: 234,
-            blocked_version_codes: [125, 130, 140, 144, 205, 211, 212, 233],
-            block_message: "🚨 تم إيقاف هذا الإصدار القديم نهائياً.\nيرجى التحديث إلى الإصدار v2.2.95 للاستمرار."
+            min_version_code: 254,
+            blocked_version_codes: [],
+            block_message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار."
           },
           update: {
-            latest_version: "v2.2.95",
+            latest_version: "v2.5.4",
             apk_url: "https://iptv-subscription-api.tvkora56.workers.dev/v1/download",
-            update_message: "نسخة جديدة متاحة (v2.2.95). يرجى التحديث الآن."
+            update_message: "نسخة جديدة متاحة (v2.5.4). يرجى التحديث الآن."
           }
         });
       }
 
       if (url.pathname === "/v1/download") {
-        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/download/v2.2.95/LIVE_STREAM_PREMIUM.apk", 302);
+        return Response.redirect("https://github.com/mahmoudhwhwhwh/flutter-iptv-player/releases/latest/download/LIVE_STREAM_PRO.apk", 302);
       }
 
       if (url.pathname === "/v1/custom/menu" || url.pathname === "/v1/custom_channels" || url.pathname === "/v1/channels") {
+        const clientBuild = parseInt(url.searchParams.get("app_build")) || 0;
+        if (clientBuild < 254) {
+          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
+            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
+        }
         const requestedCode = (url.searchParams.get("code") || "2027").trim();
         const sourceKey = requestedCode === "2026"
           ? "custom_stream_sources_2026"
@@ -175,16 +185,22 @@ export default {
       if (url.pathname === "/v1/login") {
         let code = "";
         let deviceId = "";
+        let appBuild = parseInt(url.searchParams.get("app_build")) || 0;
         if (request.method === "POST") {
           try {
             const body = await request.clone().json();
             code = typeof body?.code === "string" ? body.code.trim() : "";
             deviceId = typeof body?.device_id === "string" ? body.device_id.trim() : "";
             versionCode = versionCode || parseInt(body?.version_code) || 0;
+            appBuild = parseInt(body?.app_build) || 0;
           } catch (e) { code = ""; }
         } else {
           code = url.searchParams.get("code")?.trim() || "";
           deviceId = url.searchParams.get("device_id")?.trim() || url.searchParams.get("mac")?.trim() || "";
+        }
+        if (appBuild < 254) {
+          return respond({ ok: false, code: "APP_UPDATE_REQUIRED", min_version_code: 254,
+            latest_version: "v2.5.4", message: "يرجى تحديث التطبيق إلى الإصدار 2.5.4 (البناء 254) للاستمرار." }, 426);
         }
         if (!code) return respond({ ok: false, message: "رمز الدخول مطلوب" }, 401);
         if (code.length > 128 || deviceId.length > 256) {

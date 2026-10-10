@@ -601,7 +601,7 @@ class IPTVProvider with ChangeNotifier {
   bool _snifferDetected = false;
   bool get snifferDetected => _snifferDetected;
 
-  static const int APP_VERSION_CODE = 304;
+  static const int APP_VERSION_CODE = 254;
   bool _blackScreenBlocked = false;
   bool get isBlackScreenBlocked => _blackScreenBlocked;
   String _currentVersionStr = "2.2.2";
@@ -1563,7 +1563,7 @@ class IPTVProvider with ChangeNotifier {
     try {
       final configRes = await http
           .get(Uri.parse(
-              '$_workerBase/v1/config?t=${DateTime.now().millisecondsSinceEpoch}'))
+              '$_workerBase/v1/config?app_build=$APP_VERSION_CODE&t=${DateTime.now().millisecondsSinceEpoch}'))
           .timeout(const Duration(seconds: 8));
       if (configRes.statusCode == 200) {
         final decoded = json.decode(configRes.body);
@@ -1579,7 +1579,16 @@ class IPTVProvider with ChangeNotifier {
               notifyListeners();
             }
           }
-          final isBlocked = false; // Never block approved subscriptions
+          final minVersionCode =
+              int.tryParse(blockData['min_version_code']?.toString() ?? '') ?? 0;
+          final blockedCodes = blockData['blocked_version_codes'] is List
+              ? (blockData['blocked_version_codes'] as List)
+                  .map((value) => int.tryParse(value.toString()))
+                  .whereType<int>()
+                  .toSet()
+              : <int>{};
+          final isBlocked = _currentVersionCode < minVersionCode ||
+              blockedCodes.contains(_currentVersionCode);
           if (_isVersionBlocked != isBlocked) {
             _isVersionBlocked = isBlocked;
             if (isBlocked &&
@@ -1778,6 +1787,7 @@ class IPTVProvider with ChangeNotifier {
                 'code': cleanCode,
                 'device_id': deviceId,
                 'version_code': APP_VERSION_CODE,
+                'app_build': APP_VERSION_CODE,
                 'security_risk_score': _securityRiskScore
               }))
           .timeout(const Duration(seconds: 20));
@@ -1787,39 +1797,9 @@ class IPTVProvider with ChangeNotifier {
         if (decoded is Map) data = Map<String, dynamic>.from(decoded);
       } catch (_) {}
       if (response.statusCode != 200 || data['ok'] != true) {
-        if (cleanCode == '2027' || cleanCode == '2026') {
-          data = <String, dynamic>{
-            'ok': true,
-            'server': <String, dynamic>{
-              'type': 'custom',
-              'content_mode': 'custom_menu',
-              'host': _workerBase,
-              'username': '2027',
-              'password': '',
-            },
-            'subscription': <String, dynamic>{
-              'expires_at': '2027-12-31T23:59:59.000Z',
-            },
-          };
-        } else if (cleanCode == '8090' || cleanCode == '55669977') {
-          data = <String, dynamic>{
-            'ok': true,
-            'server': <String, dynamic>{
-              'type': 'xtream',
-              'content_mode': 'iptv',
-              'host': 'https://x.gamerdz1517.com',
-              'username': '00:1A:79:27:9F:A2',
-              'password': 'b8cfjif9',
-            },
-            'subscription': <String, dynamic>{
-              'expires_at': '2027-12-31T23:59:59.000Z',
-            },
-          };
-        } else {
-          lastError =
-              data['message']?.toString() ?? 'رمز الدخول غير صالح أو غير مصرح به';
-          return false;
-        }
+        lastError =
+            data['message']?.toString() ?? 'رمز الدخول غير صالح أو غير مصرح به';
+        return false;
       }
       final rawServer = data['server'] ?? data['user'];
       if (rawServer is! Map) {
@@ -2025,7 +2005,7 @@ class IPTVProvider with ChangeNotifier {
         'custom_menu.network',
         () => http
             .get(Uri.parse(
-                '$_menuUrl?code=${Uri.encodeQueryComponent(menuCode)}&t=${DateTime.now().millisecondsSinceEpoch}'))
+                '$_menuUrl?app_build=$APP_VERSION_CODE&code=${Uri.encodeQueryComponent(menuCode)}&t=${DateTime.now().millisecondsSinceEpoch}'))
             .timeout(const Duration(seconds: 15)),
       );
       List<dynamic> listData = const [];
@@ -2036,7 +2016,7 @@ class IPTVProvider with ChangeNotifier {
       if (listData.isEmpty && menuCode != '2027') {
         response = await http
             .get(Uri.parse(
-                '$_menuUrl?code=2027&t=${DateTime.now().millisecondsSinceEpoch}'))
+                '$_menuUrl?app_build=$APP_VERSION_CODE&code=2027&t=${DateTime.now().millisecondsSinceEpoch}'))
             .timeout(const Duration(seconds: 15));
         if (response.statusCode == 200) {
           final decoded = json.decode(response.body);
